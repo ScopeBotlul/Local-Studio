@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-hf-browser-state"
+description = "Enables the hf_browser_state command without any pre-configured scope."
+commands.allow = ["hf_browser_state"]
+
+[[permission]]
+identifier = "deny-hf-browser-state"
+description = "Denies the hf_browser_state command without any pre-configured scope."
+commands.deny = ["hf_browser_state"]

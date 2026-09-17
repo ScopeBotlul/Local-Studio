@@ -1,0 +1,35 @@
+fn main() {
+    tauri_build::try_build(tauri_build::Attributes::new().app_manifest(
+        tauri_build::AppManifest::new().commands(&[
+            "download_list",
+            "download_plan",
+            "download_start",
+            "download_action",
+            "hf_browser_mount",
+            "hf_browser_layout",
+            "hf_browser_hide",
+            "hf_browser_state",
+            "hf_browser_action",
+            "hf_status",
+            "hf_start_login",
+            "hf_cancel_login",
+            "hf_connect_token",
+            "hf_logout",
+            "hf_verify",
+            "hf_search",
+            "hf_model_detail",
+            "hf_model_size",
+            "hf_open_page",
+            "bootstrap",
+            "save_settings",
+            "get_hardware",
+            "list_jobs",
+            "enqueue_hash_job",
+            "cancel_job",
+            "dismiss_recovery",
+            "get_logs",
+            "mark_clean_exit",
+        ]),
+    ))
+    .expect("Failed to build Local Studio permissions and resources");
+}

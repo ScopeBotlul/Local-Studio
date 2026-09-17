@@ -1,0 +1,70 @@
+import type { Language } from './types';
+
+const de = {
+  repoSize: 'Repository gesamt', repoSizeHint: 'Alle Dateien dieser Revision, einschließlich alternativer Varianten. Die Downloadgröße ergibt sich aus deiner Dateiauswahl. 1 GB = 1.000.000.000 Bytes.',
+  intro: 'Verbinde dein Konto für den Zugriff auf private und freigegebene Modelle.',
+  account: 'Hugging-Face-Konto', anonymous: 'Nicht verbunden', connect: 'Mit Hugging Face anmelden',
+  logout: 'Abmelden', verify: 'Verbindung prüfen', pending: 'Schließe die Anmeldung hier im integrierten Browser ab.', cancel: 'Anmeldung abbrechen',
+  privacy: 'Anmeldung, Website, Suchanfragen und gestartete Downloads verbinden sich mit Hugging Face. Medien und Prompts werden nicht übertragen.',
+  secret: 'Zugangsdaten werden im Windows-Anmeldespeicher für dieses App-Profil gespeichert. Beim Kopieren auf einen anderen PC musst du dich erneut anmelden.',
+  missingClient: 'Die Browser-Anmeldung ist vorbereitet. Für diesen Build fehlt noch die Registrierung von Local Studio bei Hugging Face.',
+  advanced: 'Erweitert: eigenen Zugriffstoken verwenden', token: 'Hugging-Face-Zugriffstoken', tokenHint: 'Ein Token mit Leserechten genügt. Bei eingeschränkten Tokens müssen die gewünschten Repositories freigegeben sein.',
+  tokenSubmit: 'Token prüfen und verbinden', manageTokens: 'Tokens auf Hugging Face verwalten', manageApps: 'Verbundene Apps verwalten',
+  cached: 'Gespeichertes Konto · noch nicht online geprüft', verified: 'Konto bestätigt', expired: 'Anmeldung abgelaufen',
+  website: 'Website im Studio \u00f6ffnen', websiteHint: 'Die Hugging-Face-Website im Studio. Die Website-Anmeldung ist unabh\u00e4ngig von deinem App-Konto.',
+  models: 'Modelle', modelsIntro: 'Suche direkt im Hugging-Face-Katalog und prüfe Modelle, Revisionen und Dateien.',
+  search: 'Modelle suchen', searchLabel: 'Modellname oder Repo-ID', task: 'Aufgabe', sort: 'Sortieren nach', allTasks: 'Alle Aufgaben',
+  downloads: 'Downloads', likes: 'Likes', recent: 'Zuletzt geändert', trending: 'Im Trend',
+  image: 'Bild erzeugen', imageEdit: 'Bild bearbeiten', video: 'Video aus Text', imageVideo: 'Video aus Bild', chat: 'Text / Chat', vision: 'Bild und Text', audio: 'Audio aus Text', speech: 'Spracherkennung',
+  executableOnly: 'Nur mit Local Studio ausführbare Modelle anzeigen', noRuntime: 'Noch kein Modelladapter integriert. Deshalb ist derzeit kein Modell als ausführbar eingestuft.',
+  emptyStart: 'Starte eine Suche. Öffentliche Modelle kannst du ohne Konto ansehen.', empty: 'Keine passenden Modelle gefunden.', more: 'Weitere Modelle laden',
+  unsupported: 'Ausführung in Local Studio derzeit nicht unterstützt.', downloadPlanned: 'Dateien gezielt auswählen, Download prüfen und lokal speichern.',
+  details: 'Modell prüfen', back: 'Details schließen', revision: 'Revision (Branch, Tag oder Commit)', loadRevision: 'Revision laden', resolved: 'Aufgelöster Commit',
+  license: 'Lizenz', unknown: 'Nicht angegeben', gated: 'Freigabe erforderlich', private: 'Privat', public: 'Öffentlich', files: 'Dateien', size: 'Größe', card: 'Model Card (Originaltext)',
+  cardMissing: 'Die Model Card konnte nicht geladen werden.', modelPage: 'Modellseite öffnen', resultCount: 'Modelle geladen', working: 'Wird geladen …',
+  failure: 'Die Hugging-Face-Aktion ist fehlgeschlagen.',
+};
+const en: typeof de = {
+  repoSize: 'Repository total', repoSizeHint: 'All files in this revision, including alternative variants. Download size depends on your file selection. 1 GB = 1,000,000,000 bytes.',
+  intro: 'Connect your account to access private and approved gated models.', account: 'Hugging Face account', anonymous: 'Not connected', connect: 'Sign in with Hugging Face',
+  logout: 'Sign out', verify: 'Check connection', pending: 'Complete sign-in here in the integrated browser.', cancel: 'Cancel sign-in',
+  privacy: 'Sign-in, website browsing, searches and downloads you start connect to Hugging Face. Media and prompts are not sent.',
+  secret: 'Credentials are saved in Windows Credential Manager for this app profile. Sign in again after copying to another PC.',
+  missingClient: 'Browser sign-in is prepared. This build still needs Local Studio to be registered with Hugging Face.',
+  advanced: 'Advanced: use your own access token', token: 'Hugging Face access token', tokenHint: 'A read token is sufficient. Fine-grained tokens need access to the repositories you want to use.',
+  tokenSubmit: 'Verify token and connect', manageTokens: 'Manage tokens on Hugging Face', manageApps: 'Manage connected apps', cached: 'Saved account · not yet checked online', verified: 'Account verified', expired: 'Sign-in expired',
+  website: 'Open website in Studio', websiteHint: 'The Hugging Face website inside Studio. Website sign-in is independent of your app account.',
+  models: 'Models', modelsIntro: 'Search the Hugging Face catalog and inspect models, revisions and files.', search: 'Search models', searchLabel: 'Model name or repository ID', task: 'Task', sort: 'Sort by', allTasks: 'All tasks',
+  downloads: 'Downloads', likes: 'Likes', recent: 'Recently updated', trending: 'Trending', image: 'Text to image', imageEdit: 'Image to image', video: 'Text to video', imageVideo: 'Image to video', chat: 'Text / chat', vision: 'Image and text', audio: 'Text to audio', speech: 'Speech recognition',
+  executableOnly: 'Only show models executable in Local Studio', noRuntime: 'No model adapter is integrated yet. No models are currently classified as executable.',
+  emptyStart: 'Start a search. You can browse public models without an account.', empty: 'No matching models found.', more: 'Load more models', unsupported: 'Execution in Local Studio is not currently supported.', downloadPlanned: 'Select files, review the download and store them locally.',
+  details: 'Inspect model', back: 'Close details', revision: 'Revision (branch, tag or commit)', loadRevision: 'Load revision', resolved: 'Resolved commit', license: 'License', unknown: 'Not specified', gated: 'Approval required', private: 'Private', public: 'Public', files: 'Files', size: 'Size', card: 'Model card (original text)', cardMissing: 'The model card could not be loaded.', modelPage: 'Open model page', resultCount: 'models loaded', working: 'Loading …', failure: 'The Hugging Face action failed.',
+};
+const errors: Record<string, [string, string]> = {
+  browser_view: ['Der integrierte Browser konnte nicht gestartet werden.', 'The embedded browser could not be started.'],
+  browser_profile: ['Der Website-Sitzungsordner ist nicht verf\u00fcgbar.', 'The website session folder is unavailable.'],
+  browser_bounds: ['Die Browseransicht passt gerade nicht ins Fenster. Bitte erneut versuchen.', 'The browser view does not fit in the window. Please try again.'],
+  network: ['Hugging Face ist nicht erreichbar. Prüfe die Internetverbindung und versuche es erneut.', 'Cannot reach Hugging Face. Check your connection and try again.'],
+  unauthorized: ['Zugangsdaten ungültig oder abgelaufen. Bitte erneut anmelden.', 'Credentials are invalid or expired. Please sign in again.'],
+  forbidden: ['Keine Zugriffsberechtigung. Prüfe Token-Rechte und Modellfreigabe auf Hugging Face.', 'Access denied. Check token permissions and model approval on Hugging Face.'],
+  not_found: ['Modell, Datei oder Revision nicht gefunden, oder nicht für dieses Konto sichtbar.', 'Model, file or revision not found, or not visible to this account.'],
+  rate_limited: ['Hugging Face begrenzt gerade die Anfragen. Bitte später erneut versuchen.', 'Hugging Face is limiting requests. Please try again later.'],
+  invalid_token: ['Bitte einen gültig formatierten hf_-Zugriffstoken eingeben.', 'Enter a correctly formatted hf_ access token.'],
+  secret_store: ['Windows-Anmeldespeicher nicht verfügbar. Zugangsdaten wurden nicht ungeschützt gespeichert.', 'Windows Credential Manager is unavailable. Credentials were not saved without protection.'],
+  oauth_not_configured: [de.missingClient, en.missingClient],
+  already_connected: ['Bitte zuerst das aktuelle Konto abmelden.', 'Sign out of the current account first.'],
+  busy: ['Eine Anmeldung läuft bereits.', 'A sign-in is already in progress.'],
+  cancelled: ['Anmeldung abgebrochen.', 'Sign-in cancelled.'],
+  expired: ['Anmeldung abgelaufen. Bitte abmelden und erneut anmelden.', 'Sign-in expired. Sign out and sign in again.'],
+  authorization_denied: ['Anmeldung auf Hugging Face abgelehnt.', 'Sign-in was declined on Hugging Face.'],
+  login_timeout: ['Die Anmeldung ist nach drei Minuten abgelaufen. Bitte erneut starten.', 'Sign-in timed out after three minutes. Please start again.'],
+  browser: ['Der Standardbrowser konnte nicht geöffnet werden.', 'Could not open your default browser.'],
+  callback_bind: ['Der lokale Rückkanal für die Anmeldung konnte nicht geöffnet werden.', 'Could not open the local sign-in callback.'],
+  response_too_large: ['Die Antwort überschreitet die Größenbegrenzung. Öffne die Modellseite im Browser.', 'The response exceeds the size limit. Open the model page in your browser.'],
+  invalid_response: ['Hugging Face hat eine unerwartete Antwort geliefert.', 'Hugging Face returned an unexpected response.'],
+};
+export const hubText = (language: Language) => language === 'de' ? de : en;
+export function hubError(error: unknown, language: Language): string {
+  const key = typeof error === 'string' ? error : '';
+  return errors[key]?.[language === 'de' ? 0 : 1] ?? hubText(language).failure;
+}

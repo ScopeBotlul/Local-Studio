@@ -1,0 +1,18 @@
+{
+  "client_id": "322a729f-1375-4456-8b0e-d3dbea8b8d31",
+  "client_id_issued_at": 1789607343,
+  "client_secret_expires_at": 0,
+  "redirect_uris": [
+    "http://127.0.0.1/callback"
+  ],
+  "client_name": "Local Studio",
+  "scope": "openid profile read-repos",
+  "grant_types": [
+    "urn:ietf:params:oauth:grant-type:device_code",
+    "authorization_code",
+    "refresh_token"
+  ],
+  "token_endpoint_auth_method": "none",
+  "software_id": "de.localstudio.desktop",
+  "software_version": "0.2.0"
+}

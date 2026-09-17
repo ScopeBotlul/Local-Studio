@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-enqueue-hash-job"
+description = "Enables the enqueue_hash_job command without any pre-configured scope."
+commands.allow = ["enqueue_hash_job"]
+
+[[permission]]
+identifier = "deny-enqueue-hash-job"
+description = "Denies the enqueue_hash_job command without any pre-configured scope."
+commands.deny = ["enqueue_hash_job"]

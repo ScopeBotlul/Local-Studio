@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-hf-model-size"
+description = "Enables the hf_model_size command without any pre-configured scope."
+commands.allow = ["hf_model_size"]
+
+[[permission]]
+identifier = "deny-hf-model-size"
+description = "Denies the hf_model_size command without any pre-configured scope."
+commands.deny = ["hf_model_size"]

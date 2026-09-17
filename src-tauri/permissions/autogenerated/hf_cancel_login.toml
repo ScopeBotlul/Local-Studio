@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-hf-cancel-login"
+description = "Enables the hf_cancel_login command without any pre-configured scope."
+commands.allow = ["hf_cancel_login"]
+
+[[permission]]
+identifier = "deny-hf-cancel-login"
+description = "Denies the hf_cancel_login command without any pre-configured scope."
+commands.deny = ["hf_cancel_login"]

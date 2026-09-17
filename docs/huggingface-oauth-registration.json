@@ -1,0 +1,8 @@
+{
+  "client_name": "Local Studio",
+  "redirect_uris": ["http://127.0.0.1/callback"],
+  "token_endpoint_auth_method": "none",
+  "scope": "openid profile read-repos",
+  "software_id": "de.localstudio.desktop",
+  "software_version": "0.2.0"
+}

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-hf-open-page"
+description = "Enables the hf_open_page command without any pre-configured scope."
+commands.allow = ["hf_open_page"]
+
+[[permission]]
+identifier = "deny-hf-open-page"
+description = "Denies the hf_open_page command without any pre-configured scope."
+commands.deny = ["hf_open_page"]

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-hf-model-detail"
+description = "Enables the hf_model_detail command without any pre-configured scope."
+commands.allow = ["hf_model_detail"]
+
+[[permission]]
+identifier = "deny-hf-model-detail"
+description = "Denies the hf_model_detail command without any pre-configured scope."
+commands.deny = ["hf_model_detail"]

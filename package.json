@@ -1,0 +1,33 @@
+{
+  "name": "local-studio",
+  "private": true,
+  "version": "0.4.1",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 1420 --strictPort",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 1421 --strictPort",
+    "test": "vitest run",
+    "tauri": "tauri",
+    "desktop:dev": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/desktop.ps1 dev",
+    "desktop:build": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/desktop.ps1 build",
+    "test:native": "node scripts/native-smoke.mjs"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.0.0",
+    "@tauri-apps/plugin-dialog": "^2.0.0",
+    "lucide-react": "^0.468.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@tauri-apps/cli": "^2.11.4",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "latest",
+    "typescript": "~5.9.3",
+    "vite": "^8.3.0",
+    "vitest": "latest"
+  }
+}

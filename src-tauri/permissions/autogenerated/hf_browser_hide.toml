@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-hf-browser-hide"
+description = "Enables the hf_browser_hide command without any pre-configured scope."
+commands.allow = ["hf_browser_hide"]
+
+[[permission]]
+identifier = "deny-hf-browser-hide"
+description = "Denies the hf_browser_hide command without any pre-configured scope."
+commands.deny = ["hf_browser_hide"]
