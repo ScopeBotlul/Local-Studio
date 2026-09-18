@@ -4,7 +4,7 @@ export type MediaKind = 'image' | 'video' | 'audio';
 export interface Annotation { favorite: boolean; tags: string[]; revision: number }
 export interface AnnotationEdit { rootId: string; path: string; fileId: string; revision: number; favorite: boolean; tags: string[] }
 export interface GalleryOrigin {jobId:string;request:ImageRequest;modelName:string;modelSha256:string|null;runtime:string;createdAt:string;association:string}
-export interface GalleryEntry { origin:GalleryOrigin|null; path: string; name: string; kind: MediaKind | 'folder'; bytes: number; modified: number; fileId: string | null; annotation: Annotation; thumbnailVersion: string }
+export interface GalleryEntry {locked?:boolean; origin:GalleryOrigin|null; path: string; name: string; kind: MediaKind | 'folder'; bytes: number; modified: number; fileId: string | null; annotation: Annotation; thumbnailVersion: string }
 export type GallerySort='modifiedDesc'|'modifiedAsc'|'nameAsc'|'nameDesc'|'sizeAsc'|'sizeDesc';
 export interface GalleryQuery { sort?:GallerySort; folder: string; search: string; kind: 'all' | MediaKind; recursive: boolean; offset: number; favoritesOnly: boolean; tag: string }
 export interface GalleryListing { root: string; rootId: string; folder: string; folders: GalleryEntry[]; entries: GalleryEntry[]; total: number; skipped: number; limited: boolean; tags: string[] }

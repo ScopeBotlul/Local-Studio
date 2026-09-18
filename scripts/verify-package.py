@@ -7,14 +7,18 @@ sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
 exe=sha(r/'src-tauri/target/release/local-studio.exe')
 candidates=[]
 ai_candidates=[]
+privacy_candidates=[]
 for f in (r/'.artifacts').glob('native-*/report.json'):
  q=json.loads(f.read_text(encoding='utf-8'))
  if q.get('passed') and q.get('version')==v and any('Native layered canvas' in c.get('name','') for c in q.get('checks',[])) and sha(f.parent/'Local Studio.exe')==exe:candidates.append(f)
  if q.get('passed') and q.get('version')==v and any('Actual CPU llama.cpp inference' in c.get('name','') for c in q.get('checks',[])) and sha(f.parent/'Local Studio.exe')==exe:ai_candidates.append(f)
+ if q.get('passed') and q.get('version')==v and any('Normal Windows close works with a locked Studio' in c.get('name','') for c in q.get('checks',[])) and sha(f.parent/'Local Studio.exe')==exe:privacy_candidates.append(f)
 assert candidates,'No successful creative report for the exact release EXE'
 native=sorted(candidates)[-1]
 assert ai_candidates,'No successful AI report for the exact release EXE'
 ai_native=sorted(ai_candidates)[-1]
+assert privacy_candidates,'No successful privacy and locked-close report for the exact release EXE'
+privacy_native=sorted(privacy_candidates)[-1]
 portable=r/f'releases/Local Studio Hub {v}'
 archive=r/f'releases/Local-Studio-{v}-hub-portable.zip'
 installer=r/f'releases/Local-Studio-{v}-hub-setup.exe'
@@ -35,5 +39,5 @@ spec='2e3232ef5a607123326d3732679e28a5758106a5d8db61a7420b2e47b71d4bdd'
 assert sha(r/'SPEC.md')==sha(r/'prompt')==spec
 for name in ['package.json','package-lock.json','src-tauri/tauri.conf.json']:assert json.loads((r/name).read_text())['version']==v
 sums=(r/f'releases/SHA256SUMS-{v}.txt').read_text();assert sha(archive) in sums and sha(installer) in sums
-result=dict(passed=True,version=v,nativeReport=str(native.relative_to(r)),aiReport=str(ai_native.relative_to(r)),executableSha256=exe,zipSha256=sha(archive),installerSha256=sha(installer),zipFiles=len(expected),runtimeFiles={k:len(f) for k,f in manifests.items()},specAndPromptSha256=spec)
+result=dict(passed=True,version=v,nativeReport=str(native.relative_to(r)),aiReport=str(ai_native.relative_to(r)),privacyReport=str(privacy_native.relative_to(r)),executableSha256=exe,zipSha256=sha(archive),installerSha256=sha(installer),zipFiles=len(expected),runtimeFiles={k:len(f) for k,f in manifests.items()},specAndPromptSha256=spec)
 (r/f'.artifacts/package-verification-{v}.json').write_text(json.dumps(result,indent=2),encoding='utf-8');print(json.dumps(result,indent=2))

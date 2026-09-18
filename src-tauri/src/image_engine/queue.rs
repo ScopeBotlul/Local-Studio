@@ -23,6 +23,7 @@ impl ImageEngine {
     fn prepare(&self, request: &mut ImageRequest) -> Result<(ImageProbe, File, String)> {
         if self.stopped.load(Ordering::Relaxed) { return Err("image_closing".into()); }
         if self.workspace()?.recovery_available { return Err("image_recovery_pending".into()); }
+        crate::privacy::check_request(request)?;
         validate(request)?;
         request.model_path = fs::canonicalize(&request.model_path).map_err(|_| "image_path")?.to_string_lossy().into();
         let mut model = read_locked(Path::new(&request.model_path))?;
@@ -36,7 +37,8 @@ impl ImageEngine {
         self.start_prepared(request,probe,model,digest,temporary,None)
     }
     fn start_prepared(self:&Arc<Self>,request:ImageRequest,probe:ImageProbe,model:File,digest:String,temporary:Option<&Path>,batch:Option<BatchInfo>)->Result<ImageJob>{
-        let job = ImageJob { batch, sampling_steps:None,
+        crate::privacy::check_request(&request)?;
+        let job = ImageJob { restricted:crate::privacy::request(&request),locked:false,batch, sampling_steps:None,
             id: uuid::Uuid::new_v4().to_string(), request, status: "queued".into(), phase: "queued".into(),
             step: 0, hashed_bytes: 0, model_bytes: probe.model_bytes.unwrap_or(0), model_sha256: Some(digest),
             runtime: probe.runtime, device: probe.device.unwrap_or_default(), created_at: crate::database::now(),
@@ -75,6 +77,7 @@ impl ImageEngine {
             fs::create_dir(directory).map_err(|_| "image_storage")?;
         }
         let directory=job_directory(&job,&self.config)?;
+        if job.restricted{crate::privacy::protect_path(&directory)?;}
         if let Err(error)=reference::prepare(&job.request,&directory,resume){if !resume{let _=fs::remove_dir(&directory);}return Err(error);}
         // Publish the job with its own immutable input paths. Restoring its parameters
         // must not depend on a user file which may have moved since queueing.
@@ -157,11 +160,11 @@ impl ImageEngine {
 }
 
 #[tauri::command]
-pub async fn image_generate_batch(request:ImageRequest,count:u32,increment_seed:bool,core:tauri::State<'_,Arc<Core>>,state:tauri::State<'_,Arc<ImageEngine>>)->Result<BatchResult>{let state=state.inner().clone();let temporary=PathBuf::from(core.storage_paths()?.temporary);tauri::async_runtime::spawn_blocking(move||state.start_batch(request,count,increment_seed,&temporary)).await.map_err(|_|"image_storage")?}
+pub async fn image_generate_batch(request:ImageRequest,count:u32,increment_seed:bool,core:tauri::State<'_,Arc<Core>>,state:tauri::State<'_,Arc<ImageEngine>>)->Result<BatchResult>{let privacy_epoch=crate::privacy::epoch();let privacy_result=(async {let state=state.inner().clone();let temporary=PathBuf::from(core.storage_paths()?.temporary);tauri::async_runtime::spawn_blocking(move||state.start_batch(request,count,increment_seed,&temporary)).await.map_err(|_|"image_storage")?}).await;crate::privacy::finish(privacy_epoch,privacy_result)}
 #[tauri::command]
-pub async fn image_resume(id: String, state: tauri::State<'_, Arc<ImageEngine>>) -> Result<ImageJob> {
+pub async fn image_resume(id: String, state: tauri::State<'_, Arc<ImageEngine>>) -> Result<ImageJob> {let privacy_epoch=crate::privacy::epoch();let privacy_result=(async {
     let engine = state.inner().clone(); tauri::async_runtime::spawn_blocking(move || engine.resume(&id)).await.map_err(|_| "image_storage")?
-}
+}).await;crate::privacy::finish(privacy_epoch,privacy_result)}
 
 #[cfg(test)]
 #[path = "queue_tests.rs"]

@@ -108,11 +108,11 @@ pub(super) fn clear(path: &Path) -> Result<()> {
     db.execute_batch("DELETE FROM thumbnails; VACUUM;").map_err(|_| "gallery_thumbnail_cache".into())
 }
 #[tauri::command]
-pub async fn gallery_thumbnail(query: ThumbnailQuery,core: State<'_,Arc<Core>>) -> Result<Thumbnail> {
+pub async fn gallery_thumbnail(query: ThumbnailQuery,core: State<'_,Arc<Core>>) -> Result<Thumbnail> {let privacy_epoch=crate::privacy::epoch();let privacy_result=(async {
     let permit=slots().acquire_owned().await.map_err(|_| "gallery_thumbnail")?;
     let root=root(&core)?; let path=PathBuf::from(core.storage_paths()?.cache);
     tauri::async_runtime::spawn_blocking(move || { let _permit=permit; thumbnail(&root,&path,query) }).await.map_err(|_| "gallery_thumbnail")?
-}
+}).await;crate::privacy::finish(privacy_epoch,privacy_result)}
 #[tauri::command]
 pub async fn gallery_thumbnail_clear(core: State<'_,Arc<Core>>) -> Result<()> {
     let permit=slots().acquire_many_owned(2).await.map_err(|_| "gallery_thumbnail")?;
@@ -138,10 +138,10 @@ fn store_video(root:&Path,cache_path:&Path,query:ThumbnailQuery,png:String)->Res
     Ok(result(bytes,width,height,false,stored))
 }
 #[tauri::command]
-pub async fn gallery_video_thumbnail_store(query:ThumbnailQuery,png:String,core:State<'_,Arc<Core>>)->Result<Thumbnail>{
+pub async fn gallery_video_thumbnail_store(query:ThumbnailQuery,png:String,core:State<'_,Arc<Core>>)->Result<Thumbnail>{let privacy_epoch=crate::privacy::epoch();let privacy_result=(async {
     let permit=slots().acquire_owned().await.map_err(|_|"gallery_thumbnail")?;let root=root(&core)?;let path=PathBuf::from(core.storage_paths()?.cache);
     tauri::async_runtime::spawn_blocking(move||{let _permit=permit;store_video(&root,&path,query,png)}).await.map_err(|_|"gallery_thumbnail")?
-}
+}).await;crate::privacy::finish(privacy_epoch,privacy_result)}
 #[cfg(test)]mod video_tests {
  use super::*;
  fn query(root:&Path)->ThumbnailQuery{let path=root.join("video.webm");let file=lock_file(&path).unwrap();ThumbnailQuery{root_id:root_id(root),path:"video.webm".into(),version:version(root,&path,&file.metadata().unwrap(),catalog::identity(&file).ok().as_deref())}}

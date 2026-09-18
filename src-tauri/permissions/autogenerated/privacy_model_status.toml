@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-privacy-model-status"
+description = "Enables the privacy_model_status command without any pre-configured scope."
+commands.allow = ["privacy_model_status"]
+
+[[permission]]
+identifier = "deny-privacy-model-status"
+description = "Denies the privacy_model_status command without any pre-configured scope."
+commands.deny = ["privacy_model_status"]

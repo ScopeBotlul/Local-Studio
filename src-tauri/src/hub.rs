@@ -87,6 +87,7 @@ pub struct SearchQuery {
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ModelSummary {
+    #[serde(default)] pub restricted:bool,
     pub id: String,
     pub task: Option<String>,
     pub library: Option<String>,
@@ -109,6 +110,7 @@ fn summary(v: &Value) -> HubResult<ModelSummary> {
     let id = v["id"].as_str().ok_or("invalid_response")?;
     validate_repo(id)?;
     Ok(ModelSummary {
+        restricted:v["tags"].as_array().is_some_and(|tags|tags.iter().filter_map(Value::as_str).any(|tag|matches!(tag.to_ascii_lowercase().as_str(),"nsfw"|"18+"|"adult"|"not-for-all-audiences"))),
         id: id.into(),
         revision: v["sha"].as_str().map(str::to_owned),
         task: v["pipeline_tag"].as_str().map(str::to_owned),

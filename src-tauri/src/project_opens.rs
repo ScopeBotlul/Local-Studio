@@ -13,8 +13,8 @@ impl ProjectOpens {
 }
 pub fn second(app:&tauri::AppHandle,args:Vec<String>,cwd:String){if let Some(q)=app.try_state::<Arc<ProjectOpens>>(){q.receive(args,Path::new(&cwd));let _=app.emit_to("main","project-open-requested",());}crate::desktop_features::restore(app);}
 #[tauri::command]
-pub fn project_take_open(state:tauri::State<'_,Arc<ProjectOpens>>)->Result<Option<String>,String>{Ok(state.0.lock().map_err(|_|"project_storage")?.front().cloned())}
+pub fn project_take_open(state:tauri::State<'_,Arc<ProjectOpens>>)->Result<Option<String>,String>{let privacy_epoch=crate::privacy::epoch();let privacy_result=(||{Ok(state.0.lock().map_err(|_|"project_storage")?.front().cloned())})();crate::privacy::finish(privacy_epoch,privacy_result)}
 #[cfg(test)]mod tests{use super::*;#[test]fn accepts_only_one_local_project_and_bounds_queue(){let q=ProjectOpens::new();for args in [vec!["app","--worker"],vec!["app","x.png"],vec!["app","x.localstudio","y.localstudio"]]{q.receive(args.into_iter().map(String::from).collect(),Path::new("D:/local"));}assert!(q.0.lock().unwrap().is_empty());q.receive(vec!["app".into(),"test.localstudio".into()],Path::new("D:/local"));assert_eq!(q.0.lock().unwrap().len(),1);}}
 
 #[tauri::command]
-pub fn project_ack_open(path:String,state:tauri::State<'_,Arc<ProjectOpens>>)->Result<(),String>{let mut q=state.0.lock().map_err(|_|"project_storage")?;if q.front()==Some(&path){q.pop_front();}Ok(())}
+pub fn project_ack_open(path:String,state:tauri::State<'_,Arc<ProjectOpens>>)->Result<(),String>{let privacy_epoch=crate::privacy::epoch();let privacy_result=(||{let mut q=state.0.lock().map_err(|_|"project_storage")?;if q.front()==Some(&path){q.pop_front();}Ok(())})();crate::privacy::finish(privacy_epoch,privacy_result)}

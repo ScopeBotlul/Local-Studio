@@ -113,7 +113,7 @@ fn freeze(t:&Timeline,time:f64)->Timeline {
 }
 
 #[tauri::command]
-pub async fn video_frame(id:String,timeline:Timeline,time:f64,proxies:bool,state:tauri::State<'_,Arc<Projects>>,engine:tauri::State<'_,Arc<VideoEngine>>,core:tauri::State<'_,Arc<Core>>)->Result<Frame> {
+pub async fn video_frame(id:String,timeline:Timeline,time:f64,proxies:bool,state:tauri::State<'_,Arc<Projects>>,engine:tauri::State<'_,Arc<VideoEngine>>,core:tauri::State<'_,Arc<Core>>)->Result<Frame> {let privacy_epoch=crate::privacy::epoch();let privacy_result=(async {
     let p=state.creative_snapshot(&id)?;validate(&Creative{revision:0,image:None,video:Some(timeline.clone())},&p.assets)?;bounded(time,0.,3600.)?;
     let e=engine.inner().clone();let ticket=e.media.frame_ticket.fetch_add(1,Ordering::SeqCst)+1;let temporary=core.storage_paths()?.temporary;
     tauri::async_runtime::spawn_blocking(move||{
@@ -130,10 +130,10 @@ pub async fn video_frame(id:String,timeline:Timeline,time:f64,proxies:bool,state
         if cancelled(){return Err("video_cancelled".into());}let mut f=gallery::lock_file(&work.path.join("render.png"))?;if f.metadata().map_err(err)?.len()>4*1024*1024{return Err("creative_limit".into());}let mut bytes=vec![];f.read_to_end(&mut bytes).map_err(err)?;drop(f);
         Ok(Frame{data_url:format!("data:image/png;base64,{}",base64::engine::general_purpose::STANDARD.encode(bytes)),time,proxy_assets})
     }).await.map_err(err)?
-}
+}).await;crate::privacy::finish(privacy_epoch,privacy_result)}
 
 #[tauri::command]
-pub async fn media_info(id:String,state:tauri::State<'_,Arc<Projects>>,engine:tauri::State<'_,Arc<VideoEngine>>)->Result<Vec<MediaInfo>> {
+pub async fn media_info(id:String,state:tauri::State<'_,Arc<Projects>>,engine:tauri::State<'_,Arc<VideoEngine>>)->Result<Vec<MediaInfo>> {let privacy_epoch=crate::privacy::epoch();let privacy_result=(async {
     let p=state.creative_snapshot(&id)?;let e=engine.inner().clone();tauri::async_runtime::spawn_blocking(move||{
         let rows=e.records()?;let mut out=vec![];for asset in &p.assets {let mut info=MediaInfo{asset_id:asset.id.clone(),proxies:vec![],waveform:None};for row in rows.iter().filter(|r|r.source==asset.sha256) {
             let path=Path::new(&row.path);if !path.is_file(){continue;}let Ok(c)=maintenance::inspect(path,"video",&row.id)else{continue};if c.binding!=row.binding||c.bytes!=row.bytes{continue;}
@@ -141,14 +141,14 @@ pub async fn media_info(id:String,state:tauri::State<'_,Arc<Projects>>,engine:ta
             if row.kind=="wave"{info.waveform=serde_json::from_value(row.payload.clone()).ok();}
         }out.push(info);}Ok(out)
     }).await.map_err(err)?
-}
+}).await;crate::privacy::finish(privacy_epoch,privacy_result)}
 
 #[tauri::command]
-pub fn media_status(engine:tauri::State<'_,Arc<VideoEngine>>)->Result<Option<MediaTask>>{Ok(engine.media.task.lock().map_err(err)?.clone())}
+pub fn media_status(engine:tauri::State<'_,Arc<VideoEngine>>)->Result<Option<MediaTask>>{let privacy_epoch=crate::privacy::epoch();let privacy_result=(||{if crate::privacy::locked()&&crate::privacy::has_protected(){return Ok(None);}Ok(engine.media.task.lock().map_err(err)?.clone())})();crate::privacy::finish(privacy_epoch,privacy_result)}
 #[tauri::command]
 pub fn media_cancel(id:String,engine:tauri::State<'_,Arc<VideoEngine>>)->Result<()>{if engine.media.task.lock().map_err(err)?.as_ref().is_some_and(|t|t.id==id&&t.status=="running"){engine.media.cancel.store(true,Ordering::SeqCst);}Ok(())}
 #[tauri::command]
-pub async fn media_prepare(id:String,asset_id:String,kind:String,resolution:String,width:u32,state:tauri::State<'_,Arc<Projects>>,engine:tauri::State<'_,Arc<VideoEngine>>,core:tauri::State<'_,Arc<Core>>)->Result<MediaTask> {
+pub async fn media_prepare(id:String,asset_id:String,kind:String,resolution:String,width:u32,state:tauri::State<'_,Arc<Projects>>,engine:tauri::State<'_,Arc<VideoEngine>>,core:tauri::State<'_,Arc<Core>>)->Result<MediaTask> {let privacy_epoch=crate::privacy::epoch();let privacy_result=(async {
     let p=state.creative_snapshot(&id)?;let asset=p.assets.iter().find(|a|a.id==asset_id).ok_or("creative_source")?;
     if !["proxy","wave"].contains(&kind.as_str())||asset.kind=="image"||kind=="proxy"&&asset.kind!="video"||!["half","quarter","auto","custom"].contains(&resolution.as_str())||!(64..=1920).contains(&width){return Err("creative_parameters".into());}
     let e=engine.inner().clone();let paths=core.storage_paths()?;
@@ -159,7 +159,7 @@ pub async fn media_prepare(id:String,asset_id:String,kind:String,resolution:Stri
             let _admission=crate::resources::shared().acquire(&asset_id,"media",512*1024*1024,false,&e.media.cancel).map_err(|v|if v=="resource_cancelled"{"video_cancelled".into()}else{v})?;
             let source=e.source(&p,&asset_id)?;let(runtime,_runtime)=e.runtime()?;let metadata=probe(&runtime,&source.1)?;if metadata.duration<=0.||metadata.duration>3600.{return Err("video_range".into());}
             if kind=="wave"&&!metadata.audio{return Err("video_no_audio".into());}
-            let base=if kind=="proxy"{&paths.proxies}else{&paths.cache};let mut work=Work::new(base,"video-media")?;work.files=vec!["media.log".into(),"wave.pcm".into(),"proxy.mp4".into(),"wave.json".into()];
+            let base=if kind=="proxy"{&paths.proxies}else{&paths.cache};let mut work=Work::new(base,"video-media")?;if project_restricted(&p){crate::privacy::protect_path(&work.path)?;}work.files=vec!["media.log".into(),"wave.pcm".into(),"proxy.mp4".into(),"wave.json".into()];
             let mut c=command(&runtime.join("ffmpeg.exe"));c.args(["-hide_banner","-nostdin","-v","error","-n","-max_alloc","268435456","-protocol_whitelist","file,pipe","-format_whitelist","mov,matroska,webm,mp3,wav,flac,ogg","-threads","2","-i"]).arg(&source.1).args(["-map_metadata","-1","-threads","2","-progress","pipe:1","-nostats"]);
             let (target,cache_id)=if kind=="proxy"{
                 let wanted=match resolution.as_str(){"half"=>metadata.width/2,"quarter"=>metadata.width/4,"custom"=>width,_=>metadata.width.min(960)}.clamp(2,1920);let wanted=(wanted/2)*2;
@@ -176,7 +176,7 @@ pub async fn media_prepare(id:String,asset_id:String,kind:String,resolution:Stri
         if let Ok(mut task)=e.media.task.lock(){if let Some(t)=task.as_mut(){match result{Ok(())=>{t.status="completed".into();t.progress=1.;},Err(error)=>{t.status=if error=="video_cancelled"{"cancelled"}else{"failed"}.into();t.error=Some(error);}}}}
         e.media.busy.store(false,Ordering::SeqCst);
     });Ok(task)
-}
+}).await;crate::privacy::finish(privacy_epoch,privacy_result)}
 
 #[cfg(test)]mod tests {
     use super::*;

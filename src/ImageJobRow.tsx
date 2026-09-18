@@ -1,3 +1,4 @@
+import {PrivacyGate} from "./Privacy";
 import { Image, X } from 'lucide-react';
 import { activeImage, imageError, type ImageJob } from './image-api';
 import { fileName, formatDate } from './helpers';
@@ -10,6 +11,7 @@ export const imagePhases: Record<string, [string, string]> = {
 };
 export default function ImageJobRow({ job, language, onOpen, onCancel, onResume, pending }: { job: ImageJob; language: Language; onOpen: () => void; onCancel: () => void; onResume: () => void; pending: boolean }) {
   const de = language === 'de'; const running = job.status === 'running';
+  if(job.locked)return <article className="job-row" data-image-job-id={job.id}><span>{imagePhases[job.phase]?.[de?0:1]??job.phase}</span><PrivacyGate de={de}/>{activeImage(job)&&<button className="button secondary" onClick={onCancel}>{de?'Abbrechen':'Cancel'}</button>}</article>;
   return <article className="job-row" data-image-job-id={job.id}>
     <div className={`job-icon status-${job.status}`}><Image size={19} /></div>
     <div className="job-content"><div className="job-heading"><strong title={job.request.modelPath}>{fileName(job.request.modelPath)}</strong><span className={`status status-${job.status}`}>{imagePhases[job.phase]?.[de ? 0 : 1] ?? job.phase}</span></div>

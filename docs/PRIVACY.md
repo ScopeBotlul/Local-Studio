@@ -1,0 +1,19 @@
+# Lokale 18+-Sperre ab 0.26.0
+
+Oben im Hauptfenster öffnet **18+ · Gesperrt** die Einrichtung. Zunächst das Mindestalter von 18 Jahren bestätigen und eine **PIN mit 6–12 Ziffern** oder ein **Passwort mit 8–128 Zeichen** festlegen. Standardmäßig ist der Modus aus und nach jedem Neustart wieder gesperrt. Die Altersangabe ist eine Selbstauskunft.
+
+Nach dem Entsperren lassen sich lokale Modelle unter **Modelle** beziehungsweise im Bild-Studio als **18+** kennzeichnen. Eindeutige NSFW-/Adult-Tags aus Hugging Face werden bei der Downloadplanung übernommen. Die Kennzeichnung ändert keine Inferenzparameter und benötigt keine Inhaltsklassifikation. Fehlende oder falsche Angaben des Modellanbieters werden nicht automatisch erkannt. Bereits bekannte Bildaufträge des Modells werden bei der lokalen Kennzeichnung ebenfalls geschützt.
+
+Die Modellauswahl bleibt sichtbar. Gesperrte Arbeitsbereiche zeigen einen unscharfen neutralen Platzhalter und **Entsperren**. Private Bilder oder Prompts werden dafür nicht an die Oberfläche geliefert. Neue Aufträge mit geschützten Modellen, Referenzen oder Masken werden auch im Backend abgewiesen. Bereits angenommene Generierungen laufen weiter. Beim Entsperren erscheinen die erhaltenen Eingaben und Ergebnisse wieder.
+
+Galerieausgaben, innerhalb der App erstellte Kopien, Bearbeitungen, Kompositionen und Exporte übernehmen die Herkunftskennzeichnung. Gesperrt bleiben auch Dateinamen, Tags, Prompts, Details, Vergleich und Vorschaubilder verborgen; Suchergebnisse enthalten diese Dateien nicht. Ein Klick auf den Platzhalter öffnet die Entsperrung. Manuell importierte Medien haben keinen Schalter für diese Kennzeichnung. Bereits erzeugte geschützte Medien bleiben geschützt, wenn das Modell später anders gekennzeichnet wird.
+
+Projekte mit geschützten Inhalten werden als Ganzes gesperrt. Ihr Transport verwendet **Projektformat 5**; zum Öffnen ist mindestens 0.26.0 erforderlich. Die Kennzeichnung reist mit, das lokale Passwort nicht. Ein anderer PC richtet seine eigene Sperre ein. Ältere Projektformate bleiben lesbar. Bei Dateien aus älteren Builds ohne gespeicherte Kennzeichnung kann die Herkunft nicht immer nachträglich festgestellt werden.
+
+Gekennzeichnete Chatmodelle und dazugehörige Verläufe sind ebenfalls geschützt. Ein Chat, der bei entsperrtem Bereich Zugriff auf Studio-Werkzeuge und vorhandene geschützte Daten hatte, wird vorsorglich als ganzes geschützt. Normale Chats ohne solche Inhalte funktionieren auch bei aktiver Sperre. Gemischte ältere Projekt-/Video-/Transkriptverläufe, Papierkorb, Protokolle, Speicherbereinigung, SRT-Zugriff und das Speichern gelernter Präferenzen verlangen vorsorglich eine Entsperrung, sobald geschützte Daten registriert sind. Keine vorhandenen Indizes werden durch Sperren gelöscht. Visuelle Inhaltsanalyse und semantischer Index sind weiterhin zukünftiger Umfang.
+
+Im 18+-Dialog lassen sich **Jetzt sperren**, **18+-Modus ausschalten**, die Neustartsperre und ein Wechsel von PIN/Passwort bedienen. Änderungen an Zugangsdaten und Neustartverhalten benötigen das aktuelle Geheimnis. Falsche Versuche führen zu einer steigenden Wartezeit, die einen Neustart übersteht. Es gibt keinen eingebauten PIN-Reset.
+
+Die Sperre schützt den Zugriff **innerhalb von Local Studio**. Sie verschlüsselt keine Dateien, Datenbanken oder Projektarchive auf dem Datenträger. Andere Programme, Windows-Dateizugriffe und Kopien außerhalb der App fallen nicht unter diesen Schutz. Zum Aktualisieren den vollständigen Ordner **Local-Studio-Data** behalten; dort liegen auch Sperre und Herkunftszuordnungen.
+
+Technik: zufälliges Salt und PBKDF2-HMAC-SHA256 mit 600.000 Iterationen, kein gespeichertes Klartextgeheimnis, persistente Versuchsbremse, typisierte IPC nur für das lokale Hauptfenster. Bereits laufende Leseantworten werden beim Sperren ungültig. Die Ableitung/Verifikation nutzt die vorhandene gepinnte [ring-Implementierung](https://docs.rs/ring/0.17.14/ring/pbkdf2/index.html).

@@ -211,48 +211,49 @@ impl Projects {
     }
 }
 #[tauri::command]
-pub async fn project_history(state: tauri::State<'_, Arc<Projects>>) -> Result<Vec<Point>> {
+pub async fn project_history(state: tauri::State<'_, Arc<Projects>>) -> Result<Vec<Point>> {let privacy_epoch=crate::privacy::epoch();let privacy_result=(async {
+    if crate::privacy::locked()&&crate::privacy::has_protected(){return Ok(vec![]);}
     let p = state.inner().clone();
     tauri::async_runtime::spawn_blocking(move || p.history())
         .await
         .map_err(err)?
-}
+}).await;crate::privacy::finish(privacy_epoch,privacy_result)}
 #[tauri::command]
-pub async fn project_checkpoint(state: tauri::State<'_, Arc<Projects>>) -> Result<()> {
+pub async fn project_checkpoint(state: tauri::State<'_, Arc<Projects>>) -> Result<()> {let privacy_epoch=crate::privacy::epoch();let privacy_result=(async {
     let p = state.inner().clone();
     tauri::async_runtime::spawn_blocking(move || p.checkpoint())
         .await
         .map_err(err)?
-}
+}).await;crate::privacy::finish(privacy_epoch,privacy_result)}
 #[tauri::command]
 pub async fn project_restore_point(
     id: i64,
     confirmed: bool,
     state: tauri::State<'_, Arc<Projects>>,
-) -> Result<Project> {
+) -> Result<Project> {let privacy_epoch=crate::privacy::epoch();let privacy_result=(async {
     let p = state.inner().clone();
     tauri::async_runtime::spawn_blocking(move || p.restore_point(id, confirmed))
         .await
         .map_err(err)?
-}
+}).await;crate::privacy::finish(privacy_epoch,privacy_result)}
 #[tauri::command]
 pub async fn project_rename(
     id: String,
     name: String,
     state: tauri::State<'_, Arc<Projects>>,
-) -> Result<Project> {
+) -> Result<Project> {let privacy_epoch=crate::privacy::epoch();let privacy_result=(async {
     let p = state.inner().clone();
     tauri::async_runtime::spawn_blocking(move || p.rename(&id, name))
         .await
         .map_err(err)?
-}
+}).await;crate::privacy::finish(privacy_epoch,privacy_result)}
 #[tauri::command]
 pub async fn project_restore_media(
     id: String,
     state: tauri::State<'_, Arc<Projects>>,
-) -> Result<Project> {
+) -> Result<Project> {let privacy_epoch=crate::privacy::epoch();let privacy_result=(async {
     let p = state.inner().clone();
     tauri::async_runtime::spawn_blocking(move || p.restore_media(&id))
         .await
         .map_err(err)?
-}
+}).await;crate::privacy::finish(privacy_epoch,privacy_result)}

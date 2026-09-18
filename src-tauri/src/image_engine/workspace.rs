@@ -10,7 +10,7 @@ pub struct ImageWorkspace {
 }
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct WorkspaceSnapshot { pub workspace: ImageWorkspace, pub recovery_available: bool, pub unsaved: usize }
+pub struct WorkspaceSnapshot { pub locked:bool, pub workspace: ImageWorkspace, pub recovery_available: bool, pub unsaved: usize }
 #[derive(Clone, Copy, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ImageExitAction { Save, Discard, Keep }
@@ -32,9 +32,11 @@ fn persist_workspace(state: &State, workspace: &ImageWorkspace) -> Result<()> {
 impl ImageEngine {
     pub fn workspace(&self) -> Result<WorkspaceSnapshot> {
         let state = self.state.lock().map_err(|_| "image_storage")?;
-        Ok(WorkspaceSnapshot { workspace: state.workspace.clone(), recovery_available: state.recovery_available, unsaved: state.jobs.iter().filter(|j| unsaved(j)).count() })
+        Ok(WorkspaceSnapshot { locked:false, workspace: state.workspace.clone(), recovery_available: state.recovery_available, unsaved: state.jobs.iter().filter(|j| unsaved(j)).count() })
     }
-    pub fn save_workspace(&self, workspace: ImageWorkspace) -> Result<()> {
+    pub fn save_workspace(&self, mut workspace: ImageWorkspace) -> Result<()> {
+        if let Some(r)=&workspace.request{crate::privacy::check_request(r)?;}
+        if crate::privacy::locked(){let old=self.workspace()?.workspace;workspace.models.retain(|_,r|!crate::privacy::request(r));for (path,r) in old.models{if crate::privacy::request(&r){workspace.models.insert(path,r);}}}
         if workspace.models.len() > 256 { return Err("image_parameters".into()); }
         for request in workspace.request.iter().chain(workspace.models.values()) {
             if request.model_path.len() > 32768 { return Err("image_path".into()); }
@@ -92,12 +94,13 @@ impl ImageEngine {
         result
     }
 }
+fn public_workspace(mut s:WorkspaceSnapshot)->WorkspaceSnapshot{if crate::privacy::locked(){if let Some(r)=s.workspace.request.as_mut(){if crate::privacy::request(r){s.locked=true;crate::privacy::redact(r);}}s.workspace.models.retain(|_,r|!crate::privacy::request(r));}s}
 #[tauri::command]
-pub fn image_workspace(state: tauri::State<'_, Arc<ImageEngine>>) -> Result<WorkspaceSnapshot> { state.workspace() }
+pub fn image_workspace(state: tauri::State<'_, Arc<ImageEngine>>) -> Result<WorkspaceSnapshot> {let privacy_epoch=crate::privacy::epoch();let privacy_result=(||{ Ok(public_workspace(state.workspace()?)) })();crate::privacy::finish(privacy_epoch,privacy_result)}
 #[tauri::command]
-pub fn image_workspace_save(workspace: ImageWorkspace, state: tauri::State<'_, Arc<ImageEngine>>) -> Result<()> { state.save_workspace(workspace) }
+pub fn image_workspace_save(workspace: ImageWorkspace, state: tauri::State<'_, Arc<ImageEngine>>) -> Result<()> {let privacy_epoch=crate::privacy::epoch();let privacy_result=(||{ state.save_workspace(workspace) })();crate::privacy::finish(privacy_epoch,privacy_result)}
 #[tauri::command]
-pub fn image_recover(state: tauri::State<'_, Arc<ImageEngine>>) -> Result<WorkspaceSnapshot> { state.recover() }
+pub fn image_recover(state: tauri::State<'_, Arc<ImageEngine>>) -> Result<WorkspaceSnapshot> {let privacy_epoch=crate::privacy::epoch();let privacy_result=(||{ Ok(public_workspace(state.recover()?)) })();crate::privacy::finish(privacy_epoch,privacy_result)}
 #[tauri::command]
 pub async fn image_discard(id: String, state: tauri::State<'_, Arc<ImageEngine>>) -> Result<()> {
     let engine = state.inner().clone(); tauri::async_runtime::spawn_blocking(move || engine.discard(&id)).await.map_err(|_| "image_storage")?

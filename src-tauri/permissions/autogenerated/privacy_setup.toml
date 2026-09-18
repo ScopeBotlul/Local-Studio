@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-privacy-setup"
+description = "Enables the privacy_setup command without any pre-configured scope."
+commands.allow = ["privacy_setup"]
+
+[[permission]]
+identifier = "deny-privacy-setup"
+description = "Denies the privacy_setup command without any pre-configured scope."
+commands.deny = ["privacy_setup"]

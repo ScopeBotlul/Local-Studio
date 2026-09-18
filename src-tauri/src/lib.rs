@@ -1,3 +1,5 @@
+mod privacy;
+use privacy::*;
 mod benchmarks;
 use benchmarks::*;
 mod desktop_features;
@@ -47,12 +49,12 @@ use types::{AppSnapshot, HardwareInfo, Job, Settings};
 pub use worker::run_worker;
 
 #[tauri::command]
-async fn bootstrap(state: State<'_, Arc<Core>>) -> Result<AppSnapshot, String> {
+async fn bootstrap(state: State<'_, Arc<Core>>) -> Result<AppSnapshot, String> {let privacy_epoch=crate::privacy::epoch();let privacy_result=(async {
     let core = state.inner().clone();
     tauri::async_runtime::spawn_blocking(move || core.snapshot())
         .await
         .map_err(|e| e.to_string())?
-}
+}).await;crate::privacy::finish(privacy_epoch,privacy_result)}
 
 #[tauri::command]
 async fn save_settings(
@@ -74,17 +76,17 @@ async fn get_hardware() -> Result<HardwareInfo, String> {
 }
 
 #[tauri::command]
-fn list_jobs(state: State<'_, Arc<Core>>) -> Result<Vec<Job>, String> {
+fn list_jobs(state: State<'_, Arc<Core>>) -> Result<Vec<Job>, String> {let privacy_epoch=crate::privacy::epoch();let privacy_result=(||{
     state.jobs()
-}
+})();crate::privacy::finish(privacy_epoch,privacy_result)}
 
 #[tauri::command]
-async fn enqueue_hash_job(path: String, state: State<'_, Arc<Core>>) -> Result<Job, String> {
+async fn enqueue_hash_job(path: String, state: State<'_, Arc<Core>>) -> Result<Job, String> {let privacy_epoch=crate::privacy::epoch();let privacy_result=(async {
     let core = state.inner().clone();
     tauri::async_runtime::spawn_blocking(move || core.enqueue(&path))
         .await
         .map_err(|e| e.to_string())?
-}
+}).await;crate::privacy::finish(privacy_epoch,privacy_result)}
 
 #[tauri::command]
 async fn cancel_job(id: String, state: State<'_, Arc<Core>>) -> Result<(), String> {
@@ -148,6 +150,7 @@ pub fn run() {
             }
             let data_dir = if portable { executable_dir.join("Local-Studio-Data") } else { config_dir.join("Data") };
             let core = Core::new(config_dir.clone(), data_dir, portable)?;
+            let protection=Privacy::new(&config_dir)?;privacy::install(protection.clone())?;app.manage(protection);
             let auth = hf_auth::HfAuth::new(&config_dir);
             let runtime_dir = executable_dir.join("image-runtime");
             #[cfg(debug_assertions)]
@@ -173,7 +176,7 @@ pub fn run() {
             desktop_features::install(app)?;
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![background_hide,desktop_accent,hardware_live,resource_status,ai_catalog,ai_models,ai_import,ai_download_plan,ai_adopt_download,assistant_status,assistant_load,assistant_unload,assistant_send,assistant_cancel,assistant_clear,transcription_start,transcription_jobs,transcription_cancel,video_frame,media_prepare,media_status,media_cancel,media_info,caption_read,caption_write,project_creative_save,canvas_preview,canvas_export,canvas_export_mask,video_probe,video_start,video_jobs,video_cancel,project_editor_preview,project_editor_save,project_editor_export,project_add_edit,update_status,update_check,update_download,update_cancel,update_arm,update_disarm,update_open_download, app_menu_update, editor_preview, editor_export, project_ack_open, gallery_watch, gallery_video_thumbnail_store, gallery_lineage, gallery_create_variant, gallery_set_primary, project_recent, project_forget_recent, project_take_open, project_history, project_checkpoint, project_restore_point, project_rename, project_restore_media, project_add_gallery, project_add_image, storage_cleanup_preview, storage_cleanup_apply, storage_cleanup_auto, project_snapshot, project_new, project_open, project_save, project_update, project_add, project_remove, project_close, project_recover, project_relink, project_export_gallery, gallery_compare, gallery_file_action, gallery_trash_list, gallery_trash_action, gallery_trash_detail, gallery_annotate_batch, gallery_thumbnail, gallery_thumbnail_clear, gallery_annotate, gallery_list, gallery_detail, gallery_import, gallery_create_folder, gallery_open_folder, image_workspace, image_workspace_save, image_recover, image_discard, image_resume, image_probe, image_jobs, image_generate, image_cancel, image_output, image_save, image_generate_batch, image_reference, preferences_list, preference_save, preference_forget, benchmark_list, benchmark_clear, model_updates_status, model_updates_check, model_updates_prepare, model_move_plan, model_move_start, model_move_status, model_move_cancel, model_library_list, model_scan_start, model_scan_full, model_scan_quick, model_scan_cancel, model_library_recheck, model_library_forget, download_list, download_plan, download_start, download_action, hf_browser_mount, hf_browser_layout, hf_browser_hide, hf_browser_state, hf_browser_action, hf_status, hf_start_login, hf_cancel_login, hf_connect_token, hf_logout, hf_verify, hf_search, hf_model_detail, hf_model_size, hf_open_page, bootstrap, save_settings, get_hardware, list_jobs, enqueue_hash_job, cancel_job, dismiss_recovery, get_logs, mark_clean_exit])
+        .invoke_handler(|invoke| { if let Err(error)=privacy::guard(&invoke){invoke.resolver.reject(error);return true;} privacy::dispatch(tauri::generate_handler![privacy_model_status,privacy_status,privacy_setup,privacy_unlock,privacy_lock,privacy_options,privacy_model_set,background_hide,desktop_accent,hardware_live,resource_status,ai_catalog,ai_models,ai_import,ai_download_plan,ai_adopt_download,assistant_status,assistant_load,assistant_unload,assistant_send,assistant_cancel,assistant_clear,transcription_start,transcription_jobs,transcription_cancel,video_frame,media_prepare,media_status,media_cancel,media_info,caption_read,caption_write,project_creative_save,canvas_preview,canvas_export,canvas_export_mask,video_probe,video_start,video_jobs,video_cancel,project_editor_preview,project_editor_save,project_editor_export,project_add_edit,update_status,update_check,update_download,update_cancel,update_arm,update_disarm,update_open_download, app_menu_update, editor_preview, editor_export, project_ack_open, gallery_watch, gallery_video_thumbnail_store, gallery_lineage, gallery_create_variant, gallery_set_primary, project_recent, project_forget_recent, project_take_open, project_history, project_checkpoint, project_restore_point, project_rename, project_restore_media, project_add_gallery, project_add_image, storage_cleanup_preview, storage_cleanup_apply, storage_cleanup_auto, project_snapshot, project_new, project_open, project_save, project_update, project_add, project_remove, project_close, project_recover, project_relink, project_export_gallery, gallery_compare, gallery_file_action, gallery_trash_list, gallery_trash_action, gallery_trash_detail, gallery_annotate_batch, gallery_thumbnail, gallery_thumbnail_clear, gallery_annotate, gallery_list, gallery_detail, gallery_import, gallery_create_folder, gallery_open_folder, image_workspace, image_workspace_save, image_recover, image_discard, image_resume, image_probe, image_jobs, image_generate, image_cancel, image_output, image_save, image_generate_batch, image_reference, preferences_list, preference_save, preference_forget, benchmark_list, benchmark_clear, model_updates_status, model_updates_check, model_updates_prepare, model_move_plan, model_move_start, model_move_status, model_move_cancel, model_library_list, model_scan_start, model_scan_full, model_scan_quick, model_scan_cancel, model_library_recheck, model_library_forget, download_list, download_plan, download_start, download_action, hf_browser_mount, hf_browser_layout, hf_browser_hide, hf_browser_state, hf_browser_action, hf_status, hf_start_login, hf_cancel_login, hf_connect_token, hf_logout, hf_verify, hf_search, hf_model_detail, hf_model_size, hf_open_page, bootstrap, save_settings, get_hardware, list_jobs, enqueue_hash_job, cancel_job, dismiss_recovery, get_logs, mark_clean_exit],invoke) })
         .build(context)
         .expect("Local Studio could not initialize. Check that the local configuration folder is writable and no other instance is using it.");
     app.run(|handle, event| {

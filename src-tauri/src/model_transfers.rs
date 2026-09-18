@@ -322,6 +322,7 @@ impl ModelLibrary {
                 .map_err(|_| "local_storage")?;
             tx.commit().map_err(|_| "local_storage")?;
         }
+        for file in &plan.files {if crate::privacy::model(Path::new(&file.source)){crate::privacy::register_model(Path::new(&file.destination))?;}}
         self.transfer_update(|j| j.phase = "removing_originals".into())?;
         let mut retained = false;
         for source in &sources {

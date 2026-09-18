@@ -147,9 +147,10 @@ impl Benchmarks {
     }
 }
 #[tauri::command]
-pub fn preferences_list(state: tauri::State<'_, Arc<Benchmarks>>) -> Result<Vec<Preference>> {
-    state.preferences()
-}
+pub fn preferences_list(state: tauri::State<'_, Arc<Benchmarks>>) -> Result<Vec<Preference>> {let privacy_epoch=crate::privacy::epoch();let privacy_result=(||{
+    let protected:std::collections::HashSet<_>=state.list()?.into_iter().filter(|b|crate::privacy::model(Path::new(&b.model_path))).map(|b|b.model_sha256).collect();
+    Ok(state.preferences()?.into_iter().filter(|p|!crate::privacy::locked()||!protected.contains(&p.model_sha256)).collect())
+})();crate::privacy::finish(privacy_epoch,privacy_result)}
 #[tauri::command]
 pub fn preference_save(
     edit: PreferenceEdit,

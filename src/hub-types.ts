@@ -6,7 +6,7 @@ export interface HfAuthStatus {
 export interface HfQuery { search: string; task: string; sort: string; cursor: string | null; }
 export interface HfModel {
   id: string; task: string | null; library: string | null; downloads: number; likes: number;
-  gated: boolean; private: boolean; license: string | null; revision: string | null;
+  restricted?: boolean; gated: boolean; private: boolean; license: string | null; revision: string | null;
 }
 export interface HfSearchPage { models: HfModel[]; nextCursor: string | null; }
 export interface HfModelDetail {

@@ -24,19 +24,19 @@ impl Projects {
  }
 }
 #[tauri::command]
-pub async fn project_editor_preview(query:Query,operations:Vec<Operation>,state:tauri::State<'_,Arc<Projects>>)->Result<EditPreview>{let permit=gallery::editor_permit().await?;let p=state.inner().clone();tauri::async_runtime::spawn_blocking(move||{let _permit=permit;let(_,file,_pins)=p.editor_source(&query)?;gallery::render_preview(file,&operations)}).await.map_err(err)?}
+pub async fn project_editor_preview(query:Query,operations:Vec<Operation>,state:tauri::State<'_,Arc<Projects>>)->Result<EditPreview>{let privacy_epoch=crate::privacy::epoch();let privacy_result=(async {let permit=gallery::editor_permit().await?;let p=state.inner().clone();tauri::async_runtime::spawn_blocking(move||{let _permit=permit;let(_,file,_pins)=p.editor_source(&query)?;gallery::render_preview(file,&operations)}).await.map_err(err)?}).await;crate::privacy::finish(privacy_epoch,privacy_result)}
 #[tauri::command]
-pub async fn project_editor_save(query:Query,expected:Vec<Operation>,operations:Vec<Operation>,state:tauri::State<'_,Arc<Projects>>)->Result<Project>{let permit=gallery::editor_permit().await?;let p=state.inner().clone();tauri::async_runtime::spawn_blocking(move||{let _permit=permit;p.save_edit(&query,&expected,operations)}).await.map_err(err)?}
+pub async fn project_editor_save(query:Query,expected:Vec<Operation>,operations:Vec<Operation>,state:tauri::State<'_,Arc<Projects>>)->Result<Project>{let privacy_epoch=crate::privacy::epoch();let privacy_result=(async {let permit=gallery::editor_permit().await?;let p=state.inner().clone();tauri::async_runtime::spawn_blocking(move||{let _permit=permit;p.save_edit(&query,&expected,operations)}).await.map_err(err)?}).await;crate::privacy::finish(privacy_epoch,privacy_result)}
 #[tauri::command]
-pub async fn project_editor_export(query:Query,operations:Vec<Operation>,format:String,quality:u8,state:tauri::State<'_,Arc<Projects>>,core:tauri::State<'_,Arc<Core>>,catalog:tauri::State<'_,Arc<GalleryCatalog>>)->Result<String>{
+pub async fn project_editor_export(query:Query,operations:Vec<Operation>,format:String,quality:u8,state:tauri::State<'_,Arc<Projects>>,core:tauri::State<'_,Arc<Core>>,catalog:tauri::State<'_,Arc<GalleryCatalog>>)->Result<String>{let privacy_epoch=crate::privacy::epoch();let privacy_result=(async {
  let permit=gallery::editor_permit().await?;let p=state.inner().clone();let c=catalog.inner().clone();let root=gallery::root(&core)?;
- tauri::async_runtime::spawn_blocking(move||{let _permit=permit;let(a,file,_pins)=p.editor_source(&query)?;let bytes=gallery::render_bytes(file,&operations,&format,quality)?;c.export_project_edit(&root,&a.name,&bytes,serde_json::json!({"projectAsset":a.id,"sourceSha256":a.sha256,"operations":operations}),&format)}).await.map_err(err)?
-}
+ tauri::async_runtime::spawn_blocking(move||{let _permit=permit;let(a,file,_pins)=p.editor_source(&query)?;let bytes=gallery::render_bytes(file,&operations,&format,quality)?;c.export_project_edit(&root,&a.name,&bytes,serde_json::json!({"restricted":p.privacy_restricted()?,"projectAsset":a.id,"sourceSha256":a.sha256,"operations":operations}),&format)}).await.map_err(err)?
+}).await;crate::privacy::finish(privacy_epoch,privacy_result)}
 #[tauri::command]
-pub async fn project_add_edit(id:String,root_id:String,targets:Vec<gallery::FileTarget>,operations:Vec<Operation>,state:tauri::State<'_,Arc<Projects>>,core:tauri::State<'_,Arc<Core>>)->Result<Project>{
+pub async fn project_add_edit(id:String,root_id:String,targets:Vec<gallery::FileTarget>,operations:Vec<Operation>,state:tauri::State<'_,Arc<Projects>>,core:tauri::State<'_,Arc<Core>>)->Result<Project>{let privacy_epoch=crate::privacy::epoch();let privacy_result=(async {
  if targets.len()!=1{return Err("project_media".into());}let permit=gallery::editor_permit().await?;let p=state.inner().clone();let core=core.inner().clone();
  tauri::async_runtime::spawn_blocking(move||{let _permit=permit;let sources=gallery::project_sources(&core,&root_id,&targets)?;let path=&sources[0].0;gallery::render_preview(gallery::lock_file(path)?,&operations)?;p.add_for(Some(&id),vec![path.to_string_lossy().into()],Some(operations))}).await.map_err(err)?
-}
+}).await;crate::privacy::finish(privacy_epoch,privacy_result)}
 
 #[cfg(test)]mod tests{
  use super::*;

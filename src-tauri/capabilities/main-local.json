@@ -162,7 +162,14 @@
     "allow-preference-forget",
     "allow-image-reference",
     "allow-image-generate-batch",
-    "allow-canvas-export-mask"
+    "allow-canvas-export-mask",
+    "allow-privacy-status",
+    "allow-privacy-setup",
+    "allow-privacy-unlock",
+    "allow-privacy-lock",
+    "allow-privacy-options",
+    "allow-privacy-model-set",
+    "allow-privacy-model-status"
   ],
   "webviews": [
     "main"

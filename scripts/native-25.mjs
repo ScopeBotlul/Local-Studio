@@ -1,10 +1,11 @@
+import {checkPrivacy26} from './check-privacy26.mjs';
 import {checkCore25} from './check-core25.mjs';
 import {checkReference25} from './check-reference25.mjs';
 import {checkUpdatesBench25} from './check-updates-bench25.mjs';
 import {checkCreative25} from './check-creative25.mjs';
 import {checkAi24} from './check-ai24.mjs';
 import {checkMenuUpdates} from './check-menu-updates.mjs';
-const suites={core:checkCore25,references:checkReference25,models:checkUpdatesBench25,editors:checkCreative25,ai:checkAi24,menu:checkMenuUpdates};
+const suites={privacy:checkPrivacy26,core:checkCore25,references:checkReference25,models:checkUpdatesBench25,editors:checkCreative25,ai:checkAi24,menu:checkMenuUpdates};
 const suite=suites[process.argv[2]];
 if(!suite)throw Error('Usage: node scripts/native-25.mjs core|references|models|editors|ai|menu');
 // Runs the real Windows executable with an isolated database and WebView2 profile.

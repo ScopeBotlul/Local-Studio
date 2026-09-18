@@ -129,12 +129,12 @@ impl Benchmarks {
     }
 }
 #[tauri::command]
-pub async fn benchmark_list(state: tauri::State<'_, Arc<Benchmarks>>) -> Result<Vec<Benchmark>> {
+pub async fn benchmark_list(state: tauri::State<'_, Arc<Benchmarks>>) -> Result<Vec<Benchmark>> {let privacy_epoch=crate::privacy::epoch();let privacy_result=(async {
     let state = state.inner().clone();
-    tauri::async_runtime::spawn_blocking(move || state.list())
+    tauri::async_runtime::spawn_blocking(move || {let list=state.list()?;Ok(list.into_iter().filter(|b|!crate::privacy::locked()||!crate::privacy::model(Path::new(&b.model_path))).collect())})
         .await
         .map_err(|_| "benchmark_storage")?
-}
+}).await;crate::privacy::finish(privacy_epoch,privacy_result)}
 #[tauri::command]
 pub fn benchmark_clear(confirmed: bool, state: tauri::State<'_, Arc<Benchmarks>>) -> Result<()> {
     if !confirmed {

@@ -1,4 +1,15 @@
-# Aktueller Stand 0.25.0: Bildreferenzen, Modelle und Ressourcen
+# Aktueller Stand 0.26.0: lokale 18+-Sperre
+
+Der zusätzliche Nutzerauftrag zur 18+-Sperre ist implementiert. Der gesamte Masterprompt bleibt weiterhin in Arbeit. Bedienung und Grenzen stehen in [docs/PRIVACY.md](docs/PRIVACY.md); tatsächliche Prüfungen separat in TEST_MATRIX.md. Releasepakete werden nach den nativen Prüfungen erstellt.
+
+Standardmäßig ausgeschalteter Modus mit Altersbestätigung, lokaler PIN oder Passwort, gesalzener Ableitung und persistenter Versuchsbremse. Neustartsperre standardmäßig aktiv, optionales Merken, Passwortwechsel und manuelles Sperren/Ausschalten. Keine Klartext-Zugangsdaten. Lokale Modellkennzeichnung und Übernahme eindeutiger HF-Tags bei Downloadplanung; Kennzeichnung bleibt beim App-Modellumzug erhalten.
+
+Gesperrte Bildarbeitsbereiche, Aufträge, Galerieeinträge, Suchresultate, Details und Protokollzugriffe liefern keine privaten Vorschauen oder Eingaben an die Oberfläche. Bereits laufende Generierungen bleiben aktiv. Herkunft bleibt bei App-Kopien, Editorvarianten, Kompositionen und Exporten erhalten; keine manuelle Kennzeichnung gewöhnlicher Medien. Projekte mit privatem Inhalt werden als Ganzes geschützt und im Format 5 transportiert. Einfache Chats bleiben nutzbar; gekennzeichnete Chatmodelle und betroffene Verläufe sind geschützt. Backend-Prüfung auch für direkte IPC und Medienprotokolle; verspätete Leseantworten werden bei einer Sperrung ungültig.
+
+Die Sperre verschlüsselt keine Datenträgerdateien und ist keine Inhalts- oder Altersprüfung. Gemischte ältere Verwaltungs- und Verlaufsansichten verlangen vorsorglich eine Entsperrung, sobald geschützte Daten existieren. Noch nicht vorhandene Erweiterungsadapter, visuelle Analyse und semantischer Index bleiben offen; ihre spätere Einbindung in den Schutz ist Teil der unveränderten SPEC. Alle weiteren Meilensteine bleiben erhalten.
+
+## Vorheriger Stand 0.25.0
+
 
 ## Arbeitsstand 0.25.0 – Gesamtauftrag weiterhin in Arbeit
 

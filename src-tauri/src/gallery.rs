@@ -29,7 +29,7 @@ const MAX_IMAGE: u64 = 32 * 1024 * 1024;
 
 #[derive(Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct Entry { pub origin: Option<Origin>, pub path: String, pub name: String, pub kind: String, pub bytes: u64, pub modified: u64, pub file_id: Option<String>, pub annotation: Annotation, pub thumbnail_version: String }
+pub struct Entry { pub locked:bool, pub origin: Option<Origin>, pub path: String, pub name: String, pub kind: String, pub bytes: u64, pub modified: u64, pub file_id: Option<String>, pub annotation: Annotation, pub thumbnail_version: String }
 #[derive(Clone,Copy,Default,Deserialize)]
 #[serde(rename_all="camelCase")]
 pub enum Sort { #[default] ModifiedDesc, ModifiedAsc, NameAsc, NameDesc, SizeAsc, SizeDesc }
@@ -92,7 +92,7 @@ pub(crate) fn directory_guards(path: &Path) -> Result<Vec<File>> {
 fn entry(root: &Path, path: &Path, kind: &str, meta: &fs::Metadata) -> Result<Entry> {
     let id = if kind == "folder" { None } else { catalog::path_identity(path).ok() };
     let thumbnail_version = thumbnails::version(root,path,meta,id.as_deref());
-    Ok(Entry { origin:None, thumbnail_version, path: relative(root, path)?, name: path.file_name().and_then(|n| n.to_str()).ok_or("gallery_path")?.into(), kind: kind.into(), bytes: meta.len(), file_id: id, annotation: Annotation::default(), modified: meta.modified().unwrap_or(SystemTime::UNIX_EPOCH).duration_since(UNIX_EPOCH).unwrap_or_default().as_millis() as u64 })
+    Ok(Entry { locked:false, origin:None, thumbnail_version, path: relative(root, path)?, name: path.file_name().and_then(|n| n.to_str()).ok_or("gallery_path")?.into(), kind: kind.into(), bytes: meta.len(), file_id: id, annotation: Annotation::default(), modified: meta.modified().unwrap_or(SystemTime::UNIX_EPOCH).duration_since(UNIX_EPOCH).unwrap_or_default().as_millis() as u64 })
 }
 #[cfg(test)]
 fn list(root: &Path, query: Query) -> Result<Listing> { list_with(root,query,&HashMap::new()) }
@@ -120,6 +120,11 @@ fn list_full(root: &Path, query: Query, annotations: &HashMap<String,Annotation>
                     if let Ok(mut e) = entry(root, &path, kind, &meta) {
                         e.origin=e.file_id.as_ref().and_then(|id|origins.get(id)).filter(|o|o.stamp==stamp(&meta)).map(|o|o.info.clone());
                         if let Some(saved) = e.file_id.as_ref().and_then(|id| annotations.get(id)) { e.annotation = saved.clone(); }
+                        if crate::privacy::locked()&&crate::privacy::media(&path){
+                            if !search.is_empty()||!tag.is_empty()||query.favorites_only{continue;}
+                            if query.kind!="all"&&query.kind!=kind{continue;}
+                            e.locked=true;e.path=format!("__restricted__/{}",e.thumbnail_version);e.name="18+".into();e.bytes=0;e.modified=0;e.file_id=None;e.annotation=Annotation::default();e.origin=None;e.thumbnail_version.clear();entries.push(e);continue;
+                        }
                         for name in &e.annotation.tags { available_tags.entry(name.to_lowercase()).or_insert_with(|| name.clone()); }
                         if query.kind != "all" && query.kind != kind { continue; }
                         if query.favorites_only && !e.annotation.favorite { continue; }
@@ -183,30 +188,30 @@ pub(crate) fn copy_one_named(root: &Path, folder: &Path, source: &Path, name: &s
         // Publish without MOVEFILE_REPLACE_EXISTING. Retry unique names on races.
         for attempt in 0..5 {
             if attempt > 0 || destination.exists() { destination = folder.join(format!("{}-{}.{}", Path::new(name).file_stem().unwrap().to_string_lossy(), uuid::Uuid::new_v4(), Path::new(name).extension().unwrap().to_string_lossy())); }
-            match publish(&temp, &destination) { Ok(()) => return relative(root, &destination), Err(_) if destination.exists() => continue, Err(_) => return Err("gallery_storage".into()) }
+            match publish(&temp, &destination) { Ok(()) => {crate::privacy::inherit(source,&destination)?;return relative(root, &destination);}, Err(_) if destination.exists() => continue, Err(_) => return Err("gallery_storage".into()) }
         } Err("gallery_storage".into())
     })();
     if result.is_err() { let _ = fs::remove_file(&temp); } result
 }
 
 #[tauri::command]
-pub async fn gallery_list(query: Query, core: State<'_, Arc<Core>>, catalog: State<'_,Arc<GalleryCatalog>>, images:State<'_,Arc<ImageEngine>>) -> Result<Listing> {
+pub async fn gallery_list(query: Query, core: State<'_, Arc<Core>>, catalog: State<'_,Arc<GalleryCatalog>>, images:State<'_,Arc<ImageEngine>>) -> Result<Listing> {let privacy_epoch=crate::privacy::epoch();let privacy_result=(async {
     let root = root(&core)?; let catalog = catalog.inner().clone();let images=images.inner().clone();
     tauri::async_runtime::spawn_blocking(move || {catalog.recover(&root,&images)?;let origins=catalog.sync_origins(&root,images.list()?)?;list_full(&root,query,&catalog.snapshot(&root)?,&origins)}).await.map_err(|_| "gallery_storage")?
-}
+}).await;crate::privacy::finish(privacy_epoch,privacy_result)}
 #[tauri::command]
-pub async fn gallery_detail(path: String, core: State<'_, Arc<Core>>, images: State<'_, Arc<ImageEngine>>,catalog:State<'_,Arc<GalleryCatalog>>) -> Result<Detail> {
+pub async fn gallery_detail(path: String, core: State<'_, Arc<Core>>, images: State<'_, Arc<ImageEngine>>,catalog:State<'_,Arc<GalleryCatalog>>) -> Result<Detail> {let privacy_epoch=crate::privacy::epoch();let privacy_result=(async {
     let root = root(&core)?; let images = images.inner().clone();let catalog=catalog.inner().clone();
     tauri::async_runtime::spawn_blocking(move || {
         catalog.recover(&root,&images)?;let origins=catalog.sync_origins(&root,images.list()?)?;
-        let target = resolve(&root, &path)?; let file = lock_file(&target)?;let meta=file.metadata().map_err(|_|"gallery_missing")?; let (kind, _) = media(&target).ok_or("gallery_format")?;
+        let target = resolve(&root, &path)?; crate::privacy::check(&target)?; let file = lock_file(&target)?;let meta=file.metadata().map_err(|_|"gallery_missing")?; let (kind, _) = media(&target).ok_or("gallery_format")?;
         let origin=catalog::identity(&file).ok().and_then(|id|origins.get(&id)).filter(|o|o.stamp==stamp(&meta)).map(|o|o.info.clone());
         let dimensions=if kind=="image"&&meta.len()<=64*1024*1024 {image::ImageReader::new(std::io::BufReader::new(file)).with_guessed_format().ok().and_then(|mut r|{let mut limits=image::Limits::default();limits.max_alloc=Some(128*1024*1024);limits.max_image_width=Some(16384);limits.max_image_height=Some(16384);r.limits(limits);r.into_dimensions().ok()})}else{None};
         Ok(Detail { url: format!("http://gallery.localhost/{}/{}", root_id(&root), URL_SAFE_NO_PAD.encode(path.as_bytes())), kind: kind.into(), request: origin.as_ref().map(|o|o.request.clone()),job_id:origin.as_ref().map(|o|o.job_id.clone()),origin,dimensions })
     }).await.map_err(|_| "gallery_storage")?
-}
+}).await;crate::privacy::finish(privacy_epoch,privacy_result)}
 #[tauri::command]
-pub async fn gallery_import(folder: String, sources: Vec<String>, core: State<'_, Arc<Core>>) -> Result<ImportResult> {
+pub async fn gallery_import(folder: String, sources: Vec<String>, core: State<'_, Arc<Core>>) -> Result<ImportResult> {let privacy_epoch=crate::privacy::epoch();let privacy_result=(async {
     if sources.is_empty() || sources.len() > 100 { return Err("gallery_import_limit".into()); }
     let root = root(&core)?;
     tauri::async_runtime::spawn_blocking(move || {
@@ -214,21 +219,21 @@ pub async fn gallery_import(folder: String, sources: Vec<String>, core: State<'_
         let mut result = ImportResult { imported: Vec::new(), errors: Vec::new() };
         for source in sources { match copy_one(&root, &folder, Path::new(&source)) { Ok(path) => result.imported.push(path), Err(error) => result.errors.push(format!("{}: {error}", Path::new(&source).file_name().unwrap_or_default().to_string_lossy())) } } Ok(result)
     }).await.map_err(|_| "gallery_storage")?
-}
+}).await;crate::privacy::finish(privacy_epoch,privacy_result)}
 #[tauri::command]
-pub async fn gallery_create_folder(folder: String, name: String, core: State<'_, Arc<Core>>) -> Result<()> {
+pub async fn gallery_create_folder(folder: String, name: String, core: State<'_, Arc<Core>>) -> Result<()> {let privacy_epoch=crate::privacy::epoch();let privacy_result=(async {
     if !valid_name(&name) || name.eq_ignore_ascii_case(TRASH) { return Err("gallery_name".into()); } let root = root(&core)?;
     tauri::async_runtime::spawn_blocking(move || { let folder = resolve(&root, &folder)?; let _guards = directory_guards(&folder)?; fs::create_dir(folder.join(name)).map_err(|_| "gallery_storage".into()) }).await.map_err(|_| "gallery_storage")?
-}
+}).await;crate::privacy::finish(privacy_epoch,privacy_result)}
 #[tauri::command]
-pub async fn gallery_open_folder(folder: String, core: State<'_, Arc<Core>>) -> Result<()> {
+pub async fn gallery_open_folder(folder: String, core: State<'_, Arc<Core>>) -> Result<()> {let privacy_epoch=crate::privacy::epoch();let privacy_result=(async {
     let root = root(&core)?;
     tauri::async_runtime::spawn_blocking(move || {
         let target = resolve(&root, &folder)?; let _guards = directory_guards(&target)?;
         let exe = PathBuf::from(std::env::var_os("SystemRoot").ok_or("gallery_storage")?).join("explorer.exe");
         std::process::Command::new(exe).arg(target.to_string_lossy().trim_start_matches(r"\\?\")).spawn().map_err(|_| "gallery_storage")?; Ok(())
     }).await.map_err(|_| "gallery_storage")?
-}
+}).await;crate::privacy::finish(privacy_epoch,privacy_result)}
 
 fn range(value: Option<&str>, size: u64, image: bool) -> Result<(u64,u64,bool)> {
     if size == 0 { return Err("range".into()); }
@@ -253,6 +258,7 @@ fn response_catalog(root:&Path,label:&str,req:tauri::http::Request<Vec<u8>>,cata
     if parts.len() != 2 || parts[0] != root_id(root) { return denied(403); }
     let path = URL_SAFE_NO_PAD.decode(parts[1]).ok().and_then(|p| String::from_utf8(p).ok()).and_then(|p| {if p.split('/').next().is_some_and(|s|s.eq_ignore_ascii_case(TRASH)) && catalog.is_some_and(|c|catalog::files::allows_trash(c,root,&p)){resolve_internal(root,&p).ok()}else{resolve(root,&p).ok()}});
     let Some(path) = path else { return denied(403); };
+    if crate::privacy::check(&path).is_err(){return denied(403);}
     let Some((kind,mime)) = media(&path) else { return denied(415); };
     let Ok(_guards) = directory_guards(path.parent().unwrap()) else { return denied(403); };
     let Ok(mut file) = lock_file(&path) else { return denied(404); };
@@ -265,6 +271,7 @@ fn response_catalog(root:&Path,label:&str,req:tauri::http::Request<Vec<u8>>,cata
     let Ok((start,end,partial)) = range(req.headers().get("Range").and_then(|v| v.to_str().ok()), size, kind == "image") else { return Response::builder().status(416).header("Content-Range", format!("bytes */{size}")).body(Vec::new()).unwrap(); };
     let mut bytes = Vec::new();
     if req.method() == "GET" && (file.seek(SeekFrom::Start(start)).is_err() || file.take(end-start+1).read_to_end(&mut bytes).is_err() || bytes.len() as u64 != end-start+1) { return denied(500); }
+    if crate::privacy::check(&path).is_err(){return denied(403);}
     let mut response = Response::builder().status(if partial {206} else {200}).header("Content-Type",mime).header("Content-Length",(end-start+1).to_string()).header("Accept-Ranges","bytes").header("Cache-Control","no-store").header("X-Content-Type-Options","nosniff").header("Content-Security-Policy","default-src 'none'; sandbox").header("Access-Control-Allow-Origin","http://tauri.localhost");
     if partial { response = response.header("Content-Range", format!("bytes {start}-{end}/{size}")); }
     response.body(bytes).unwrap()
@@ -282,5 +289,5 @@ mod tests;
 
 pub(crate) fn assistant_search(core:&Core,catalog:&GalleryCatalog,images:&ImageEngine,search:String)->Result<serde_json::Value>{
  let root=root(core)?;let origins=catalog.sync_origins(&root,images.list()?)?;let query=Query{sort:Sort::ModifiedDesc,folder:String::new(),search,kind:"all".into(),recursive:true,offset:0,favorites_only:false,tag:String::new()};let result=list_full(&root,query,&catalog.snapshot(&root)?,&origins)?;
- Ok(serde_json::json!({"total":result.total,"limited":result.limited,"entries":result.entries.into_iter().take(20).map(|e|serde_json::json!({"name":e.name,"kind":e.kind,"bytes":e.bytes,"tags":e.annotation.tags,"path":e.path})).collect::<Vec<_>>()}))
+ Ok(serde_json::json!({"total":result.total,"limited":result.limited,"entries":result.entries.into_iter().filter(|e|!e.locked).take(20).map(|e|serde_json::json!({"name":e.name,"kind":e.kind,"bytes":e.bytes,"tags":e.annotation.tags,"path":e.path})).collect::<Vec<_>>()}))
 }

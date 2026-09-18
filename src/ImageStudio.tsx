@@ -1,3 +1,4 @@
+import {PrivacyGate,ModelPrivacy,usePrivacy,useModelPrivacy} from "./Privacy";
 import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import type { LocalModel, Snapshot } from './LocalModels';
@@ -11,8 +12,8 @@ import './image-studio.css';
 import ImageReferenceInput from './ImageReferenceInput';
 import { shortcutFor, type Shortcuts } from './shortcuts';
 
-export default function ImageStudio({ onAddToProject, projectDisabled, shortcuts, language, request, setRequest, selectModel, onRestore, selectedJob, disabled = false, galleryOnly = false }: { onAddToProject: (id: string) => Promise<boolean>; projectDisabled: boolean; shortcuts: Shortcuts; language: Language; request: ImageRequest; setRequest: Dispatch<SetStateAction<ImageRequest>>; selectModel: (path: string) => void; onRestore: (request: ImageRequest) => void; selectedJob?: string | null; disabled?: boolean; galleryOnly?: boolean }) {
-  const de = language === 'de';
+export default function ImageStudio({ workspaceLocked=false,onAddToProject, projectDisabled, shortcuts, language, request, setRequest, selectModel, onRestore, selectedJob, disabled = false, galleryOnly = false }: { workspaceLocked?:boolean;onAddToProject: (id: string) => Promise<boolean>; projectDisabled: boolean; shortcuts: Shortcuts; language: Language; request: ImageRequest; setRequest: Dispatch<SetStateAction<ImageRequest>>; selectModel: (path: string) => void; onRestore: (request: ImageRequest) => void; selectedJob?: string | null; disabled?: boolean; galleryOnly?: boolean }) {
+  const de = language === 'de';const privacy=usePrivacy();const restrictedModel=useModelPrivacy(request.modelPath);const contentLocked=privacy.status.locked&&(workspaceLocked||restrictedModel);
   const [historyLimit, setHistoryLimit] = useState(50);
   const [batchCount,setBatchCount]=useState(1),[incrementSeed,setIncrementSeed]=useState(true);
   const [models, setModels] = useState<LocalModel[]>([]);
@@ -32,7 +33,7 @@ export default function ImageStudio({ onAddToProject, projectDisabled, shortcuts
   }, []);
   useEffect(() => {
     let live = true; setPreview('');
-    if (current?.status === 'completed' && !current.discarded) void imageApi.output(current.id).then(data => { if (live) setPreview(data); }).catch(e => { if (live) setError(String(e)); });
+    if (current?.status === 'completed' && !current.discarded && !current.locked) void imageApi.output(current.id).then(data => { if (live) setPreview(data); }).catch(e => { if (live) setError(String(e)); });
     return () => { live = false; };
   }, [current?.id, current?.status, current?.discarded, current?.savedPath]);
   useEffect(() => { probeGeneration.current++; setProbeBusy(false); setProbe(null); }, [request.modelPath]);
@@ -76,6 +77,8 @@ export default function ImageStudio({ onAddToProject, projectDisabled, shortcuts
         <p>{probe.device?.split('\t').slice(1).join(' ') ?? (de ? 'Keine unterstützte GPU verfügbar' : 'No supported GPU available')} · VRAM: {probe.vramBytes === null ? (de ? 'unbekannt' : 'unknown') : formatBytes(probe.vramBytes, language)}</p>
         <p>{de ? 'Runtime-Lizenz: MIT. Modelllizenz: unbekannt – Bedingungen der Modellquelle beachten. Die Vorprüfung ersetzt keinen erfolgreichen Modelllauf.' : 'Runtime license: MIT. Model license: unknown — check the model source terms. Preflight does not replace a successful model run.'}</p>
       </div>}
+      {request.modelPath&&<ModelPrivacy path={request.modelPath} de={de}/>}
+      {contentLocked?<PrivacyGate de={de}/>:<>
       <div className="image-prompt-grid"><label className="field-label">Prompt<textarea aria-label="Image prompt" value={request.prompt} onChange={e => setRequest(r => ({ ...r, prompt: e.target.value }))} rows={4} maxLength={4000} placeholder={de ? 'Beschreibe dein Bild …' : 'Describe your image …'} /></label><label className="field-label">{de ? 'Negativer Prompt' : 'Negative prompt'}<textarea aria-label="Negative prompt" value={request.negativePrompt} onChange={e => setRequest(r => ({ ...r, negativePrompt: e.target.value }))} rows={4} maxLength={4000} /></label></div>
       <ImageReferenceInput request={request} onChange={patch=>setRequest(r=>({...r,...patch}))} de={de} disabled={disabled||busy}/>
       <div className="image-parameters">
@@ -88,8 +91,10 @@ export default function ImageStudio({ onAddToProject, projectDisabled, shortcuts
       <div className="image-parameters"><label className="field-label">{de?'Bilder im Stapel':'Images in batch'}<input aria-label={de?'Bilder im Stapel':'Images in batch'} type="number" min={1} max={20} value={batchCount} disabled={busy} onChange={e=>setBatchCount(Number(e.target.value))}/></label><label className="field-label">{de?'Seeds im Stapel':'Batch seeds'}<select aria-label={de?'Seeds im Stapel':'Batch seeds'} value={incrementSeed?'increment':'same'} disabled={busy||batchCount===1} onChange={e=>setIncrementSeed(e.target.value==='increment')}><option value="increment">{de?'Startseed, danach jeweils +1':'Starting seed, then +1 per image'}</option><option value="same">{de?'Gleicher Seed für alle Bilder':'Same seed for all images'}</option></select></label></div>
       <p className="hub-hint">{de ? 'Ein Bild pro Auftrag; maximal 20 wartende Aufträge. Ausführung nacheinander. Beim Einreihen werden Modellbytes geprüft und bis zum Ende des Auftrags gegen Änderungen gesperrt. Der Worker gibt seinen Speicher nach jedem Auftrag frei.' : 'One image per job; up to 20 waiting jobs. Jobs run sequentially. Enqueuing verifies the model bytes and protects them from changes until the job ends. The worker releases its memory after each job.'}</p>
       <button data-image-generate className="button primary" disabled={busy || !Number.isInteger(batchCount) || batchCount<1 || batchCount>20 || waiting.length+batchCount>20 || !probe?.ready || !request.prompt.trim()} onClick={() => void act(async () => { if(batchCount===1){const job=await imageApi.generate({...request});setSelected(job.id);}else{const result=await imageApi.generateBatch({...request},batchCount,incrementSeed);if(result.jobs[0])setSelected(result.jobs[0].id);if(result.error)setError((de?`${result.jobs.length} Aufträge eingereiht. `:`${result.jobs.length} jobs queued. `)+imageError(result.error,de));} })}><ImagePlus size={17} />{busy ? (de ? 'Modell für Auftrag prüfen …' : 'Verifying model for job …') : (batchCount>1?(de?`${batchCount} Bilder einreihen`:`Queue ${batchCount} images`):active || waiting.length ? (de ? 'Bild einreihen' : 'Queue image') : (de ? 'Bild generieren' : 'Generate image'))}</button>
+      </>}
     </fieldset>}
-    {current && <section className="panel image-result" data-testid="image-result">
+    {current?.locked&&<PrivacyGate de={de}/>}
+    {current && !current.locked && <section className="panel image-result" data-testid="image-result">
       <div className="section-heading"><h2>{phases[current.phase]?.[de ? 0 : 1] ?? current.phase}</h2>{(activeImage(current) || current.status === 'paused') && <button className="button secondary" disabled={busy} onClick={() => void act(() => imageApi.cancel(current.id))}><X size={15} />{de ? 'Generierung abbrechen' : 'Cancel generation'}</button>}</div>
       {current.status === 'queued' && <p>{de ? `Wartet auf Ausführung · Position ${current.queuePosition ?? '…'}. Dieser Auftrag behält seinen eigenen Prompt und seine Modellwahl.` : `Waiting to run · position ${current.queuePosition ?? '…'}. This job keeps its own prompt and model selection.`}</p>}
       {current.status === 'paused' && <button className="button secondary" disabled={busy || disabled} onClick={() => void act(() => imageApi.resume(current.id))}>{de ? 'Auftrag erneut einreihen' : 'Resume queued job'}</button>}
@@ -103,6 +108,6 @@ export default function ImageStudio({ onAddToProject, projectDisabled, shortcuts
       <p className="hub-hint">{de ? 'Übernimmt Modellpfad, Prompts und Parameter in ein neues Formular. Es startet keine Generierung; die aktuelle lokale Modelldatei muss erneut geprüft werden.' : 'Copies the model path, prompts and parameters into a new form. It does not start generation; check the current local model file again.'}</p>
       <details><summary>{de ? 'Auftrag und technische Details' : 'Job and technical details'}</summary><dl><dt>Prompt</dt><dd>{current.request.prompt}</dd><dt>{de ? 'Modell' : 'Model'}</dt><dd>{current.request.modelPath}</dd><dt>SHA-256</dt><dd>{current.modelSha256 ?? '—'}</dd><dt>Runtime</dt><dd>{current.runtime}</dd><dt>GPU</dt><dd>{current.device}</dd><dt>{de ? 'Parameter' : 'Parameters'}</dt><dd>{current.request.steps} steps · CFG {current.request.guidance} · {current.request.sampler} · Karras</dd></dl><pre>{current.logTail}</pre></details>
     </section>}
-    <section className="image-history"><h2>{de ? 'Letzte Aufträge' : 'Recent jobs'}</h2>{visibleJobs.length === 0 && <p className="hub-hint">{galleryOnly ? (de ? 'Noch keine generierten Bilder in der Galerie gespeichert.' : 'No generated images saved to the gallery yet.') : (de ? 'Noch keine Bildgenerierung gestartet.' : 'No image generation started yet.')}</p>}{visibleJobs.slice(0, historyLimit).map(job => <button key={job.id} className={`image-history-row ${current?.id === job.id ? 'selected' : ''}`} onClick={() => setSelected(job.id)}><span>{job.request.prompt.slice(0,100)}</span><small>{formatDate(job.createdAt, language)} · {phases[job.phase]?.[de ? 0 : 1] ?? job.phase}</small></button>)}{visibleJobs.length > historyLimit && <button className="button secondary" onClick={() => setHistoryLimit(n => n + 50)}>{de ? 'Weitere Aufträge anzeigen' : 'Show more jobs'}</button>}</section>
+    <section className="image-history"><h2>{de ? 'Letzte Aufträge' : 'Recent jobs'}</h2>{visibleJobs.length === 0 && <p className="hub-hint">{galleryOnly ? (de ? 'Noch keine generierten Bilder in der Galerie gespeichert.' : 'No generated images saved to the gallery yet.') : (de ? 'Noch keine Bildgenerierung gestartet.' : 'No image generation started yet.')}</p>}{visibleJobs.slice(0, historyLimit).map(job => <button key={job.id} className={`image-history-row ${current?.id === job.id ? 'selected' : ''}`} onClick={() => setSelected(job.id)}><span>{job.locked?(de?'18+ · Gesperrt':'18+ · Locked'):job.request.prompt.slice(0,100)}</span><small>{formatDate(job.createdAt, language)} · {phases[job.phase]?.[de ? 0 : 1] ?? job.phase}</small></button>)}{visibleJobs.length > historyLimit && <button className="button secondary" onClick={() => setHistoryLimit(n => n + 50)}>{de ? 'Weitere Aufträge anzeigen' : 'Show more jobs'}</button>}</section>
   </div>;
 }

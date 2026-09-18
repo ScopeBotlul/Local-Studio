@@ -4,16 +4,19 @@ pub struct ToolTrace{pub name:String,pub arguments:Value,pub result:Value}
 #[derive(Clone,Serialize,Deserialize)]#[serde(rename_all="camelCase")]
 pub struct ChatLine{pub id:String,pub role:String,pub text:String,pub tools:Vec<ToolTrace>,pub proposal:Option<ImageRequest>}
 #[derive(Clone,Serialize,Deserialize)]#[serde(rename_all="camelCase")]
-pub struct ChatState{pub phase:String,pub model_id:Option<String>,pub error:Option<String>,pub messages:Vec<ChatLine>,pub elapsed_ms:u64,pub tokens:Option<u64>}
-impl Default for ChatState{fn default()->Self{Self{phase:"unloaded".into(),model_id:None,error:None,messages:vec![],elapsed_ms:0,tokens:None}}}
+pub struct ChatState{#[serde(default)]pub restricted:bool,#[serde(default,skip_deserializing)]pub locked:bool,pub phase:String,pub model_id:Option<String>,pub error:Option<String>,pub messages:Vec<ChatLine>,pub elapsed_ms:u64,pub tokens:Option<u64>}
+impl Default for ChatState{fn default()->Self{Self{restricted:false,locked:false,phase:"unloaded".into(),model_id:None,error:None,messages:vec![],elapsed_ms:0,tokens:None}}}
 #[derive(Clone)]pub(super) struct Endpoint{url:String,key:String}
 impl AiEngine{
+ pub(crate) fn privacy_chat(&self)->Result<bool>{let s=self.chat.lock().map_err(err)?.clone();Ok(s.restricted||s.model_id.as_deref().map(|id|self.privacy_model(id)).transpose()?.unwrap_or(false))}
+ pub(crate) fn protect_chat(&self)->Result<()>{if self.privacy_chat()?{self.chat_update(|s|s.restricted=true)?;}Ok(())}
+
  fn chat_update(&self,change:impl FnOnce(&mut ChatState))->Result<ChatState>{let mut s=self.chat.lock().map_err(err)?;change(&mut s);let text=serde_json::to_string(&*s).map_err(err)?;self.db.lock().map_err(err)?.execute("INSERT OR REPLACE INTO ai_state VALUES('chat',?1)",[text]).map_err(err)?;Ok(s.clone())}
 }
-#[tauri::command]pub fn assistant_status(engine:tauri::State<'_,Arc<AiEngine>>)->Result<ChatState>{Ok(engine.chat.lock().map_err(err)?.clone())}
+#[tauri::command]pub fn assistant_status(engine:tauri::State<'_,Arc<AiEngine>>)->Result<ChatState>{let privacy_epoch=crate::privacy::epoch();let privacy_result=(||{let mut state=engine.chat.lock().map_err(err)?.clone();if state.phase=="unloaded"&&(engine.load_busy.load(Ordering::SeqCst)||engine.chat_busy.load(Ordering::SeqCst)){state.phase="unloading".into();}if crate::privacy::locked()&&engine.privacy_chat()?{state.messages.clear();state.error=None;state.locked=true;}Ok(state)})();crate::privacy::finish(privacy_epoch,privacy_result)}
 #[tauri::command]pub fn assistant_unload(engine:tauri::State<'_,Arc<AiEngine>>)->Result<()>{engine.chat_cancel.store(true,Ordering::SeqCst);engine.load_cancel.store(true,Ordering::SeqCst);Ok(())}
 #[tauri::command]pub fn assistant_cancel(engine:tauri::State<'_,Arc<AiEngine>>)->Result<()>{if engine.chat_busy.load(Ordering::SeqCst){engine.chat_cancel.store(true,Ordering::SeqCst);engine.load_cancel.store(true,Ordering::SeqCst);}Ok(())}
-#[tauri::command]pub fn assistant_clear(confirmed:bool,engine:tauri::State<'_,Arc<AiEngine>>)->Result<ChatState>{if !confirmed{return Err("ai_confirmation".into());}if engine.chat_busy.compare_exchange(false,true,Ordering::SeqCst,Ordering::SeqCst).is_err(){return Err("ai_busy".into());}let result=engine.chat_update(|s|{s.messages.clear();s.error=None;});engine.chat_busy.store(false,Ordering::SeqCst);result}
+#[tauri::command]pub fn assistant_clear(confirmed:bool,engine:tauri::State<'_,Arc<AiEngine>>)->Result<ChatState>{if !confirmed{return Err("ai_confirmation".into());}if engine.chat_busy.compare_exchange(false,true,Ordering::SeqCst,Ordering::SeqCst).is_err(){return Err("ai_busy".into());}let result=engine.chat_update(|s|{s.messages.clear();s.error=None;s.restricted=false;});engine.chat_busy.store(false,Ordering::SeqCst);result}
 #[tauri::command]pub fn assistant_load(model_id:String,engine:tauri::State<'_,Arc<AiEngine>>)->Result<()> {
  let e=engine.inner().clone();if e.stopped.load(Ordering::SeqCst)||e.chat_busy.load(Ordering::SeqCst)||e.load_busy.compare_exchange(false,true,Ordering::SeqCst,Ordering::SeqCst).is_err(){return Err("ai_busy".into());}
  e.load_cancel.store(false,Ordering::SeqCst);if let Err(error)=e.chat_update(|s|{s.phase="loading".into();s.model_id=Some(model_id.clone());s.error=None;}){e.load_busy.store(false,Ordering::SeqCst);return Err(error);}
@@ -53,6 +56,7 @@ fn tools()->Value{json!([
 #[derive(Deserialize)]#[serde(deny_unknown_fields)]struct Search{query:String}
 #[derive(Deserialize)]#[serde(rename_all="camelCase",deny_unknown_fields)]struct Prepare{model_id:String,prompt:String,negative_prompt:String,width:u32,height:u32,steps:u32,guidance:f32,seed:u32,sampler:String}
 fn run_tool(name:&str,args:Value,core:&Core,library:&ModelLibrary,catalog:&gallery::GalleryCatalog,images:&ImageEngine)->Result<(Value,Option<ImageRequest>)>{
+ if crate::privacy::locked()&&crate::privacy::has_protected()&&!matches!(name,"get_hardware"|"list_models"|"search_gallery"){return Err("privacy_locked".into());}
  match name{
  "get_hardware"=>{let _:Empty=serde_json::from_value(args).map_err(|_|"ai_tool_arguments")?;let h=crate::hardware::discover();Ok((json!({"cpu":h.cpu,"logicalCores":h.logical_cores,"totalMemoryBytes":h.total_memory_bytes,"availableMemoryBytes":h.available_memory_bytes,"gpus":h.gpus}),None))},
  "get_preferences"=>{let _:Empty=serde_json::from_value(args).map_err(|_|"ai_tool_arguments")?;Ok((json!(images.benchmarks.preferences()?.into_iter().take(10).collect::<Vec<_>>()),None))},
@@ -65,10 +69,12 @@ fn run_tool(name:&str,args:Value,core:&Core,library:&ModelLibrary,catalog:&galle
  }
 }
 #[tauri::command]pub fn assistant_send(text:String,language:String,studio_tools:bool,engine:tauri::State<'_,Arc<AiEngine>>,core:tauri::State<'_,Arc<Core>>,library:tauri::State<'_,Arc<ModelLibrary>>,catalog:tauri::State<'_,Arc<gallery::GalleryCatalog>>,images:tauri::State<'_,Arc<ImageEngine>>)->Result<()> {
+ if crate::privacy::locked()&&engine.privacy_chat()?{return Err("privacy_locked".into());}
  if text.trim().is_empty()||text.len()>8000||text.contains('\0')||!["de","en"].contains(&language.as_str()){return Err("ai_parameters".into());}
  let e=engine.inner().clone();let endpoint=e.endpoint.lock().map_err(err)?.clone().ok_or("ai_not_loaded")?;
+ let restricted=e.privacy_chat()?||(studio_tools&&!crate::privacy::locked()&&crate::privacy::has_protected());
  if e.stopped.load(Ordering::SeqCst)||e.load_cancel.load(Ordering::SeqCst)||e.chat_busy.compare_exchange(false,true,Ordering::SeqCst,Ordering::SeqCst).is_err(){return Err("ai_busy".into());}e.chat_cancel.store(false,Ordering::SeqCst);
- let snapshot=match e.chat_update(|s|{s.error=None;s.phase="running".into();s.elapsed_ms=0;s.tokens=None;s.messages.push(ChatLine{id:uuid(),role:"user".into(),text,tools:vec![],proposal:None});if s.messages.len()>100{s.messages.drain(..s.messages.len()-100);}}){Ok(s)=>s,Err(error)=>{e.chat_busy.store(false,Ordering::SeqCst);return Err(error)}};
+ let snapshot=match e.chat_update(|s|{s.restricted|=restricted;s.error=None;s.phase="running".into();s.elapsed_ms=0;s.tokens=None;s.messages.push(ChatLine{id:uuid(),role:"user".into(),text,tools:vec![],proposal:None});if s.messages.len()>100{s.messages.drain(..s.messages.len()-100);}}){Ok(s)=>s,Err(error)=>{e.chat_busy.store(false,Ordering::SeqCst);return Err(error)}};
  let core=core.inner().clone();let library=library.inner().clone();let catalog=catalog.inner().clone();let images=images.inner().clone();
  thread::spawn(move||{
   let start=Instant::now();let mut traces=vec![];let mut proposal=None;let result=(||{

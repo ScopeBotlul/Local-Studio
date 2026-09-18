@@ -36,6 +36,14 @@ Die Website-Anmeldung ist separat; ihre Cookies liegen im eigenen WebView-Profil
 App-Tokens werden nicht in Website-Cookies umgewandelt. Modellseiten lassen sich
 über In Local Studio öffnen an die Modellansicht übergeben.
 
+Neu in 0.26.0: lokale 18+-Sperre mit Altersbestaetigung, PIN oder Passwort,
+Neustartsperre und Modellkennzeichnung. Geschuetzte Prompts, Galerie-Metadaten,
+Projekte und Chatverlaeufe. Laufende Bilder werden beim Sperren weiter berechnet.
+Kopien/Exporte behalten die Kennzeichnung. Geschuetzte Projekte: Format 5.
+Einrichtung oben ueber 18+. App-Zugriffsschutz, keine Dateiverschluesselung.
+Local-Studio-Data beim Update vollstaendig behalten. Gemischte Verwaltungs-
+und Verlaufsansichten verlangen vorsorglich eine Entsperrung.
+
 Neu in 0.25.0: SDXL-Bild-zu-Bild, Inpainting mit pixelgenauem Maskenschutz,
 Stapel mit gleicher/aufsteigender Seed-Folge und bewusst waehlbarer CPU-VAE.
 Referenz und Maske werden pro Auftrag kopiert; Projektformat 4 bettet beide ein.
@@ -44,7 +52,7 @@ Gemeinsame Ressourcenwarteschlange, optionale Live-Hardwarewerte, Windows-Akzent
 und Infobereich. Gepruefte Modellverschiebung, bewusste gemeinsame Modellupdates,
 echte lokale Messwerte und bearbeitbare gelernte Praeferenzen.
 Noch keine vollstaendige Umsetzung des Masterprompts; u.a. KI-Video, Musikmodelle,
-Workflows, Vision/Inhaltsindex, 18+-Sperre und weitere Editorfunktionen offen.
+Workflows, Vision/Inhaltsindex und weitere Editorfunktionen offen.
 
 Neu in 0.24.0: Lokaler Assistent mit bewusstem Modelldownload, DE/EN-Chat,
 Laden/Entladen, Abbruch und sichtbaren Studio-Werkzeugen. Hardware lesen,

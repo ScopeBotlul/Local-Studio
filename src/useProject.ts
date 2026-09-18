@@ -33,10 +33,10 @@ export function useProject(enabled: boolean, studio: ReturnType<typeof useImageW
   }, [enabled]);
   async function sync() {
     const p = current.current; const workspace = context.current.studio;
-    if (p && !p.recovery && workspace.ready && !workspace.recovery && JSON.stringify(p.request) !== JSON.stringify(workspace.request)) accept(await projectApi.update(p.id, workspace.request));
+    if (p && !p.locked && !p.recovery && workspace.ready && !workspace.recovery && JSON.stringify(p.request) !== JSON.stringify(workspace.request)) accept(await projectApi.update(p.id, workspace.request));
   }
   useEffect(() => {
-    if (!ready || busy || !project || project.recovery || studio.recovery) return;
+    if (!ready || busy || !project || project.locked || project.recovery || studio.recovery) return;
     timer.current = setTimeout(() => {
       const task = pending.current.catch(() => {}).then(sync);
       pending.current = task;

@@ -86,7 +86,7 @@ impl Core {
             paths: crate::settings::effective_paths(&settings),
             settings,
             hardware,
-            jobs,
+            jobs: Self::public_jobs(jobs),
             recovery_available,
             database_path: self.database_path.to_string_lossy().into_owned(),
             portable: self.portable,
@@ -118,8 +118,9 @@ impl Core {
     }
 
     pub fn jobs(&self) -> Result<Vec<Job>, String> {
-        locked(&self.database)?.jobs()
+        Ok(Self::public_jobs(locked(&self.database)?.jobs()?))
     }
+    fn public_jobs(jobs:Vec<Job>)->Vec<Job>{jobs.into_iter().filter(|j|!crate::privacy::locked()||!crate::privacy::media(Path::new(&j.input_path))).collect()}
 
     pub fn enqueue(&self, path: &str) -> Result<Job, String> {
         if !Path::new(path).is_absolute() {

@@ -58,10 +58,10 @@ Arbeitsauftrag: alle verbleibenden Anforderungen aus dem unveränderten Masterpr
 | 52 | Startverhalten | Teilweise vorhanden | Vollständige Abnahme offen; SPEC §52 bleibt verbindlich |
 | 53 | Crash Recovery | Teilweise vorhanden | Vollständige Abnahme offen; SPEC §53 bleibt verbindlich |
 | 54 | Temporärdaten | Teilweise vorhanden | Vollständige Abnahme offen; SPEC §54 bleibt verbindlich |
-| 55 | 18+-Modus | Offen | Vollständige Abnahme offen; SPEC §55 bleibt verbindlich |
-| 56 | 18+-Modelle in Studio | Offen | Vollständige Abnahme offen; SPEC §56 bleibt verbindlich |
-| 57 | 18+-Galerie | Offen | Vollständige Abnahme offen; SPEC §57 bleibt verbindlich |
-| 58 | 18+-Analyse | Offen | Vollständige Abnahme offen; SPEC §58 bleibt verbindlich |
+| 55 | 18+-Modus | Implementiert | 0.26.0: Altersbestätigung, PIN/Passwort, gesalzene Ableitung, Versuchsbremse, Neustartsperre; Nachweise in TEST_MATRIX.md |
+| 56 | 18+-Modelle in Studio | Implementiert für vorhandene Adapter | 0.26.0: Modelle sichtbar, Arbeitsbereich/Prompts gesperrt, neue private Aufträge verweigert, laufende Generierungen weiter aktiv |
+| 57 | 18+-Galerie | Implementiert für vorhandene Herkunftspfade | 0.26.0: geschützte Vorschau/Metadaten, Kopien/Varianten/Exporte/Projektformat 5; Erweiterungsadapter später einbinden |
+| 58 | 18+-Analyse | Teilweise | 0.26.0: private Galerie-Suchergebnisse und vorhandene Analyse-/Assistentenzugriffe gesperrt; visueller Index/semantische Suche selbst weiterhin offen |
 | 59 | IMAGE – Generierung | Teilweise vorhanden | 0.25: reale SDXL-Referenzen, Bild-zu-Bild, Inpainting, Stapel/Seeds und CPU-VAE; LoRA/ControlNet/VAE-Austausch offen |
 | 60 | Bildeditor | Teilweise vorhanden | Vollständige Abnahme offen; SPEC §60 bleibt verbindlich |
 | 61 | Bildeditor – Transformation | Teilweise vorhanden | Vollständige Abnahme offen; SPEC §61 bleibt verbindlich |

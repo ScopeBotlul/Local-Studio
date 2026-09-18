@@ -72,4 +72,4 @@ impl Projects {
  fn store_creative(&self,id:&str,expected:u64,mut creative:Creative)->Result<Project>{let mut s=self.state.lock().map_err(err)?;let mut p=Self::require(&s)?;if p.id!=id||p.creative.as_ref().map_or(0,|c|c.revision)!=expected{return Err("project_changed".into());}validate(&creative,&p.assets)?;creative.revision=expected.checked_add(1).ok_or("creative_limit")?;p.creative=Some(creative);p.dirty=true;persist(&mut s,Some(p.clone()))?;Ok(p)}
 }
 #[tauri::command]
-pub async fn project_creative_save(id:String,expected:u64,creative:Creative,state:tauri::State<'_,Arc<Projects>>)->Result<Project>{let p=state.inner().clone();tauri::async_runtime::spawn_blocking(move||p.store_creative(&id,expected,creative)).await.map_err(err)?}
+pub async fn project_creative_save(id:String,expected:u64,creative:Creative,state:tauri::State<'_,Arc<Projects>>)->Result<Project>{let privacy_epoch=crate::privacy::epoch();let privacy_result=(async {let p=state.inner().clone();tauri::async_runtime::spawn_blocking(move||p.store_creative(&id,expected,creative)).await.map_err(err)?}).await;crate::privacy::finish(privacy_epoch,privacy_result)}

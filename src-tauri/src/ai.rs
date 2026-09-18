@@ -43,6 +43,7 @@ impl AiEngine{
    tx.execute("UPDATE ai_models SET json=?1 WHERE id=?2",rusqlite::params![serde_json::to_string(model).map_err(err)?,model.id]).map_err(err)?;
   }}tx.commit().map_err(err)?;Ok(())
  }
+ pub(crate) fn privacy_model(&self,id:&str)->Result<bool>{Ok(self.models()?.iter().any(|m|m.id==id&&crate::privacy::model(Path::new(&m.path))))}
  fn models(&self)->Result<Vec<AiModel>>{let db=self.db.lock().map_err(err)?;let mut q=db.prepare("SELECT json FROM ai_models ORDER BY rowid").map_err(err)?;let rows=q.query_map([],|r|r.get::<_,String>(0)).map_err(err)?;rows.map(|s|serde_json::from_str(&s.map_err(err)?).map_err(err)).collect()}
  fn model(&self,id:&str,kind:&str)->Result<(AiModel,Vec<File>)>{
   let m=self.models()?.into_iter().find(|m|m.id==id&&m.kind==kind).ok_or("ai_model_missing")?;let path=Path::new(&m.path);let mut pins=gallery::directory_guards(path.parent().ok_or("ai_model_changed")?)?;let mut file=gallery::lock_file(path)?;

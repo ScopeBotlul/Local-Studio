@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-privacy-unlock"
+description = "Enables the privacy_unlock command without any pre-configured scope."
+commands.allow = ["privacy_unlock"]
+
+[[permission]]
+identifier = "deny-privacy-unlock"
+description = "Denies the privacy_unlock command without any pre-configured scope."
+commands.deny = ["privacy_unlock"]

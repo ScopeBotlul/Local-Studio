@@ -146,6 +146,7 @@ impl Downloads {
         let available = fs2::available_space(&models).map_err(|_| "download_storage")?.min(fs2::available_space(&downloads).map_err(|_| "download_storage")?);
         let additional = total.checked_mul(2).ok_or("download_size")?;
         if available < additional.saturating_add(64*1024*1024) { return Err("download_space".into()); }
+        let restricted=details.model.restricted;
         let plan = Plan { id: id.clone(), additional_bytes: additional, available_bytes: available, download: Download {
             destination: models.join(format!("hf-{id}")).to_string_lossy().into(), partial_directory: downloads.join(&id).to_string_lossy().into(), id: id.clone(),
             repo: details.model.id, revision: details.revision, license: details.model.license, task: details.model.task, files: selected, status: "queued".into(), priority: 0,
@@ -154,6 +155,7 @@ impl Downloads {
         }};
         let mut state = self.state.lock().map_err(|_| "internal")?; state.plans.retain(|_,(at,_)|at.elapsed()<Duration::from_secs(600));
         if state.plans.len()>=64 { return Err("download_plan_limit".into()); }
+        if restricted {for f in &plan.download.files{crate::privacy::register_model(&Path::new(&plan.download.destination).join(&f.path))?;}}
         state.plans.insert(id,(Instant::now(),plan.clone())); Ok(plan)
     }
     pub fn start(self: &Arc<Self>, plan_id: &str) -> Result<Download> {

@@ -233,7 +233,7 @@ pub(super) fn compose(request: &ImageRequest, directory: &Path, output: &Path) -
     Ok(())
 }
 #[tauri::command]
-pub async fn image_reference(path: String, mask: Option<bool>) -> Result<ReferencePreview> {
+pub async fn image_reference(path: String, mask: Option<bool>) -> Result<ReferencePreview> {let privacy_epoch=crate::privacy::epoch();let privacy_result=(async {
     tauri::async_runtime::spawn_blocking(move || {
         let path = PathBuf::from(path);
         let _pins = crate::gallery::directory_guards(path.parent().ok_or("image_path")?)?;
@@ -282,7 +282,7 @@ pub async fn image_reference(path: String, mask: Option<bool>) -> Result<Referen
     })
     .await
     .map_err(|_| "image_storage")?
-}
+}).await;crate::privacy::finish(privacy_epoch,privacy_result)}
 #[cfg(test)]
 mod tests {
     use super::*;

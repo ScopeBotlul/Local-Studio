@@ -59,6 +59,6 @@ Noch vor vollständiger M0-Abnahme separat schließen: Windows-Laufprüfung der 
 - Lokalität, keine automatischen Medien-/Prompt-Uploads und keine standardmäßige Telemetrie gelten in allen Meilensteinen.
 - Eine gemeinsame Medien-/Job-/Adapterarchitektur bedient alle Schnellwerkzeuge; keine zweite Engine für denselben Medientyp.
 - Modell-/Datei-/Workflowimporte validieren; keine Ausführung fremder Modellskripte; Lizenzen und Zugangsbeschränkungen berücksichtigen.
-- 18+-Sperre aus §§55–58 mit Modellkennzeichnung in M1/M2, Galerie-Metadaten in M3 und Analyse/Assistent in M5/M6 umsetzen; Neustartsperre, geschützte Metadaten und laufende Jobs ausdrücklich testen. Bis dahin nicht als vorhanden ausgeben.
+- 18+-Sperre aus §§55–58 mit Modellkennzeichnung in M1/M2, Galerie-Metadaten in M3 und Analyse/Assistent in M5/M6 umsetzen; Neustartsperre, geschützte Metadaten und laufende Jobs ausdrücklich testen. Ab 0.26.0 für vorhandene Bild-/Galerie-/Projekt-/Chatpfade implementiert; Prüfnachweise in TEST_MATRIX.md. Noch nicht vorhandene Erweiterungen und Inhaltsanalyse später verbindlich einbinden.
 - Ressourcenregeln, unveränderliche Modelljob-Snapshots, verständliche Fehler, tatsächlich gemessener Fortschritt und sichere Originaldateien sind Abnahmekriterien der jeweils betroffenen Funktion.
 - Nach jedem Arbeitspaket Status und Testnachweise aktualisieren. Blockaden konkret mit nächstem Schritt festhalten. Kein Meilenstein gilt allein durch sichtbare UI als fertig.

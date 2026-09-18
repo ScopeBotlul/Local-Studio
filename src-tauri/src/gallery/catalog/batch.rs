@@ -55,10 +55,10 @@ impl GalleryCatalog {
     }
 }
 #[tauri::command]
-pub async fn gallery_annotate_batch(batch: Batch,core: State<'_,Arc<Core>>,catalog: State<'_,Arc<GalleryCatalog>>) -> Result<usize> {
+pub async fn gallery_annotate_batch(batch: Batch,core: State<'_,Arc<Core>>,catalog: State<'_,Arc<GalleryCatalog>>) -> Result<usize> {let privacy_epoch=crate::privacy::epoch();let privacy_result=(async {
     let root=root(&core)?;let catalog=catalog.inner().clone();
     tauri::async_runtime::spawn_blocking(move || catalog.batch(&root,batch)).await.map_err(|_| "gallery_storage")?
-}
+}).await;crate::privacy::finish(privacy_epoch,privacy_result)}
 
 #[cfg(test)]
 mod tests {

@@ -6,7 +6,7 @@ fn fixture(engine: &ImageEngine) -> ImageJob {
     let mut encoder = png::Encoder::new(File::create(&path).unwrap(), 2, 2); encoder.set_color(png::ColorType::Rgb); encoder.set_depth(png::BitDepth::Eight);
     encoder.write_header().unwrap().write_image_data(&[120; 12]).unwrap();
     for name in ["prompt.txt", "negative.txt", "metadata.json"] { fs::write(directory.join(name), b"fixture").unwrap(); }
-    let job = ImageJob { batch:None,sampling_steps:None, id, request, status: "completed".into(), phase: "completed".into(), step: 20, hashed_bytes: 10, model_bytes: 10, model_sha256: None, runtime: "test fixture".into(), device: "test fixture".into(), created_at: crate::database::now(), elapsed_ms: 0, error: None, output: Some(path.to_string_lossy().into()), saved_path: None, saved_binding: None, working_directory: None, log_tail: String::new(), discarded: false, started_at: None, finished_at: None, queue_position: None };
+    let job = ImageJob { restricted:false,locked:false,batch:None,sampling_steps:None, id, request, status: "completed".into(), phase: "completed".into(), step: 20, hashed_bytes: 10, model_bytes: 10, model_sha256: None, runtime: "test fixture".into(), device: "test fixture".into(), created_at: crate::database::now(), elapsed_ms: 0, error: None, output: Some(path.to_string_lossy().into()), saved_path: None, saved_binding: None, working_directory: None, log_tail: String::new(), discarded: false, started_at: None, finished_at: None, queue_position: None };
     let mut state = engine.state.lock().unwrap(); persist(&state, &job).unwrap(); state.jobs.insert(0, job.clone()); job
 }
 

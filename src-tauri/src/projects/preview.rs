@@ -21,6 +21,7 @@ pub(super) fn response(
     let Some(p) = project.filter(|p| !p.recovery) else {
         return denied();
     };
+    if crate::privacy::locked()&&project_restricted(p){return denied();}
     let parts: Vec<_> = req
         .uri()
         .path()

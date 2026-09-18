@@ -244,7 +244,7 @@ fn checksum_failures_and_unsupported_versions_leave_active_project_intact() {
         .new_project(t.path(), "original".into(), None, false)
         .unwrap();
     let id = uuid();
-    let a = Asset {
+    let a = Asset { restricted:false,
         edit:vec![],
         id: id.clone(),
         name: "image.png".into(),
@@ -253,7 +253,7 @@ fn checksum_failures_and_unsupported_versions_leave_active_project_intact() {
         sha256: "0".repeat(64),
         archive_name: format!("media/{id}.png"),
     };
-    let mut m = Manifest {
+    let mut m = Manifest { restricted:false,
         creative:None,
         format: "local-studio".into(),
         version: 1,

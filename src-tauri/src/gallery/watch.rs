@@ -24,11 +24,11 @@ impl GalleryWatch {
     }
 }
 #[tauri::command]
-pub async fn gallery_watch(app:tauri::AppHandle,core:State<'_,Arc<Core>>,watch:State<'_,Arc<GalleryWatch>>)->Result<WatchEvent>{
+pub async fn gallery_watch(app:tauri::AppHandle,core:State<'_,Arc<Core>>,watch:State<'_,Arc<GalleryWatch>>)->Result<WatchEvent>{let privacy_epoch=crate::privacy::epoch();let privacy_result=(async {
     let root=root(&core)?;let id=root_id(&root);let event_id=id.clone();let watcher=watch.inner().clone();
     tauri::async_runtime::spawn_blocking(move||watcher.start(root,move|active|{let _=app.emit_to("main","gallery-changed",WatchEvent{root_id:event_id.clone(),active});})).await.map_err(|_|"gallery_watch")??;
     Ok(WatchEvent{root_id:id,active:true})
-}
+}).await;crate::privacy::finish(privacy_epoch,privacy_result)}
 #[cfg(test)] mod tests {
  use super::*;
  #[test] fn observes_real_nested_create_rename_delete_and_changes_roots(){

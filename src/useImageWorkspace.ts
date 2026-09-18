@@ -1,10 +1,15 @@
 import { useCallback, useEffect, useRef, useState, type SetStateAction } from 'react';
 import { imageApi, type ImageRequest, type ImageWorkspace } from './image-api';
+import {usePrivacy,useModelPrivacy} from './Privacy';
 
 export const defaultImageRequest: ImageRequest = { modelPath: '', prompt: '', negativePrompt: '', width: 512, height: 512, steps: 25, guidance: 5, seed: 42, sampler: 'euler' };
 export function useImageWorkspace(enabled: boolean) {
   const [request, renderRequest] = useState(defaultImageRequest);
   const [ready, setReady] = useState(false);
+  const [locked,setLocked]=useState(false);
+  const privacy=usePrivacy(),modelRestricted=useModelPrivacy(request.modelPath);
+  const mayWrite=useRef(true);
+  mayWrite.current=!privacy.status.locked||(!locked&&!modelRestricted);
   const [recovery, setRecovery] = useState(false);
   const [error, setError] = useState('');
   const value = useRef<ImageWorkspace>({ request: null, models: {} });
@@ -13,7 +18,7 @@ export function useImageWorkspace(enabled: boolean) {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const flush = useCallback(async () => {
     if (timer.current) { clearTimeout(timer.current); timer.current = null; }
-    if (!canSave.current) return;
+    if (!canSave.current||!mayWrite.current) return;
     const workspace = structuredClone(value.current);
     if (workspace.request?.modelPath.toLowerCase().endsWith('.safetensors')) workspace.models[workspace.request.modelPath] = { ...workspace.request, prompt: '', negativePrompt: '' };
     const paths = Object.keys(workspace.models);
@@ -27,7 +32,7 @@ export function useImageWorkspace(enabled: boolean) {
     let live = true;
     void imageApi.workspace().then(data => {
       if (!live) return;
-      value.current = data.workspace; canSave.current = !data.recoveryAvailable;
+      value.current = data.workspace; canSave.current = !data.recoveryAvailable;setLocked(!!data.locked);
       setRecovery(data.recoveryAvailable); renderRequest(data.recoveryAvailable ? defaultImageRequest : data.workspace.request ?? defaultImageRequest); setReady(true);
     }).catch(e => { if (live) setError(String(e)); });
     return () => { live = false; if (timer.current) clearTimeout(timer.current); };
@@ -36,6 +41,7 @@ export function useImageWorkspace(enabled: boolean) {
     if (!canSave.current) return;
     const previous = value.current.request ?? defaultImageRequest;
     const next = typeof action === 'function' ? action(previous) : action;
+    if(next.modelPath!==previous.modelPath)setLocked(false);
     value.current = { ...value.current, request: next };
     renderRequest(next);
     if (timer.current) clearTimeout(timer.current);
@@ -54,7 +60,7 @@ export function useImageWorkspace(enabled: boolean) {
   }, [selectModel, setRequest]);
   const recover = useCallback(async () => {
     const data = await imageApi.recover(); value.current = data.workspace;
-    canSave.current = true; setRecovery(false); renderRequest(data.workspace.request ?? defaultImageRequest);
+    canSave.current = true;setLocked(!!data.locked); setRecovery(false); renderRequest(data.workspace.request ?? defaultImageRequest);
   }, []);
-  return { request, setRequest, selectModel, restore, ready, recovery, recover, flush, error };
+  return { locked,request, setRequest, selectModel, restore, ready, recovery, recover, flush, error };
 }

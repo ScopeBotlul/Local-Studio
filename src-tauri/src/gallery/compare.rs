@@ -27,10 +27,10 @@ fn prepare(root:&Path,request:CompareRequest,origins:&HashMap<String,BoundOrigin
 }
 
 #[tauri::command]
-pub async fn gallery_compare(request:CompareRequest,core:State<'_,Arc<Core>>,catalog:State<'_,Arc<GalleryCatalog>>,images:State<'_,Arc<ImageEngine>>)->Result<Vec<Detail>>{
+pub async fn gallery_compare(request:CompareRequest,core:State<'_,Arc<Core>>,catalog:State<'_,Arc<GalleryCatalog>>,images:State<'_,Arc<ImageEngine>>)->Result<Vec<Detail>>{let privacy_epoch=crate::privacy::epoch();let privacy_result=(async {
     let root=root(&core)?;let cat=catalog.inner().clone();let images=images.inner().clone();
     tauri::async_runtime::spawn_blocking(move||{cat.recover(&root,&images)?;let origins=cat.sync_origins(&root,images.list()?)?;prepare(&root,request,&origins)}).await.map_err(|_|"gallery_storage")?
-}
+}).await;crate::privacy::finish(privacy_epoch,privacy_result)}
 
 #[cfg(test)]
 mod tests {

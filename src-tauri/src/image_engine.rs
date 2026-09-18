@@ -30,6 +30,8 @@ pub struct ImageRequest {
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ImageJob {
+    #[serde(default)] pub restricted:bool,
+    #[serde(default,skip_deserializing)] pub locked:bool,
     #[serde(default)] pub batch:Option<BatchInfo>,
     #[serde(default)] pub sampling_steps:Option<u32>,
     pub id: String, pub request: ImageRequest, pub status: String, pub phase: String,
@@ -208,6 +210,15 @@ fn job_directory(job: &ImageJob, legacy: &Path) -> Result<PathBuf> {
 }
 
 impl ImageEngine {
+    pub(crate) fn protect_known_jobs(&self)->Result<()> {
+        let mut s=self.state.lock().map_err(|_|"image_storage")?;
+        for n in 0..s.jobs.len(){if crate::privacy::request(&s.jobs[n].request){
+            s.jobs[n].restricted=true;let job=&s.jobs[n];
+            crate::privacy::protect_path(&job_directory(job,&self.config)?)?;
+            if let Some(path)=&job.saved_path{if Path::new(path).is_file(){crate::privacy::mark(Path::new(path))?;}}
+            persist(&s,job)?;
+        }}Ok(())
+    }
     pub fn new(config: &Path, runtime: PathBuf) -> Result<Arc<Self>> {
         let outputs = config.join("image-results"); fs::create_dir_all(&outputs).map_err(|_| "image_storage")?;
         let db = Connection::open(config.join("images.sqlite3")).map_err(|_| "image_storage")?;
@@ -387,7 +398,7 @@ impl ImageEngine {
         let image = destination.join("image.png");
         let mut file = OpenOptions::new().create_new(true).write(true).open(&image).map_err(|_| "image_storage")?;
         file.write_all(&bytes).map_err(|_| "image_storage")?; file.sync_all().map_err(|_| "image_storage")?;
-        drop(file);job.saved_binding=Some(crate::gallery::saved_binding(&image)?);
+        drop(file);if job.restricted{crate::privacy::mark(&image)?;}job.saved_binding=Some(crate::gallery::saved_binding(&image)?);
         job.saved_path = Some(image.to_string_lossy().into());
         let mut metadata = OpenOptions::new().create_new(true).write(true).open(destination.join("metadata.json")).map_err(|_| "image_storage")?;
         metadata.write_all(&serde_json::to_vec_pretty(&job).map_err(|_| "image_storage")?).map_err(|_| "image_storage")?;
@@ -398,17 +409,17 @@ impl ImageEngine {
     }
 }
 #[tauri::command]
-pub async fn image_probe(path: String, state: tauri::State<'_, Arc<ImageEngine>>) -> Result<ImageProbe> { let engine = state.inner().clone(); tauri::async_runtime::spawn_blocking(move || engine.probe(&path)).await.map_err(|_| "image_storage".into()) }
+pub async fn image_probe(path: String, state: tauri::State<'_, Arc<ImageEngine>>) -> Result<ImageProbe> {let privacy_epoch=crate::privacy::epoch();let privacy_result=(async { let engine = state.inner().clone(); tauri::async_runtime::spawn_blocking(move || engine.probe(&path)).await.map_err(|_| "image_storage".into()) }).await;crate::privacy::finish(privacy_epoch,privacy_result)}
 #[tauri::command]
-pub fn image_jobs(state: tauri::State<'_, Arc<ImageEngine>>) -> Result<Vec<ImageJob>> { state.list() }
+pub fn image_jobs(state: tauri::State<'_, Arc<ImageEngine>>) -> Result<Vec<ImageJob>> {let privacy_epoch=crate::privacy::epoch();let privacy_result=(||{ let mut jobs=state.list()?;if crate::privacy::locked(){for j in &mut jobs{if j.restricted||crate::privacy::request(&j.request){j.locked=true;crate::privacy::redact(&mut j.request);j.output=None;j.saved_path=None;j.saved_binding=None;j.working_directory=None;j.log_tail.clear();j.error=None;}}}Ok(jobs) })();crate::privacy::finish(privacy_epoch,privacy_result)}
 #[tauri::command]
-pub async fn image_generate(request: ImageRequest, core: tauri::State<'_, Arc<Core>>, state: tauri::State<'_, Arc<ImageEngine>>) -> Result<ImageJob> { let temporary = core.storage_paths()?.temporary; let engine = state.inner().clone(); tauri::async_runtime::spawn_blocking(move || engine.start_in(request, Some(Path::new(&temporary)))).await.map_err(|_| "image_storage")? }
+pub async fn image_generate(request: ImageRequest, core: tauri::State<'_, Arc<Core>>, state: tauri::State<'_, Arc<ImageEngine>>) -> Result<ImageJob> {let privacy_epoch=crate::privacy::epoch();let privacy_result=(async { let temporary = core.storage_paths()?.temporary; let engine = state.inner().clone(); tauri::async_runtime::spawn_blocking(move || engine.start_in(request, Some(Path::new(&temporary)))).await.map_err(|_| "image_storage")? }).await;crate::privacy::finish(privacy_epoch,privacy_result)}
 #[tauri::command]
 pub fn image_cancel(id: String, state: tauri::State<'_, Arc<ImageEngine>>) -> Result<()> { state.cancel(&id) }
 #[tauri::command]
-pub async fn image_output(id: String, state: tauri::State<'_, Arc<ImageEngine>>) -> Result<String> { let engine = state.inner().clone(); tauri::async_runtime::spawn_blocking(move || engine.output(&id)).await.map_err(|_| "image_storage")? }
+pub async fn image_output(id: String, state: tauri::State<'_, Arc<ImageEngine>>) -> Result<String> {let privacy_epoch=crate::privacy::epoch();let privacy_result=(async { let engine = state.inner().clone(); tauri::async_runtime::spawn_blocking(move || engine.output(&id)).await.map_err(|_| "image_storage")? }).await;crate::privacy::finish(privacy_epoch,privacy_result)}
 #[tauri::command]
-pub async fn image_save(id: String, core: tauri::State<'_, Arc<Core>>, state: tauri::State<'_, Arc<ImageEngine>>) -> Result<String> { let gallery = core.storage_paths()?.gallery; let engine = state.inner().clone(); tauri::async_runtime::spawn_blocking(move || engine.save(&id, Path::new(&gallery))).await.map_err(|_| "image_storage")? }
+pub async fn image_save(id: String, core: tauri::State<'_, Arc<Core>>, state: tauri::State<'_, Arc<ImageEngine>>) -> Result<String> {let privacy_epoch=crate::privacy::epoch();let privacy_result=(async { let gallery = core.storage_paths()?.gallery; let engine = state.inner().clone(); tauri::async_runtime::spawn_blocking(move || engine.save(&id, Path::new(&gallery))).await.map_err(|_| "image_storage")? }).await;crate::privacy::finish(privacy_epoch,privacy_result)}
 
 #[cfg(test)]
 mod tests {
