@@ -83,7 +83,7 @@ impl Core {
         }
         Ok(AppSnapshot {
             version: env!("CARGO_PKG_VERSION").into(),
-            paths: crate::settings::paths(&settings.data_root),
+            paths: crate::settings::effective_paths(&settings),
             settings,
             hardware,
             jobs,
@@ -111,8 +111,10 @@ impl Core {
         Ok(settings)
     }
 
+    pub fn current_settings(&self) -> Result<Settings, String> { locked(&self.database)?.settings() }
+
     pub fn storage_paths(&self) -> Result<crate::types::StoragePaths, String> {
-        Ok(crate::settings::paths(&locked(&self.database)?.settings()?.data_root))
+        Ok(crate::settings::effective_paths(&locked(&self.database)?.settings()?))
     }
 
     pub fn jobs(&self) -> Result<Vec<Job>, String> {

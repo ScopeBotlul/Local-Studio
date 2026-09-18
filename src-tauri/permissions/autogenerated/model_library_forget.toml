@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-model-library-forget"
+description = "Enables the model_library_forget command without any pre-configured scope."
+commands.allow = ["model_library_forget"]
+
+[[permission]]
+identifier = "deny-model-library-forget"
+description = "Denies the model_library_forget command without any pre-configured scope."
+commands.deny = ["model_library_forget"]

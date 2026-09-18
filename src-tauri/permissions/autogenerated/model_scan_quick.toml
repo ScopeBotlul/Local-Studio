@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-model-scan-quick"
+description = "Enables the model_scan_quick command without any pre-configured scope."
+commands.allow = ["model_scan_quick"]
+
+[[permission]]
+identifier = "deny-model-scan-quick"
+description = "Denies the model_scan_quick command without any pre-configured scope."
+commands.deny = ["model_scan_quick"]

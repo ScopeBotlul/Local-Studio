@@ -1,9 +1,12 @@
 export type Language = 'de' | 'en';
 export type Theme = 'system' | 'light' | 'dark';
 export interface Settings {
+  autoUpdateCheck: boolean;
   language: Language; theme: Theme; accentColor: string; uiScale: number;
   dataRoot: string; restoreSession: boolean; setupComplete: boolean;
-  maxUndo: number; tempRetentionDays: number;
+  maxUndo: number; tempRetentionDays: number; autoCleanup: boolean;
+  storageOverrides: Partial<StoragePaths>;
+  shortcuts: import('./shortcuts').Shortcuts;
 }
 export interface StoragePaths {
   models: string; assistantModels: string; visionModels: string; downloads: string;

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-gallery-file-action"
+description = "Enables the gallery_file_action command without any pre-configured scope."
+commands.allow = ["gallery_file_action"]
+
+[[permission]]
+identifier = "deny-gallery-file-action"
+description = "Denies the gallery_file_action command without any pre-configured scope."
+commands.deny = ["gallery_file_action"]

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-update-disarm"
+description = "Enables the update_disarm command without any pre-configured scope."
+commands.allow = ["update_disarm"]
+
+[[permission]]
+identifier = "deny-update-disarm"
+description = "Denies the update_disarm command without any pre-configured scope."
+commands.deny = ["update_disarm"]

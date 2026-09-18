@@ -22,7 +22,8 @@ export async function checkDownloads(page, artifactRoot, invoke, record) {
   await page.getByRole('button',{name:'Hugging Face',exact:true}).first().click();
   await page.getByRole('button',{name:'Website in Studio',exact:true}).click();
   const address=page.getByRole('textbox',{name:'Hugging Face address',exact:true});
-  await address.fill(`https://huggingface.co/${repo}`);await address.press('Enter');
+  // Clicking waits for the button to become enabled after initial native WebView creation.
+  await address.fill(`https://huggingface.co/${repo}`);await page.getByRole('button',{name:'Go',exact:true}).click();
   for(let i=0;i<100;i++){if((await invoke('hf_browser_state')).modelRepo===repo)break;await new Promise(r=>setTimeout(r,100));}
   assert.equal((await invoke('hf_browser_state')).modelRepo,repo);
   await page.getByRole('button',{name:'Open in Local Studio',exact:true}).click();

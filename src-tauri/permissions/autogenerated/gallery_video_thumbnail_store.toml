@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-gallery-video-thumbnail-store"
+description = "Enables the gallery_video_thumbnail_store command without any pre-configured scope."
+commands.allow = ["gallery_video_thumbnail_store"]
+
+[[permission]]
+identifier = "deny-gallery-video-thumbnail-store"
+description = "Denies the gallery_video_thumbnail_store command without any pre-configured scope."
+commands.deny = ["gallery_video_thumbnail_store"]

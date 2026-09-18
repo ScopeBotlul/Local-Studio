@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Settings {
+    #[serde(default = "crate::settings::auto_cleanup_default")]
+    pub auto_update_check: bool,
     pub language: String,
     pub theme: String,
     pub accent_color: String,
@@ -12,6 +14,12 @@ pub struct Settings {
     pub setup_complete: bool,
     pub max_undo: u32,
     pub temp_retention_days: u32,
+    #[serde(default = "crate::settings::auto_cleanup_default")]
+    pub auto_cleanup: bool,
+    #[serde(default)]
+    pub storage_overrides: std::collections::BTreeMap<String, String>,
+    #[serde(default = "crate::shortcuts::defaults", deserialize_with = "crate::shortcuts::deserialize")]
+    pub shortcuts: std::collections::BTreeMap<String, String>,
 }
 
 #[derive(Debug, Clone, Serialize)]

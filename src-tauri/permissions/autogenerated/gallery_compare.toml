@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-gallery-compare"
+description = "Enables the gallery_compare command without any pre-configured scope."
+commands.allow = ["gallery_compare"]
+
+[[permission]]
+identifier = "deny-gallery-compare"
+description = "Denies the gallery_compare command without any pre-configured scope."
+commands.deny = ["gallery_compare"]

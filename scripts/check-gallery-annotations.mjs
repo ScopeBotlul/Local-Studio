@@ -1,0 +1,44 @@
+import assert from 'node:assert/strict';
+import { promises as fs } from 'node:fs';
+import path from 'node:path';
+import { createHash } from 'node:crypto';
+const pause=ms=>new Promise(r=>setTimeout(r,ms));
+async function until(fn,timeout=20000){const end=Date.now()+timeout;while(Date.now()<end){if(await fn())return;await pause(120);}throw new Error('Annotation condition timed out');}
+const query={folder:'Medien-Test',search:'',kind:'all',recursive:true,offset:0};
+export async function checkGalleryAnnotations({getPage,invoke,stop,launch,artifactRoot,record}) {
+  let page=getPage();const gallery=(await invoke('bootstrap')).paths.gallery;
+  const relative='Medien-Test/Testbild ü.png', original=path.join(gallery,relative);
+  const digest=bytes=>createHash('sha256').update(bytes).digest('hex');const bytes=await fs.readFile(original);const before=digest(bytes);
+  const lookup=async name=>(await invoke('gallery_list',{query})).entries.find(e=>e.path===name);
+  await page.getByRole('button',{name:'Gallery',exact:true}).first().click();
+  await page.getByLabel('Search files',{exact:true}).fill('Testbild');
+  const panel=page.getByRole('region',{name:'Favorites and tags',exact:true});
+  await panel.getByRole('button',{name:'Add to favorites',exact:true}).click();
+  await until(async()=>(await lookup(relative)).annotation.favorite);
+  const input=panel.getByLabel('New tag',{exact:true});
+  await input.fill('  Urlaub  2026  ');await panel.getByRole('button',{name:'Add tag',exact:true}).click();await until(async()=>(await lookup(relative)).annotation.tags.includes('Urlaub 2026'));
+  await input.fill('Grün');await input.press('Enter');await until(async()=>(await lookup(relative)).annotation.tags.includes('Grün'));
+  await input.fill('grün');await input.press('Enter');await until(async()=>await input.inputValue()==='');assert.deepEqual((await lookup(relative)).annotation.tags,['Urlaub 2026','Grün']);
+  assert.equal(digest(await fs.readFile(original)),before);
+  await page.getByLabel('Search files',{exact:true}).fill('GRÜN');await until(async()=>await page.locator('.gallery-file').count()===1&&/Testbild/.test(await page.locator('.gallery-file').innerText()));
+  await page.getByLabel('Favorites only',{exact:true}).check();await page.getByLabel('Tag filter',{exact:true}).selectOption('Urlaub 2026');
+  await until(async()=>await page.locator('.gallery-file').count()===1);await page.screenshot({path:path.join(artifactRoot,'gallery-favorites-tags.png')});
+  record('Native favorite toggle and Unicode tag add/deduplication persist immediately; tag search and combined favorite/tag filters work without changing image bytes');
+  await stop(true);await launch();page=getPage();
+  let persisted=await lookup(relative);assert.equal(persisted.annotation.favorite,true);assert.deepEqual(persisted.annotation.tags,['Urlaub 2026','Grün']);
+  const rootId=(await invoke('gallery_list',{query})).rootId;
+  const stale={rootId,path:relative,fileId:persisted.fileId,revision:persisted.annotation.revision-1,favorite:false,tags:[]};
+  await assert.rejects(invoke('gallery_annotate',{edit:stale}),/gallery_conflict/);
+  assert.equal((await lookup(relative)).annotation.favorite,true);
+  const renamed='Medien-Test/Umbenannt.png';await fs.rename(original,path.join(gallery,renamed));
+  const found=await lookup(renamed);assert.equal(found.fileId,persisted.fileId);assert.deepEqual(found.annotation,persisted.annotation);
+  await fs.writeFile(original,bytes);const replacement=await lookup(relative);assert.notEqual(replacement.fileId,persisted.fileId);assert.equal(replacement.annotation.favorite,false);assert.deepEqual(replacement.annotation.tags,[]);
+  await assert.rejects(invoke('gallery_annotate',{edit:{...stale,revision:persisted.annotation.revision}}),/gallery_changed/);
+  record('Annotations survive restart and actual filesystem rename; replacement at the old path has no inherited tags; stale revision and stale file identity are rejected');
+  await page.getByRole('button',{name:'Gallery',exact:true}).first().click();await page.getByLabel('Search files',{exact:true}).fill('Umbenannt');
+  await page.getByRole('button',{name:'Remove tag: Grün',exact:true}).click();await until(async()=>(await lookup(renamed)).annotation.tags.length===1);
+  await page.getByRole('button',{name:'Remove from favorites',exact:true}).click();await until(async()=>!(await lookup(renamed)).annotation.favorite);
+  await page.getByLabel('Favorites only',{exact:true}).check();await until(async()=>await page.locator('.gallery-file').count()===0);
+  await stop(true);await launch();page=getPage();persisted=await lookup(renamed);assert.equal(persisted.annotation.favorite,false);assert.deepEqual(persisted.annotation.tags,['Urlaub 2026']);assert.equal(digest(await fs.readFile(path.join(gallery,renamed))),before);
+  record('Native tag removal and unfavorite survive another restart; empty favorite view is accurate and originals remain byte-identical');
+}

@@ -1,0 +1,32 @@
+{
+  "version": "master-872-cc515a0",
+  "backend": "Vulkan",
+  "source": "https://github.com/leejet/stable-diffusion.cpp/releases/tag/master-872-cc515a0",
+  "archiveSha256": "b8c6538f8948dfaa1adc25c463fb1617098d1ff307032e38f29648d5891ead8d",
+  "files": {
+    "ggml-base.dll": "76b21732b59e15c401ca7d35f5aa843a57043ca9d9a93bd7581401cf59979825",
+    "ggml-cpu-alderlake.dll": "d88c39932522680a8c3795e0051b572e51f105ce99a0f97cc093bd846cec2ed1",
+    "ggml-cpu-cannonlake.dll": "eb31fff7941de814238e05b79eabda00871c860d2dacded8d0b22166d69c540e",
+    "ggml-cpu-cascadelake.dll": "da0ac344cf01c53d1c60e5da6914d90c5775aeb11fbd2c716929d90d9e7d23cc",
+    "ggml-cpu-haswell.dll": "69942ee5b24d6193d41af43ac23984fec5fabf73b9ea502bb67db5d6d359b832",
+    "ggml-cpu-icelake.dll": "e4132eefbb55d9bc4ed78c5632dde6b2644af03cde001de3000550380a0033cf",
+    "ggml-cpu-sandybridge.dll": "e0716390f940f860e4ae8bd39fba20a37207af1b82cef11a5da5750cf06ffbb8",
+    "ggml-cpu-skylakex.dll": "6978f02ff04c2d19689fafc3f55257e6ba049402e00c81e256c9d898e47d8b8b",
+    "ggml-cpu-sse42.dll": "b4cd4629755dcf3258da0752e96af7940d431575c78e5f5ec9780274338c22f5",
+    "ggml-cpu-x64.dll": "3803a4c21de9225f9fee75d778be9b183bb553319a28599bf292554b941f53f5",
+    "ggml-vulkan.dll": "fa957ff56c939493942ebf473cf079cfbde09834cee90a6f9d34f1ad667b0b7d",
+    "ggml.dll": "cf669b335156edd31555627ab5795efd1a18bf27ee8d009e85db955177b17136",
+    "ggml.txt": "bcd8ec749126d45cb06737d0690295d73df4b6e7e194205bcf91190368f27285",
+    "libsharpyuv.dll": "a84b4c166fe674dfc2ba0838688cadcfb55c8156e76aa2e33b3b956e596b532d",
+    "libwebp.dll": "8a175ce50be59a6d0beaa24264dee24a3d0439dca5d909ad2b9e3b78787e58f7",
+    "libwebpmux.dll": "9e50fdaf31e601af091278394c3ff8e6a2f14fb541c273d041e6428f3e36c340",
+    "sd-cli.exe": "934499797fd7d97d29b0a9fe932e91664eeb5fbc7200457182f8022ac3db87e2",
+    "stable-diffusion.cpp.txt": "4e76049398df734a97db46f3bd4b5cbc460cb5f6bfaf737cdc3d6fbb8ab3de27",
+    "stable-diffusion.dll": "d6df45393846fc1fd51b9bf527b073277e218cb0f3fc160a8c48bce9124d0862",
+    "webm.dll": "f4f7a411d9856d7f2bb0323b1b660f0213df2b7bf574b6856c32367a9f00cc62",
+    "libwebm-LICENSE.txt": "5aec868f669e384a22372a4e8a1a6cd7d44c64cd451f960ca69cc170d1e13acf",
+    "libwebm-PATENTS.txt": "cc3273e0694ea5896145e0677699b53471b03ea43021ddc50e7923fbb9f5023c",
+    "libwebp-COPYING.txt": "5aec868f669e384a22372a4e8a1a6cd7d44c64cd451f960ca69cc170d1e13acf",
+    "libwebp-PATENTS.txt": "cc3273e0694ea5896145e0677699b53471b03ea43021ddc50e7923fbb9f5023c"
+  }
+}

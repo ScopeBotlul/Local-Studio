@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-model-scan-full"
+description = "Enables the model_scan_full command without any pre-configured scope."
+commands.allow = ["model_scan_full"]
+
+[[permission]]
+identifier = "deny-model-scan-full"
+description = "Denies the model_scan_full command without any pre-configured scope."
+commands.deny = ["model_scan_full"]

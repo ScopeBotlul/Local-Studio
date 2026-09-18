@@ -1,4 +1,5 @@
-import DownloadsPage, { DownloadSelection } from './DownloadsPage';
+import { DownloadSelection } from './DownloadsPage';
+import LocalModels from './LocalModels';
 import HfBrowserPanel from './HfBrowserPanel';
 import { useEffect, useRef, useState } from 'react';
 import { ArrowRight, Box, CheckCircle2, ExternalLink, LoaderCircle, Search, ShieldCheck, UserRound, X } from 'lucide-react';
@@ -8,7 +9,7 @@ import type { HfAuthStatus, HfModel, HfModelDetail, HfQuery } from './hub-types'
 import { formatGigabytes, totalFileBytes } from './helpers';
 import type { Language } from './types';
 
-export default function HubPage({ language, mode, showModels, initialRepo, showDownloads }: { language: Language; mode: 'hub' | 'models'; showModels: (repo?: string) => void; initialRepo?: string | null; showDownloads: () => void }) {
+export default function HubPage({ language, mode, showModels, initialRepo, showDownloads, showImage }: { language: Language; mode: 'hub' | 'models'; showModels: (repo?: string) => void; initialRepo?: string | null; showDownloads: () => void; showImage: (path: string) => void }) {
   const t = hubText(language);
   const [website, setWebsite] = useState(false);
   const [localModels, setLocalModels] = useState(false);
@@ -113,7 +114,7 @@ export default function HubPage({ language, mode, showModels, initialRepo, showD
         }}><label className="field-label" htmlFor="hf-token">{t.token}</label><div className="hub-token-field"><input id="hf-token" type="password" autoComplete="off" spellCheck={false} value={token} maxLength={2048} disabled={busy || !!auth?.pending} onChange={event => setToken(event.target.value)} /><button className="button secondary" disabled={busy || !!auth?.pending || !token.trim()}>{busy ? working : <ShieldCheck size={16} />}{t.tokenSubmit}</button></div></form><button className="text-button" disabled={busy} onClick={() => open('tokens')}>{t.manageTokens}<ExternalLink size={14} /></button></details>}
       </section>
       <section className="panel hub-website"><h2>{t.models}</h2><p>{t.emptyStart}</p><button className="button primary" onClick={() => showModels()}><Search size={16} />{t.search}<ArrowRight size={16} /></button><hr /><p>{t.websiteHint}</p><button className="button secondary" disabled={busy} onClick={() => setWebsite(true)}>{t.website}<ExternalLink size={15} /></button></section>
-    </> : localModels ? <DownloadsPage language={language} localOnly /> : <>
+    </> : localModels ? <LocalModels language={language} showImage={showImage} /> : <>
       <form className="panel hub-search" onSubmit={event => { event.preventDefault(); void search(); }}>
         <label className="field-label" htmlFor="hf-query">{t.searchLabel}</label><div className="hub-search-input"><input id="hf-query" value={query.search} maxLength={200} disabled={busy} onChange={event => editQuery('search', event.target.value)} placeholder="Qwen, FLUX, Whisper …" /><button className="button primary" disabled={busy || onlyExecutable}>{busy ? working : <Search size={16} />}{t.search}</button></div>
         <div className="hub-filters"><label>{t.task}<select value={query.task} disabled={busy} onChange={event => editQuery('task', event.target.value)}>{[['', t.allTasks], ['text-to-image', t.image], ['image-to-image', t.imageEdit], ['text-to-video', t.video], ['image-to-video', t.imageVideo], ['text-generation', t.chat], ['image-text-to-text', t.vision], ['text-to-audio', t.audio], ['automatic-speech-recognition', t.speech]].map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><label>{t.sort}<select value={query.sort} disabled={busy} onChange={event => editQuery('sort', event.target.value)}>{[['downloads', t.downloads], ['likes', t.likes], ['lastModified', t.recent], ['trendingScore', t.trending]].map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label></div>

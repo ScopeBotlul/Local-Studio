@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-project-restore-media"
+description = "Enables the project_restore_media command without any pre-configured scope."
+commands.allow = ["project_restore_media"]
+
+[[permission]]
+identifier = "deny-project-restore-media"
+description = "Denies the project_restore_media command without any pre-configured scope."
+commands.deny = ["project_restore_media"]

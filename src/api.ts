@@ -13,5 +13,5 @@ export const api = {
   cancelJob: (id: string) => invoke<void>('cancel_job', { id }),
   dismissRecovery: () => invoke<void>('dismiss_recovery'),
   logs: () => invoke<string>('get_logs'),
-  cleanExit: () => invoke<void>('mark_clean_exit'),
+  cleanExit: (imageAction?: 'save' | 'discard' | 'keep') => invoke<void>('mark_clean_exit', { imageAction: imageAction ?? null }),
 };

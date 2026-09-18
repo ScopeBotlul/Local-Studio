@@ -26,7 +26,7 @@ export async function checkHfBrowser(page, browser, artifactRoot, invoke, record
     const invoke = window.__TAURI_INTERNALS__?.invoke;
     if (!invoke) return { bridgeAbsent: true };
     const result = {};
-    for (const command of ['bootstrap', 'hf_status', 'hf_browser_state', 'list_jobs', 'download_list', 'hf_model_size']) {
+    for (const command of ['gallery_compare','gallery_file_action','gallery_trash_list','gallery_trash_action','gallery_trash_detail','gallery_annotate_batch', 'gallery_thumbnail', 'gallery_thumbnail_clear', 'gallery_annotate', 'gallery_list', 'gallery_detail', 'gallery_import', 'gallery_create_folder', 'gallery_open_folder', 'bootstrap', 'hf_status', 'hf_browser_state', 'list_jobs', 'download_list', 'hf_model_size', 'model_library_list', 'model_scan_start', 'model_scan_full', 'model_scan_quick', 'image_workspace', 'image_workspace_save', 'image_recover', 'image_discard', 'image_probe', 'image_generate', 'image_resume', 'image_cancel', 'image_jobs', 'image_output', 'image_save', 'model_library_forget']) {
       try { await invoke(command); result[command] = 'ALLOWED'; }
       catch (error) { result[command] = String(error); }
     }

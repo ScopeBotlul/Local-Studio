@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-image-resume"
+description = "Enables the image_resume command without any pre-configured scope."
+commands.allow = ["image_resume"]
+
+[[permission]]
+identifier = "deny-image-resume"
+description = "Denies the image_resume command without any pre-configured scope."
+commands.deny = ["image_resume"]

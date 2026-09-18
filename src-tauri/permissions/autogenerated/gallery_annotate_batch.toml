@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-gallery-annotate-batch"
+description = "Enables the gallery_annotate_batch command without any pre-configured scope."
+commands.allow = ["gallery_annotate_batch"]
+
+[[permission]]
+identifier = "deny-gallery-annotate-batch"
+description = "Denies the gallery_annotate_batch command without any pre-configured scope."
+commands.deny = ["gallery_annotate_batch"]

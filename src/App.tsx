@@ -1,10 +1,29 @@
+import AppMenu from './AppMenu';
+import HelpDialog from './HelpDialog';
+import UpdateDialog from './UpdateDialog';
+import {updateApi,updateError} from './update-api';
+import {editorActivity} from './editor-state';
+import Gallery from './Gallery';
+import ProjectPanel from './ProjectPanel';
+import StorageMaintenance from './StorageMaintenance';
+import { useFileDrop } from './useFileDrop';
+import { invoke } from '@tauri-apps/api/core';
+import { useProject } from './useProject';
+import StorageSettings from './StorageSettings';
+import ShortcutSettings from './ShortcutSettings';
+import { shortcutFor } from './shortcuts';
+import ImageStudio from './ImageStudio';
+import { activeImage, imageApi, imageError, type ImageJob } from './image-api';
+import ImageJobRow from './ImageJobRow';
+import ExitDialog, { type ExitPrompt, type ExitChoice } from './ExitDialog';
+import { useImageWorkspace } from './useImageWorkspace';
 import DownloadsPage from './DownloadsPage';
 import { downloads, activeDownload } from './download-api';
 import HubPage from './HubPage';
 import './hub.css';
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
-import { confirm, open } from '@tauri-apps/plugin-dialog';
+import { open } from '@tauri-apps/plugin-dialog';
 import { ArrowLeft, ArrowRight, Box, Check, CheckCircle2, ChevronDown, Circle, CircleHelp, Cpu, Download, FileCheck2, Folder, HardDrive, House, Images, LoaderCircle, Monitor, Palette, RefreshCw, Settings2, ShieldCheck, Sparkles, Square, Terminal, TriangleAlert, Workflow, X, type LucideIcon } from 'lucide-react';
 import { api, inDesktop } from './api';
 import { clampScale, errorMessage, fileName, formatBytes, formatDate, initialLanguage, isActiveJob, ZOOM_STEP } from './helpers';
@@ -94,11 +113,23 @@ function Setup({ snapshot, onSave, busy, t, language, onLanguage, canEdit, choos
 }
 
 export default function App() {
+  const [helpDialog,setHelpDialog]=useState<'help'|'about'|null>(null);
+  const [updatesOpen,setUpdatesOpen]=useState(false);
+  const installing=useRef(false);
+  const autoChecked=useRef(false);
   const [snapshot, setSnapshot] = useState<AppSnapshot | null>(null);
   const [draft, setDraft] = useState<Settings | null>(null);
   const [page, setPage] = useState<Page>('home');
+  const [selectedImageJob, setSelectedImageJob] = useState<string | null>(null);
+  const [imageJobs, setImageJobs] = useState<ImageJob[]>([]);
+  const [exitPrompt, setExitPrompt] = useState<ExitPrompt | null>(null);
+  const [exitBusy, setExitBusy] = useState(false);
+  const studio = useImageWorkspace(!!snapshot);
+  const flushStudio = studio.flush;
   const [initialModelRepo, setInitialModelRepo] = useState<string | null>(null);
   const [language, setLanguage] = useState<Language>(initialLanguage);
+  const projects = useProject(!!snapshot, studio, language === 'de', snapshot?.paths.projects ?? '');
+  const projectRef = useRef(projects); projectRef.current = projects;
   const [loading, setLoading] = useState(inDesktop());
   const [startupError, setStartupError] = useState('');
   const [error, setError] = useState('');
@@ -106,6 +137,7 @@ export default function App() {
   const [saving, setSaving] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [jobPending, setJobPending] = useState(false);
+  const [jobLimit, setJobLimit] = useState(100);
   const [jobFilter, setJobFilter] = useState<JobFilter>('all');
   const [pollError, setPollError] = useState(false);
   const [logs, setLogs] = useState<string | null>(null);
@@ -135,6 +167,14 @@ export default function App() {
   }, []);
 
   const reportError = useCallback((value: unknown) => { setError(errorMessage(value)); }, []);
+  const dropTarget = useFileDrop(!snapshot?.settings.setupComplete || saving || exitBusy || !!exitPrompt || projects.busy, projects.addFiles, reportError);
+  useEffect(() => {
+    if (!snapshot?.settings.setupComplete) return;
+    const clean = () => { if (canEditSettings()) void invoke<{ deleted: number }>('storage_cleanup_auto').then(result => { if (result.deleted) setToast(languageRef.current === 'de' ? `${result.deleted} alte Arbeitsdateien bereinigt.` : `${result.deleted} old working files cleaned.`); }).catch(reportError); };
+    const start = setTimeout(clean, 30000); const interval = setInterval(clean, 3600000);
+    return () => { clearTimeout(start); clearInterval(interval); };
+  }, [snapshot?.settings.setupComplete, canEditSettings, reportError]);
+
 
   const bootstrap = useCallback(async () => {
     if (!inDesktop()) return;
@@ -163,7 +203,7 @@ export default function App() {
     let live = true;
     let timer: ReturnType<typeof setTimeout>;
     const poll = async () => {
-      try { const jobs = await api.jobs(); if (live) { setSnapshot(current => current ? { ...current, jobs } : current); setPollError(false); } }
+      try { const [jobs, images] = await Promise.all([api.jobs(), imageApi.jobs()]); if (live) { setSnapshot(current => current ? { ...current, jobs } : current); setImageJobs(images); setPollError(false); } }
       catch { if (live) setPollError(true); }
       if (live) timer = setTimeout(() => void poll(), 800);
     };
@@ -183,22 +223,42 @@ export default function App() {
       closingDialog.current = true;
       try {
         // Include applying the saved settings and refreshed paths, not just the IPC write.
+        await editorActivity.pending?.catch(()=>{});
         await settingsSave.current;
         const copy = translations(languageRef.current);
         const latest = await api.jobs();
         const transfers = await downloads.list();
-        const warnings = [latest.some(isActiveJob) ? copy.exitActive : '', transfers.some(activeDownload) ? (languageRef.current === 'de' ? 'Downloads werden pausiert; Teil-Dateien bleiben zum Fortsetzen erhalten.' : 'Downloads will pause; partial files are kept for resuming.') : '', dirtyRef.current ? copy.exitUnsaved : ''].filter(Boolean);
-        if (warnings.length && !(await confirm(warnings.join('\n\n'), { title: copy.exitTitle, kind: 'warning', okLabel: copy.exitConfirm, cancelLabel: copy.stay }))) return;
+        await flushStudio();
+        await projectRef.current.flush();
+        const activeProject = projectRef.current.get();
+        const imageState = await imageApi.workspace();
+        const imageJobs = await imageApi.jobs();
+        const imagesRunning = imageJobs.some(activeImage);
+        const unsaved = imageJobs.filter(j => j.status === 'completed' && !j.savedPath && (!j.discarded || j.output)).length;
+        const warnings = [!snapshotRef.current?.settings.restoreSession && (imageState.workspace.request?.prompt || imageState.workspace.request?.negativePrompt) ? (languageRef.current === 'de' ? 'Die aktuellen Studio-Eingaben werden beim nächsten Start geleert. Prompts fertiger Aufträge bleiben in deren Metadaten erhalten.' : 'Current Studio inputs will be cleared on the next start. Prompts of completed jobs remain in their metadata.') : '', imagesRunning ? (languageRef.current === 'de' ? 'Beim Beenden wird die laufende Bildgenerierung abgebrochen; wartende Aufträge werden pausiert. Bereits fertig gewordene Bilder werden in deine Auswahl einbezogen.' : 'Closing cancels the running image generation and pauses waiting jobs. Images that have already completed are included in your choice.') : '', latest.some(isActiveJob) ? copy.exitActive : '', transfers.some(activeDownload) ? (languageRef.current === 'de' ? 'Downloads werden pausiert; Teil-Dateien bleiben zum Fortsetzen erhalten.' : 'Downloads will pause; partial files are kept for resuming.') : '', dirtyRef.current ? copy.exitUnsaved : ''].filter(Boolean);
+        if (activeProject?.dirty) warnings.push(languageRef.current === 'de' ? 'Das Projekt enthält ungespeicherte Änderungen. Ohne Speichern bleibt die bisherige Projektdatei unverändert; die lokale Arbeitskopie kann später fortgesetzt werden.' : 'The project has unsaved changes. Without saving, the previous project file stays unchanged; the local working copy can be resumed later.');
+        if(editorActivity.draft) warnings.push(languageRef.current === 'de' ? (editorActivity.persisted ? 'Bildbearbeitung noch nicht exportiert. Der lokale Entwurf bleibt zum Fortsetzen über dasselbe Galeriebild erhalten.' : 'Der Bildentwurf konnte nicht gespeichert werden. Abbrechen und im Editor exportieren, um die Änderungen zu behalten.') : (editorActivity.persisted ? 'Image edits have not been exported. The local draft can be resumed from the same gallery image.' : 'The image draft could not be saved. Cancel and export in the editor to retain changes.'));
+        let saveProject = false;
+        let choice: ExitChoice = 'close';
+        if (warnings.length || unsaved) {
+          window.dispatchEvent(new CustomEvent('studio-modal', { detail: true }));
+          choice = await new Promise<ExitChoice>(resolve => setExitPrompt({ warnings, unsaved, imagesRunning, restoreSession: snapshotRef.current?.settings.restoreSession ?? false, project: !!activeProject && !activeProject.recovery, projectDirty: !!activeProject?.dirty, resolve: (value, save) => { saveProject = !!save; resolve(value); } }));
+        }
+        if (choice === 'cancel') { installing.current=false; return; }
+        if (saveProject && !await projectRef.current.save()) { installing.current=false; return; }
+        setExitBusy(true);
+        await flushStudio();
         if (zoomTimer.current) { clearTimeout(zoomTimer.current); zoomTimer.current = null; const current = snapshotRef.current; if (current) await saveRaw(current.settings); }
         await writeQueue.current;
-        await api.cleanExit();
+        if(installing.current)await updateApi.arm();
+        await api.cleanExit(choice === 'save' || choice === 'discard' || choice === 'keep' ? choice : undefined);
         closing.current = true;
         await appWindow.close();
-      } catch (value) { closing.current = false; reportError(value); }
-      finally { closingDialog.current = false; }
+      } catch (value) { if(installing.current){await updateApi.disarm().catch(()=>{});installing.current=false;} closing.current = false; reportError(String(value).startsWith('update_')?updateError(value,languageRef.current==='de'):imageError(value, languageRef.current === 'de')); }
+      finally { closingDialog.current = false; setExitBusy(false); window.dispatchEvent(new CustomEvent('studio-modal', { detail: false })); }
     }).then(off => { if (disposed) off(); else unlisten = off; }).catch(reportError);
     return () => { disposed = true; unlisten?.(); };
-  }, [reportError, saveRaw]);
+  }, [reportError, saveRaw, flushStudio]);
 
   useEffect(() => {
     function zoom(next: number) {
@@ -218,18 +278,23 @@ export default function App() {
       }, 220);
     }
     const key = (event: KeyboardEvent) => {
-      if (!event.ctrlKey || event.altKey || event.metaKey) return;
+      if (event.defaultPrevented || (event.target as HTMLElement).closest('[data-shortcut-recorder]')) return;
+      if ((event.target as HTMLElement).closest('input,textarea,select,[contenteditable="true"]') && !event.ctrlKey && !event.altKey) return;
       const current = snapshotRef.current;
       if (!current) return;
-      if (['+', '=', '-', '0'].includes(event.key)) {
+      const command = shortcutFor(event, current.settings.shortcuts);
+      if (command === 'projectSave' && canEditSettings() && !event.repeat && !document.querySelector('dialog[open]')) { event.preventDefault(); void projectRef.current.save(); return; }
+      if (command && ['uiZoomIn', 'uiZoomOut', 'uiZoomReset'].includes(command)) {
         event.preventDefault();
-        zoom(event.key === '0' ? 1 : current.settings.uiScale + (event.key === '-' ? -ZOOM_STEP : ZOOM_STEP));
+        zoom(command === 'uiZoomReset' ? 1 : current.settings.uiScale + (command === 'uiZoomOut' ? -ZOOM_STEP : ZOOM_STEP));
       }
     };
     const wheel = (event: WheelEvent) => { if (event.ctrlKey && snapshotRef.current) { event.preventDefault(); zoom(snapshotRef.current.settings.uiScale + (event.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP)); } };
     window.addEventListener('keydown', key); window.addEventListener('wheel', wheel, { passive: false });
     return () => { window.removeEventListener('keydown', key); window.removeEventListener('wheel', wheel); };
   }, [canEditSettings, reportError, saveRaw]);
+
+  useEffect(()=>{if(!snapshot?.settings.setupComplete||!snapshot.settings.autoUpdateCheck||autoChecked.current)return;const timer=setTimeout(()=>{autoChecked.current=true;void updateApi.check().then(s=>{if(s.phase==='available')setToast(languageRef.current==='de'?('Update '+s.latest?.version+' verfügbar – Hilfe → Nach Updates suchen.'):('Update '+s.latest?.version+' available – Help → Check for updates.'));}).catch(()=>{});},15000);return()=>clearTimeout(timer);},[snapshot?.settings.setupComplete,snapshot?.settings.autoUpdateCheck]);
 
   function persist(settings: Settings): Promise<void> {
     if (!canEditSettings()) return settingsSave.current ?? Promise.resolve();
@@ -239,14 +304,14 @@ export default function App() {
     if (zoomTimer.current) { clearTimeout(zoomTimer.current); zoomTimer.current = null; }
     const operation = (async () => {
       try {
-        const previousRoot = snapshotRef.current?.settings.dataRoot;
+        const previousStorage = JSON.stringify([snapshotRef.current?.settings.dataRoot, snapshotRef.current?.settings.storageOverrides]);
         const saved = await saveRaw(settings);
         if (snapshotRef.current) snapshotRef.current = { ...snapshotRef.current, settings: saved };
         dirtyRef.current = false;
         languageRef.current = saved.language;
         setSnapshot(current => current ? { ...current, settings: saved } : current);
         setDraft(saved); setLanguage(saved.language);
-        if (previousRoot !== saved.dataRoot) {
+        if (previousStorage !== JSON.stringify([saved.dataRoot, saved.storageOverrides])) {
           const state = await api.bootstrap();
           snapshotRef.current = state;
           setSnapshot(state);
@@ -298,25 +363,41 @@ export default function App() {
   if (!snapshot) return <div className="connection-screen"><div className="connection-content"><Logo /><span className="eyebrow">LOCAL STUDIO</span>{loading ? <><h1>{t.loading}</h1><LoaderCircle className="spin" size={24} /></> : <><h1>{startupError ? t.startupError : t.connectionTitle}</h1><p>{t.connectionText}</p>{startupError ? <pre className="startup-error">{startupError}</pre> : <><small>{t.launchCommand}</small><code className="launch-command">npm run desktop:dev</code></>}<button className="button secondary" onClick={() => { if (inDesktop()) void bootstrap(); else window.location.reload(); }}><RefreshCw size={16} />{t.retry}</button></>}</div><div className="connection-footer"><ShieldCheck size={15} />{t.local}</div></div>;
 
   const activeJobs = snapshot.jobs.filter(isActiveJob);
-  const filteredJobs = snapshot.jobs.filter(job => jobFilter === 'all' || (jobFilter === 'active' ? isActiveJob(job) : !isActiveJob(job)));
+  const activeImages = imageJobs.filter(activeImage);
+  const activeCount = activeJobs.length + activeImages.length;
+  const combinedJobs = [...snapshot.jobs.map(job => ({ kind: 'file' as const, job })), ...imageJobs.map(job => ({ kind: 'image' as const, job }))].sort((a, b) => b.job.createdAt.localeCompare(a.job.createdAt));
+  const visibleJobs = combinedJobs.filter(item => jobFilter === 'all' || (jobFilter === 'active' ? (item.kind === 'image' ? activeImage(item.job) : isActiveJob(item.job)) : (item.kind === 'image' ? !activeImage(item.job) : !isActiveJob(item.job))));
   const pageTitle = page === 'home' ? t.overview : t[page];
   const jobRows = (jobs: Job[]) => jobs.map(job => <JobRow key={job.id} job={job} t={t} language={language} onCancel={id => void cancelJob(id)} pending={jobPending} />);
   const hashButton = <button className="button primary" onClick={() => void chooseFile()} disabled={jobPending}><FileCheck2 size={17} />{t.hashAction}<ArrowRight size={16} /></button>;
 
   return <div className="app-shell">
-    <aside className="sidebar"><div className="brand"><Logo small /><div>Local Studio<span>{t.core}</span></div></div><nav aria-label={t.workspace}>{[0, 1].map(group => <div className="nav-group" key={group}><span className="nav-label">{group === 0 ? t.workspace : t.library}</span>{nav.filter(item => item.group === group).map(item => { const Icon = item.icon; return <button key={item.id} className={`nav-item ${page === item.id ? 'selected' : ''}`} aria-current={page === item.id ? 'page' : undefined} onClick={() => { setInitialModelRepo(null); setPage(item.id); }}><Icon size={19} strokeWidth={1.7} /><span>{t[item.id]}</span>{item.id === 'jobs' && activeJobs.length > 0 && <span className="nav-count">{activeJobs.length}</span>}</button>; })}</div>)}</nav><div className="sidebar-bottom"><button className={`nav-item ${page === 'settings' ? 'selected' : ''}`} aria-current={page === 'settings' ? 'page' : undefined} onClick={() => setPage('settings')}><Settings2 size={19} strokeWidth={1.7} /><span>{t.settings}</span>{dirty && <span className="unsaved-dot" title={t.unsaved} />}</button><div className="local-note"><span className={`connection-dot ${pollError ? 'warning' : ''}`} /><span>{t.local}</span></div></div></aside>
-    <div className="main-shell"><header className="topbar"><div className="breadcrumb">Local Studio<span>/</span><strong>{pageTitle}</strong></div><div className="topbar-status" title={pollError ? t.connectionLost : t.monitor}><span className={`connection-dot ${pollError ? 'warning' : ''}`} />{activeJobs.length ? `${activeJobs.length} ${t.active}` : t.core}</div></header>
+    <AppMenu workspaceRecovery={studio.recovery} projects={projects} settings={snapshot.settings} locked={exitBusy||saving||!studio.ready||!snapshot.settings.setupComplete} onSettings={()=>setPage('settings')} onHelp={()=>setHelpDialog('help')} onAbout={()=>setHelpDialog('about')} onUpdates={()=>{setUpdatesOpen(true);void updateApi.status().then(s=>{if(!['ready','downloading','checking','installing'].includes(s.phase))return updateApi.check();}).catch(e=>reportError(updateError(e,language==='de')));}} onZoom={scale=>{const current=snapshotRef.current;if(current)void persist({...current.settings,uiScale:clampScale(scale)});}} onError={reportError}/>
+    {helpDialog&&<HelpDialog kind={helpDialog} de={language==='de'} version={snapshot.version} onClose={()=>setHelpDialog(null)}/>}
+    {updatesOpen&&<UpdateDialog de={language==='de'} version={snapshot.version} automatic={snapshot.settings.autoUpdateCheck} onAutomatic={value=>{const current=snapshotRef.current;if(current)void persist({...current.settings,autoUpdateCheck:value});}} onClose={()=>setUpdatesOpen(false)} onInstall={()=>{installing.current=true;setUpdatesOpen(false);void getCurrentWindow().close();}}/>}
+    <aside className="sidebar" inert={exitBusy}><div className="brand"><Logo small /><div>Local Studio<span>{t.core}</span></div></div><nav aria-label={t.workspace}>{[0, 1].map(group => <div className="nav-group" key={group}><span className="nav-label">{group === 0 ? t.workspace : t.library}</span>{nav.filter(item => item.group === group).map(item => { const Icon = item.icon; return <button key={item.id} className={`nav-item ${page === item.id ? 'selected' : ''}`} aria-current={page === item.id ? 'page' : undefined} onClick={() => { setInitialModelRepo(null); setPage(item.id); }}><Icon size={19} strokeWidth={1.7} /><span>{t[item.id]}</span>{item.id === 'studio' && activeImages.length > 0 && <span className="nav-count">{activeImages.length}</span>}{item.id === 'jobs' && activeCount > 0 && <span className="nav-count">{activeCount}</span>}</button>; })}</div>)}</nav><div className="sidebar-bottom"><button className={`nav-item ${page === 'settings' ? 'selected' : ''}`} aria-current={page === 'settings' ? 'page' : undefined} onClick={() => setPage('settings')}><Settings2 size={19} strokeWidth={1.7} /><span>{t.settings}</span>{dirty && <span className="unsaved-dot" title={t.unsaved} />}</button><div className="local-note"><span className={`connection-dot ${pollError ? 'warning' : ''}`} /><span>{t.local}</span></div></div></aside>
+    <div className="main-shell" inert={exitBusy}><header className="topbar"><div className="breadcrumb">Local Studio<span>/</span><strong>{pageTitle}</strong></div><button onClick={() => setPage('jobs')} className="topbar-status" title={pollError ? t.connectionLost : t.monitor}><span className={`connection-dot ${pollError ? 'warning' : ''}`} />{activeCount ? `${activeCount} ${t.active}${activeImages.length ? ' · Image' : ''}` : t.core}</button></header>
       <main id="main-content" className="main-content">
+        <ProjectPanel controller={projects} language={language} disabled={!studio.ready || studio.recovery || saving} changed={!!projects.project && JSON.stringify(projects.project.request) !== JSON.stringify(studio.request)} />
+        <div inert={projects.busy}>
+        {(studio.error) && <p className="notice warning" role="alert">{imageError(studio.error, language === 'de')}</p>}
+        {studio.recovery && <div className="recovery-banner" role="status"><TriangleAlert size={20} /><div><strong>{language === 'de' ? 'Bild-Arbeitsstand wiederherstellen' : 'Restore image workspace'}</strong><p>{language === 'de' ? 'Nach dem unerwarteten Beenden sind Eingaben und ungespeicherte Ergebnisse noch vorhanden. Unterbrochene Generierungen werden nicht fortgesetzt.' : 'Inputs and unsaved results are still available after the unexpected exit. Interrupted generations will not resume.'}</p><button className="button secondary" onClick={() => void studio.recover().then(() => { setSelectedImageJob(null); setPage('studio'); }).catch(reportError)}>{language === 'de' ? 'Arbeitsstand wiederherstellen' : 'Restore workspace'}</button></div></div>}
         {snapshot.recoveryAvailable && <div className="recovery-banner" role="status"><TriangleAlert size={20} /><div><strong>{t.recovery}</strong><p>{t.recoveryText}</p><button className="text-button" onClick={() => setPage('jobs')}>{t.reviewJobs}<ArrowRight size={14} /></button></div><IconButton title={t.dismiss} onClick={() => void dismissRecovery()}><X size={16} /></IconButton></div>}
         {pollError && <div className="notice warning" role="status"><TriangleAlert size={17} />{t.connectionLost}</div>}
         {page === 'home' && <div className="page home-page"><header className="page-heading home-heading"><div><div className="eyebrow">LOCAL STUDIO</div><h1>{t.tagline}</h1><p>{t.subtitle}</p></div><span className="pill"><span className="connection-dot" />{t.core}</span></header><div className="home-grid"><div className="home-primary"><section className="panel welcome-panel"><span className="panel-kicker"><CheckCircle2 size={17} />{t.ready}</span><h2>{t.hashTitle}</h2><p>{t.hashDescription}</p>{hashButton}<small className="hash-note">{t.hashNote}</small><div className="welcome-graphic" aria-hidden="true"><FileCheck2 size={70} strokeWidth={0.7} /><span className="graphic-line" /><code>SHA–256</code></div></section><section className="panel recent-panel"><div className="section-heading"><h2>{t.recentJobs}</h2><button className="text-button" onClick={() => setPage('jobs')}>{t.allJobs}<ArrowRight size={15} /></button></div>{snapshot.jobs.length ? jobRows(snapshot.jobs.slice(0, 4)) : <EmptyJobs t={t} />}</section><div className="privacy-note"><ShieldCheck size={23} strokeWidth={1.5} /><div><strong>{t.privacy}</strong><p>{t.privacyText}</p></div></div></div><Hardware hardware={snapshot.hardware} t={t} language={language} onRefresh={() => void refreshHardware()} refreshing={refreshing} /></div></div>}
-        {page === 'jobs' && <div className="page"><header className="page-heading"><div><div className="eyebrow">{t.workspace}</div><h1>{t.jobs}</h1><p>{t.jobDescription}</p></div>{hashButton}</header><section className="panel jobs-panel"><div className="jobs-toolbar"><div className="segmented" aria-label={t.jobs}>{(['all', 'active', 'finished'] as JobFilter[]).map(filter => <button key={filter} aria-pressed={jobFilter === filter} className={jobFilter === filter ? 'active' : ''} onClick={() => setJobFilter(filter)}>{filter === 'all' ? t.all : filter === 'active' ? t.activeFilter : t.finishedFilter}</button>)}</div><span className="subtle">{snapshot.jobs.length} {t.jobCount} · {activeJobs.length} {t.active}</span></div>{filteredJobs.length ? jobRows(filteredJobs) : <EmptyJobs t={t} filtered={snapshot.jobs.length > 0} />}</section><p className="under-panel-note"><ShieldCheck size={16} />{t.hashNote}</p></div>}
-        {page === 'settings' && draft && <div className="page settings-page"><header className="page-heading"><div><div className="eyebrow">LOCAL STUDIO</div><h1>{t.settings}</h1><p>{t.settingsIntro}</p></div><span className="pill">{snapshot.portable ? t.portable : t.standard}</span></header><form onSubmit={(event: FormEvent) => { event.preventDefault(); void persist(draft); }}><section className="panel settings-section"><div className="settings-section-title"><Palette size={20} /><div><h2>{t.appearance}</h2><p>{t.appearanceHint}</p></div></div><div className="setting-row"><label htmlFor="language">{t.language}</label><select id="language" disabled={saving} value={draft.language} onChange={event => updateDraft('language', event.target.value as Language)}><option value="de">Deutsch</option><option value="en">English</option></select></div><div className="setting-row"><label htmlFor="theme">{t.theme}</label><select id="theme" disabled={saving} value={draft.theme} onChange={event => updateDraft('theme', event.target.value as Settings['theme'])}><option value="system">{t.themeSystem}</option><option value="light">{t.themeLight}</option><option value="dark">{t.themeDark}</option></select></div><div className="setting-row"><label htmlFor="accent">{t.accent}</label><div className="color-field"><span>{draft.accentColor.toUpperCase()}</span><input id="accent" disabled={saving} type="color" value={draft.accentColor} onChange={event => updateDraft('accentColor', event.target.value)} /></div></div><div className="setting-row scale-setting"><div><label htmlFor="scale">{t.scale}</label><small>{t.scaleHint}</small></div><div className="scale-control"><input id="scale" disabled={saving} type="range" min="0.75" max="1.5" step="0.05" value={draft.uiScale} onChange={event => updateDraft('uiScale', clampScale(Number(event.target.value)))} /><output htmlFor="scale">{Math.round(draft.uiScale * 100)} %</output><IconButton title={t.resetScale} disabled={saving} onClick={() => updateDraft('uiScale', 1)}><RefreshCw size={14} /></IconButton></div></div></section><section className="panel settings-section"><div className="settings-section-title"><Folder size={20} /><div><h2>{t.dataFolder}</h2><p>{t.dataHint}</p></div></div><div className="path-field"><input aria-label={t.dataFolder} disabled={saving} value={draft.dataRoot} onChange={event => updateDraft('dataRoot', event.target.value)} spellCheck={false} required /><button type="button" className="button secondary" disabled={saving} onClick={() => void chooseDataRoot()}><Folder size={16} />{t.browse}</button></div><details className="storage-paths"><summary>{t.dataPaths}<ChevronDown size={14} /></summary><dl>{pathKeys.map(({ key, label }) => <div key={key}><dt>{t[label]}</dt><dd>{snapshot.paths[key]}</dd></div>)}<div><dt>{t.database}</dt><dd>{snapshot.databasePath}</dd></div></dl></details></section><div className="settings-actions"><span>{dirty ? t.unsaved : ''}</span><button type="button" className="button secondary" disabled={!dirty || saving} onClick={discardSettings}>{t.discard}</button><button className="button primary" type="submit" disabled={!dirty || saving || !draft.dataRoot.trim()}>{saving ? <LoaderCircle size={16} className="spin" /> : <Check size={16} />}{saving ? t.saving : t.save}</button></div></form><section className="panel settings-section"><div className="settings-section-title"><Terminal size={20} /><div><h2>{t.diagnostics}</h2><p>{t.diagnosticsText}</p></div></div><button className="button secondary" disabled={logsBusy} onClick={() => void toggleLogs()}>{logsBusy ? <LoaderCircle size={16} className="spin" /> : <Terminal size={16} />}{logs === null ? t.showLogs : t.hideLogs}</button>{logs !== null && <pre className="log-output" tabIndex={0}>{logs || t.noLogs}</pre>}</section><p className="future-settings"><strong>{t.advanced}</strong>{t.advancedText}</p></div>}
-        {(page === 'hub' || page === 'models') && <HubPage key={page} language={language} mode={page} showDownloads={() => setPage('downloads')} initialRepo={page === 'models' ? initialModelRepo : null} showModels={repo => { setInitialModelRepo(repo ?? null); setPage('models'); }} />}
+        {page === 'jobs' && <div className="page"><header className="page-heading"><div><div className="eyebrow">{t.workspace}</div><h1>{t.jobs}</h1><p>{language === 'de' ? 'Lokale Bildgenerierungen und Dateiprüfungen mit Fortschritt, Ergebnis und Abbruch.' : 'Local image generations and file checks with progress, results and cancellation.'}</p></div>{hashButton}</header><section className="panel jobs-panel"><div className="jobs-toolbar"><div className="segmented" aria-label={t.jobs}>{(['all', 'active', 'finished'] as JobFilter[]).map(filter => <button key={filter} aria-pressed={jobFilter === filter} className={jobFilter === filter ? 'active' : ''} onClick={() => setJobFilter(filter)}>{filter === 'all' ? t.all : filter === 'active' ? t.activeFilter : t.finishedFilter}</button>)}</div><span className="subtle">{combinedJobs.length} {t.jobCount} · {activeCount} {t.active}</span></div>{visibleJobs.length ? visibleJobs.slice(0, jobLimit).map(item => item.kind === 'file' ? <JobRow key={item.job.id} job={item.job} t={t} language={language} onCancel={id => void cancelJob(id)} pending={jobPending} /> : <ImageJobRow key={item.job.id} job={item.job} language={language} pending={jobPending} onResume={() => { setJobPending(true); void imageApi.resume(item.job.id).catch(e => reportError(imageError(e, language === 'de'))).finally(() => setJobPending(false)); }} onOpen={() => { setSelectedImageJob(item.job.id); setPage('studio'); }} onCancel={() => { setJobPending(true); void imageApi.cancel(item.job.id).catch(reportError).finally(() => setJobPending(false)); }} />) : <EmptyJobs t={t} filtered={combinedJobs.length > 0} />}{visibleJobs.length > jobLimit && <button className="button secondary" onClick={() => setJobLimit(n => n + 100)}>{language === 'de' ? 'Weitere Aufträge anzeigen' : 'Show more jobs'}</button>}</section><p className="under-panel-note"><ShieldCheck size={16} />{t.hashNote}</p></div>}
+        {page === 'settings' && draft && <div className="page settings-page"><header className="page-heading"><div><div className="eyebrow">LOCAL STUDIO</div><h1>{t.settings}</h1><p>{t.settingsIntro}</p></div><span className="pill">{snapshot.portable ? t.portable : t.standard}</span></header><form onSubmit={(event: FormEvent) => { event.preventDefault(); void persist(draft); }}><section className="panel settings-section"><div className="settings-section-title"><Palette size={20} /><div><h2>{t.appearance}</h2><p>{t.appearanceHint}</p></div></div><div className="setting-row"><label htmlFor="language">{t.language}</label><select id="language" disabled={saving} value={draft.language} onChange={event => updateDraft('language', event.target.value as Language)}><option value="de">Deutsch</option><option value="en">English</option></select></div><div className="setting-row"><label htmlFor="restore-session">{language === 'de' ? 'Studio beim Start' : 'Studio on startup'}</label><select id="restore-session" disabled={saving} value={String(draft.restoreSession)} onChange={event => updateDraft('restoreSession', event.target.value === 'true')}><option value="false">{language === 'de' ? 'Leere Sitzung' : 'Empty session'}</option><option value="true">{language === 'de' ? 'Letzten Bild-Arbeitsstand wiederherstellen' : 'Restore last image workspace'}</option></select></div><div className="setting-row"><label htmlFor="theme">{t.theme}</label><select id="theme" disabled={saving} value={draft.theme} onChange={event => updateDraft('theme', event.target.value as Settings['theme'])}><option value="system">{t.themeSystem}</option><option value="light">{t.themeLight}</option><option value="dark">{t.themeDark}</option></select></div><div className="setting-row"><label htmlFor="accent">{t.accent}</label><div className="color-field"><span>{draft.accentColor.toUpperCase()}</span><input id="accent" disabled={saving} type="color" value={draft.accentColor} onChange={event => updateDraft('accentColor', event.target.value)} /></div></div><div className="setting-row scale-setting"><div><label htmlFor="scale">{t.scale}</label><small>{t.scaleHint}</small></div><div className="scale-control"><input id="scale" disabled={saving} type="range" min="0.75" max="1.5" step="0.05" value={draft.uiScale} onChange={event => updateDraft('uiScale', clampScale(Number(event.target.value)))} /><output htmlFor="scale">{Math.round(draft.uiScale * 100)} %</output><IconButton title={t.resetScale} disabled={saving} onClick={() => updateDraft('uiScale', 1)}><RefreshCw size={14} /></IconButton></div></div></section><section className="panel settings-section"><div className="settings-section-title"><Folder size={20} /><div><h2>{t.dataFolder}</h2><p>{t.dataHint}</p></div></div><div className="path-field"><input aria-label={t.dataFolder} disabled={saving} value={draft.dataRoot} onChange={event => updateDraft('dataRoot', event.target.value)} spellCheck={false} required /><button type="button" className="button secondary" disabled={saving} onClick={() => void chooseDataRoot()}><Folder size={16} />{t.browse}</button></div><StorageSettings settings={draft} de={language === 'de'} disabled={saving} onChange={value => updateDraft('storageOverrides', value)} chooseFolder={chooseFolder} /><details className="storage-paths"><summary>{t.dataPaths}<ChevronDown size={14} /></summary><dl>{pathKeys.map(({ key, label }) => <div key={key}><dt>{t[label]}</dt><dd>{snapshot.paths[key]}</dd></div>)}<div><dt>{t.database}</dt><dd>{snapshot.databasePath}</dd></div></dl></details></section><ShortcutSettings value={draft.shortcuts} de={language === 'de'} disabled={saving} onChange={value => updateDraft('shortcuts', value)} /><StorageMaintenance settings={draft} de={language === 'de'} disabled={saving} dirty={dirty} onChange={patch => { if (canEditSettings()) setDraft(value => value ? { ...value, ...patch } : value); }} /><div className="settings-actions"><span>{dirty ? t.unsaved : ''}</span><button type="button" className="button secondary" disabled={!dirty || saving} onClick={discardSettings}>{t.discard}</button><button className="button primary" type="submit" disabled={!dirty || saving || !draft.dataRoot.trim()}>{saving ? <LoaderCircle size={16} className="spin" /> : <Check size={16} />}{saving ? t.saving : t.save}</button></div></form><section className="panel settings-section"><div className="settings-section-title"><Terminal size={20} /><div><h2>{t.diagnostics}</h2><p>{t.diagnosticsText}</p></div></div><button className="button secondary" disabled={logsBusy} onClick={() => void toggleLogs()}>{logsBusy ? <LoaderCircle size={16} className="spin" /> : <Terminal size={16} />}{logs === null ? t.showLogs : t.hideLogs}</button>{logs !== null && <pre className="log-output" tabIndex={0}>{logs || t.noLogs}</pre>}</section><p className="future-settings"><strong>{t.advanced}</strong>{t.advancedText}</p></div>}
+        {(page === 'hub' || page === 'models') && <HubPage key={page} language={language} showImage={path => { studio.selectModel(path); setSelectedImageJob(null); setPage('studio'); }} mode={page} showDownloads={() => setPage('downloads')} initialRepo={page === 'models' ? initialModelRepo : null} showModels={repo => { setInitialModelRepo(repo ?? null); setPage('models'); }} />}
         {page === 'downloads' && <DownloadsPage language={language} />}
-        {!['home', 'jobs', 'settings', 'hub', 'models', 'downloads'].includes(page) && <PlannedPage page={page as Exclude<Page, 'home' | 'jobs' | 'settings'>} t={t} goHome={() => setPage('home')} />}
+        {page === 'studio' && <ImageStudio projectDisabled={!projects.ready || projects.busy || !!projects.project?.recovery || studio.recovery} onAddToProject={projects.addImage} shortcuts={snapshot.settings.shortcuts} key={page} language={language} request={studio.request} setRequest={studio.setRequest} selectModel={studio.selectModel} onRestore={request => { studio.restore(request); setSelectedImageJob(null); setPage('studio'); }} selectedJob={selectedImageJob} disabled={!studio.ready || studio.recovery}  />}
+        {page === 'gallery' && <Gallery maxUndo={snapshot.settings.maxUndo} projectDisabled={!projects.ready || projects.busy || !!projects.project?.recovery || studio.recovery} onAddToProject={projects.addGallery} shortcuts={snapshot.settings.shortcuts} language={language} restoreDisabled={!studio.ready || studio.recovery} onRestore={request => { studio.restore(request); setSelectedImageJob(null); setPage('studio'); }} />}
+        {!['home', 'jobs', 'settings', 'hub', 'models', 'downloads', 'studio', 'gallery'].includes(page) && <PlannedPage page={page as Exclude<Page, 'home' | 'jobs' | 'settings'>} t={t} goHome={() => setPage('home')} />}
+        </div>
       </main><footer className="statusbar"><span><HardDrive size={12} />{snapshot.settings.dataRoot}</span><span>{Math.round(snapshot.settings.uiScale * 100)} %<i />v{snapshot.version}</span></footer>
     </div>
+    {dropTarget && <div className="file-drop-notice" role="status">{language === 'de' ? `Dateien in ${dropTarget === 'project' ? 'Projekt' : 'Galerie'} kopieren` : `Copy files to ${dropTarget}`}</div>}
+    {exitPrompt && <ExitDialog prompt={exitPrompt} language={language} onChoose={(choice, save) => { setExitPrompt(null); exitPrompt.resolve(choice, save); }} />}
+    {exitBusy && <div className="modal-backdrop" role="status"><div className="setup-dialog">{language === 'de' ? 'Bilder sichern und Anwendung beenden …' : 'Finishing images and closing …'}</div></div>}
     {error && <div className="error-toast" role="alert"><TriangleAlert size={19} /><div><strong>{t.operationError}</strong><p>{error}</p></div><IconButton title={t.dismiss} onClick={() => setError('')}><X size={16} /></IconButton></div>}
     {toast && <div className="toast" role="status"><CheckCircle2 size={17} />{toast}</div>}
     {!snapshot.settings.setupComplete && <Setup snapshot={snapshot} t={t} language={language} onLanguage={setLanguage} onSave={persist} busy={saving} canEdit={canEditSettings} chooseFolder={chooseFolder} />}

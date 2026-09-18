@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-image-jobs"
+description = "Enables the image_jobs command without any pre-configured scope."
+commands.allow = ["image_jobs"]
+
+[[permission]]
+identifier = "deny-image-jobs"
+description = "Denies the image_jobs command without any pre-configured scope."
+commands.deny = ["image_jobs"]

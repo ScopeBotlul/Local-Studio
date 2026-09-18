@@ -1,0 +1,53 @@
+import assert from 'node:assert/strict';
+import { promises as fs } from 'node:fs';
+import path from 'node:path';
+import { createHash } from 'node:crypto';
+const pause=ms=>new Promise(r=>setTimeout(r,ms));
+async function until(fn,timeout=20000){const end=Date.now()+timeout;while(Date.now()<end){if(await fn())return;await pause(120);}throw new Error('Batch condition timed out');}
+const digest=b=>createHash('sha256').update(b).digest('hex');
+export async function checkGalleryBatch({getPage,invoke,stop,launch,artifactRoot,record}) {
+  let page=getPage();const gallery=(await invoke('bootstrap')).paths.gallery;
+  await invoke('gallery_create_folder',{folder:'',name:'Batch-Test'});
+  const names=['Testbild ü.png','Bewegung.webm','Musik.wav'];
+  const imported=await invoke('gallery_import',{folder:'Batch-Test',sources:names.map(n=>path.join(artifactRoot,'gallery-sources',n))});assert.deepEqual(imported.errors,[]);
+  const originals=new Map(await Promise.all(names.map(async n=>[n,digest(await fs.readFile(path.join(gallery,'Batch-Test',n)))])));
+  const query={folder:'Batch-Test',search:'',kind:'all',recursive:true,offset:0};
+  const list=()=>invoke('gallery_list',{query});const initial=await list();const image=initial.entries.find(e=>e.name===names[0]);
+  await invoke('gallery_annotate',{edit:{rootId:initial.rootId,path:image.path,fileId:image.fileId,revision:0,favorite:false,tags:['Einzeltag']}});
+  await page.getByRole('button',{name:'Gallery',exact:true}).first().click();await page.getByLabel('Search files',{exact:true}).fill('Batch-Test');
+  await until(async()=>await page.locator('.gallery-file').count()===3&&/Batch-Test/.test(await page.locator('.gallery-file').first().innerText()));
+  await page.locator('.gallery-file').filter({hasText:'Musik.wav'}).click();await until(()=>page.locator('.gallery-viewer audio').evaluate(a=>a.readyState>=1));
+  assert.equal(await page.locator('.gallery-viewer').getByText('Preview unavailable.',{exact:false}).count(),0,'An earlier broken image must not leave an error on a playable audio preview');
+  const checkboxes=()=>page.locator('.gallery-select input');
+  const selectAll=async()=>{await page.getByRole('button',{name:'Select all on this page',exact:true}).click();await until(async()=>await page.locator('.gallery-select input:checked').count()===3);};
+  await page.getByLabel(`Select: Batch-Test/${names[0]}`,{exact:true}).check();await page.getByLabel(`Select: Batch-Test/${names[1]}`,{exact:true}).check();
+  await page.getByRole('button',{name:'List view',exact:true}).click();assert.equal(await page.locator('.gallery-select input:checked').count(),2);
+  await page.getByRole('button',{name:'Grid view',exact:true}).click();assert.equal(await page.locator('.gallery-select input:checked').count(),2);
+  await page.getByRole('button',{name:'Favorite selected',exact:true}).click();
+  await until(async()=>(await list()).entries.filter(e=>e.annotation.favorite).length===2);await until(async()=>await page.locator('.gallery-select input:checked').count()===0);
+  assert.equal((await list()).entries.find(e=>e.name==='Musik.wav').annotation.favorite,false);
+  await selectAll();await page.getByLabel('Tag for selection',{exact:true}).fill('  Sammlung  Grün  ');await page.getByRole('button',{name:'Add tag to selected',exact:true}).click();
+  await until(async()=>(await list()).entries.every(e=>e.annotation.tags.includes('Sammlung Grün')));
+  assert.deepEqual((await list()).entries.find(e=>e.name===names[0]).annotation.tags,['Einzeltag','Sammlung Grün']);
+  await until(async()=>await page.locator('.gallery-select input:checked').count()===0);await selectAll();
+  assert.equal(await page.getByRole('region',{name:'Batch actions',exact:true}).getByText('Selection cleared.',{exact:false}).count(),0,'A new selection clears the old completion notice');
+  await page.getByRole('region',{name:'Batch actions',exact:true}).scrollIntoViewIfNeeded();await page.screenshot({path:path.join(artifactRoot,'gallery-batch-selection.png')});
+  await page.getByRole('button',{name:'Clear selection',exact:true}).click();await until(async()=>await page.locator('.gallery-select input:checked').count()===0);
+  for(const n of names)assert.equal(digest(await fs.readFile(path.join(gallery,'Batch-Test',n))),originals.get(n));
+  record('Native multi-selection works in grid and list; favorite action affects only selected media; batch tag preserves individual tags and all original image/video/audio bytes');
+  await stop(true);await launch();page=getPage();const persisted=await list();assert.equal(persisted.entries.filter(e=>e.annotation.favorite).length,2);assert(persisted.entries.every(e=>e.annotation.tags.includes('Sammlung Grün')));
+  await page.getByRole('button',{name:'Gallery',exact:true}).first().click();await page.getByLabel('Search files',{exact:true}).fill('Batch-Test');await until(async()=>await checkboxes().count()===3);
+  await selectAll();await page.getByLabel('Tag for selection',{exact:true}).fill('SAMMLUNG GRÜN');await page.getByRole('button',{name:'Remove tag from selected',exact:true}).click();await until(async()=>(await list()).entries.every(e=>!e.annotation.tags.includes('Sammlung Grün')));await until(async()=>await page.locator('.gallery-select input:checked').count()===0);
+  await selectAll();await page.getByRole('button',{name:'Unfavorite selected',exact:true}).click();await until(async()=>(await list()).entries.every(e=>!e.annotation.favorite));await until(async()=>await page.locator('.gallery-select input:checked').count()===0);
+  // A stale last revision must roll back changes to earlier rows.
+  const before=await list();const targets=before.entries.map(e=>({path:e.path,fileId:e.fileId,revision:e.annotation.revision,version:e.thumbnailVersion}));targets.at(-1).revision--;
+  await assert.rejects(invoke('gallery_annotate_batch',{batch:{rootId:before.rootId,targets,action:{type:'favorite',value:true}}}),/gallery_conflict/);
+  assert.deepEqual((await list()).entries.map(e=>e.annotation),before.entries.map(e=>e.annotation));
+  await selectAll();await page.getByLabel('Search files',{exact:true}).fill('Musik.wav');await until(async()=>await page.locator('.gallery-select input:checked').count()===0);
+  await page.getByLabel('Search files',{exact:true}).fill('Raster-Test');await until(async()=>await page.locator('.gallery-file').count()===50);await page.getByRole('button',{name:'Select all on this page',exact:true}).click();assert.equal(await page.locator('.gallery-select input:checked').count(),50);
+  await page.locator('.gallery-pagination button').last().click();await until(async()=>await page.locator('.gallery-file').count()===12);assert.equal(await page.locator('.gallery-select input:checked').count(),0);
+  record('Batch tags and favorites persist across restart; removal preserves individual tags; stale last revision rolls back every row; search and page changes clear selection and select-all stays within 50 visible-page entries');
+  await stop(true);await launch();page=getPage();const final=await list();assert(final.entries.every(e=>!e.annotation.favorite));assert.deepEqual(final.entries.find(e=>e.name===names[0]).annotation.tags,['Einzeltag']);assert(final.entries.filter(e=>e.name!==names[0]).every(e=>e.annotation.tags.length===0));
+  for(const n of names)assert.equal(digest(await fs.readFile(path.join(gallery,'Batch-Test',n))),originals.get(n));
+  record('Batch removal survives a second native restart with unchanged original media and retained per-file annotations');
+}

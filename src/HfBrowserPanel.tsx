@@ -29,13 +29,13 @@ export default function HfBrowserPanel({ language, onModel, signingIn = false }:
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
-    let closed = false, mounted = false, frame = 0;
+    let closed = false, mounted = false, suspended = false, frame = 0;
     let previous = '';
     const id = owner.current;
     const update = () => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
-        if (closed || !host.current) return;
+        if (closed || suspended || !host.current) return;
         const initial = host.current.getBoundingClientRect();
         const zoom = Number(getComputedStyle(document.documentElement).getPropertyValue('--ui-scale')) || 1;
         const available = window.innerHeight - initial.top - 38;
@@ -47,7 +47,7 @@ export default function HfBrowserPanel({ language, onModel, signingIn = false }:
         if (serialized === previous) return;
         previous = serialized;
         void mutate(async () => {
-          if (closed) return;
+          if (closed || suspended) return;
           if (!mounted) {
             const next = await invoke<BrowserState>('hf_browser_mount', { owner: id, bounds });
             mounted = true;
@@ -56,6 +56,12 @@ export default function HfBrowserPanel({ language, onModel, signingIn = false }:
         }).catch(value => { previous = ''; if (!closed) setError(value); });
       });
     };
+    const modal = (event: Event) => {
+      suspended = Boolean((event as CustomEvent<boolean>).detail);
+      if (suspended) { cancelAnimationFrame(frame); void mutate(() => invoke('hf_browser_hide', { owner: id })).catch(value => { if (!closed) setError(value); }); }
+      else { mounted = false; previous = ''; update(); }
+    };
+    window.addEventListener('studio-modal', modal);
     const observer = new ResizeObserver(update);
     if (host.current) { observer.observe(host.current); if (host.current.parentElement) observer.observe(host.current.parentElement); }
     const styles = new MutationObserver(update);
@@ -72,6 +78,7 @@ export default function HfBrowserPanel({ language, onModel, signingIn = false }:
     }, 700);
     return () => {
       closed = true; cancelAnimationFrame(frame); clearInterval(timer); observer.disconnect(); styles.disconnect();
+      window.removeEventListener('studio-modal', modal);
       window.removeEventListener('resize', update); window.removeEventListener('scroll', update, true);
       void mutate(() => invoke('hf_browser_hide', { owner: id })).catch(() => undefined);
     };

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-project-ack-open"
+description = "Enables the project_ack_open command without any pre-configured scope."
+commands.allow = ["project_ack_open"]
+
+[[permission]]
+identifier = "deny-project-ack-open"
+description = "Denies the project_ack_open command without any pre-configured scope."
+commands.deny = ["project_ack_open"]

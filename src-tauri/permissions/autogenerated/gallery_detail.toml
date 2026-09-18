@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-gallery-detail"
+description = "Enables the gallery_detail command without any pre-configured scope."
+commands.allow = ["gallery_detail"]
+
+[[permission]]
+identifier = "deny-gallery-detail"
+description = "Denies the gallery_detail command without any pre-configured scope."
+commands.deny = ["gallery_detail"]

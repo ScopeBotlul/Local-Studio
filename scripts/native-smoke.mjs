@@ -1,5 +1,19 @@
+import {checkMenuUpdates} from './check-menu-updates.mjs';
+import {checkEditor} from './check-editor.mjs';
+import { checkMedia18 } from './check-media18.mjs';
+import { checkFoundations } from './check-foundations.mjs';
+import { checkProjects } from './check-projects.mjs';
+import { checkMediaWorkflow } from './check-media-workflow.mjs';
+import { checkGalleryCompare } from './check-gallery-compare.mjs';
+import { checkGalleryFiles } from './check-gallery-files.mjs';
+import { checkGalleryBatch } from './check-gallery-batch.mjs';
+import { checkGalleryThumbnails } from './check-gallery-thumbnails.mjs';
+import { checkGalleryAnnotations } from './check-gallery-annotations.mjs';
+import { checkGallery } from './check-gallery.mjs';
+import { checkImageQueue } from './check-image-queue.mjs';
 // Runs the real Windows executable with an isolated database and WebView2 profile.
 // CDP is enabled only for this child process, never in normal app configuration.
+import { checkStudioLifecycle } from './check-studio-lifecycle.mjs';
 import { chromium } from '@playwright/test';
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -7,6 +21,9 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import net from 'node:net';
 import assert from 'node:assert/strict';
+import { checkModelFiltering, checkModelFilteringRestart } from './check-model-filtering.mjs';
+import { checkImageGeneration, checkImageRestart } from './check-image-generation.mjs';
+import { checkModelImport, checkModelImportRestart } from './check-model-import.mjs';
 import { checkHuggingFace } from './check-huggingface.mjs';
 import { checkDownloads, checkDownloadRestart } from './check-downloads.mjs';
 import { checkIntegratedOAuth } from './check-integrated-oauth.mjs';
@@ -20,7 +37,15 @@ const artifactRoot = path.join(root, '.artifacts', `native-${Date.now()}`);
 await fs.mkdir(artifactRoot, { recursive: true });
 const launchExe = path.join(artifactRoot, 'Local Studio.exe');
 await fs.copyFile(exe, launchExe);
+const imageRuntime = path.join(path.dirname(exe), 'image-runtime');
+if ((await fs.stat(imageRuntime).catch(() => null))?.isDirectory()) await fs.cp(imageRuntime, path.join(artifactRoot, 'image-runtime'), { recursive: true });
 await fs.writeFile(path.join(artifactRoot, 'portable.marker'), 'Local Studio isolated native test\n');
+if (process.env.LOCAL_STUDIO_TEST_LIBRARY) {
+  const config = path.join(artifactRoot, 'Local-Studio-Data/config');
+  await fs.mkdir(config, { recursive: true });
+  await fs.copyFile(process.env.LOCAL_STUDIO_TEST_LIBRARY, path.join(config, 'model-library.sqlite3'));
+}
+
 const report = { startedAt: new Date().toISOString(), executable: exe, checks: [], artifacts: artifactRoot };
 const record = (name, detail = '') => { report.checks.push({ name, passed: true, detail }); console.log(`PASS ${name}${detail ? `: ${detail}` : ''}`); };
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -36,13 +61,13 @@ async function availablePort() {
   await new Promise(resolve => server.close(resolve));
   return port;
 }
-async function launch() {
+async function launch(args = []) {
   const port = await availablePort();
-  app = spawn(launchExe, [], { cwd: root, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'], env: {
+  app = spawn(launchExe, args, { cwd: root, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'], env: {
     ...process.env,
     LOCAL_STUDIO_CONFIG_DIR: path.join(artifactRoot, 'config'),
     WEBVIEW2_USER_DATA_FOLDER: path.join(artifactRoot, 'webview'),
-    WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${port}`,
+    WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${port} --disable-background-timer-throttling --disable-renderer-backgrounding --disable-backgrounding-occluded-windows --disable-features=CalculateNativeWinOcclusion`,
   } });
   let output = '';
   app.stdout.on('data', chunk => { output += chunk; });
@@ -217,6 +242,8 @@ try {
   assert.equal(afterNativeClose.settings.dataRoot, closeSettings.dataRoot);
   assert.equal(afterNativeClose.recoveryAvailable, false);
   record('Native close waits for settings write and path refresh; saved state survives restart');
+  if (process.env.LOCAL_STUDIO_TEST_FOUNDATIONS === '1') await checkFoundations({ getPage: () => page, invoke, stop, launch, artifactRoot, record });
+  if (process.env.LOCAL_STUDIO_TEST_PROJECTS === '1') await checkProjects({ getPage: () => page, invoke, stop, launch, artifactRoot, record });
   if (process.env.LOCAL_STUDIO_TEST_HF === '1') await checkHuggingFace(page, artifactRoot, invoke, record, app.pid);
   if (process.env.LOCAL_STUDIO_TEST_BROWSER === '1') {
     await checkIntegratedOAuth(page, browser, artifactRoot, invoke, record);
@@ -230,6 +257,33 @@ try {
     await stop(true); await launch();
     await checkDownloadRestart(page, invoke, record, id);
   }
+  if (process.env.LOCAL_STUDIO_TEST_IMPORT === '1') {
+    const fixture = await checkModelImport(page, artifactRoot, invoke, record);
+    await stop(true); await launch();
+    await checkModelImportRestart(page, invoke, record, fixture);
+  }
+  if (process.env.LOCAL_STUDIO_TEST_FILTER === '1') {
+    const stats = await checkModelFiltering(page, artifactRoot, invoke, record);
+    await stop(true); await launch();
+    await checkModelFilteringRestart(page, invoke, record, stats);
+  }
+  if (process.env.LOCAL_STUDIO_TEST_IMAGE === '1') {
+    const fixture = await checkImageGeneration(page, artifactRoot, invoke, record);
+    await stop(false); await launch();
+    await checkImageRestart(page, artifactRoot, invoke, record, fixture);
+    await checkStudioLifecycle({ getPage: () => page, invoke, stop, launch, artifactRoot, record });
+  }
+  if (process.env.LOCAL_STUDIO_TEST_MEDIA_WORKFLOW === '1') await checkMediaWorkflow({ getPage: () => page, invoke, stop, launch, artifactRoot, record });
+  if (process.env.LOCAL_STUDIO_TEST_QUEUE === '1') await checkImageQueue({ getPage: () => page, invoke, stop, launch, artifactRoot, record });
+  if (process.env.LOCAL_STUDIO_TEST_GALLERY === '1') await checkGallery({ getPage: () => page, invoke, stop, launch, artifactRoot, record });
+  if (process.env.LOCAL_STUDIO_TEST_ANNOTATIONS === '1') await checkGalleryAnnotations({ getPage: () => page, invoke, stop, launch, artifactRoot, record });
+  if (process.env.LOCAL_STUDIO_TEST_THUMBNAILS === '1') await checkGalleryThumbnails({ getPage: () => page, invoke, stop, launch, artifactRoot, record });
+  if (process.env.LOCAL_STUDIO_TEST_BATCH === '1') await checkGalleryBatch({ getPage: () => page, invoke, stop, launch, artifactRoot, record });
+  if (process.env.LOCAL_STUDIO_TEST_FILES === '1') await checkGalleryFiles({ getPage: () => page, invoke, stop, launch, artifactRoot, record });
+  if (process.env.LOCAL_STUDIO_TEST_COMPARE === '1') await checkGalleryCompare({ getPage: () => page, invoke, stop, launch, artifactRoot, record });
+  if (process.env.LOCAL_STUDIO_TEST_EDITOR === '1') await checkEditor({getPage:()=>page,invoke,stop,launch,artifactRoot,record});
+  if (process.env.LOCAL_STUDIO_TEST_MEDIA18 === '1') await checkMedia18({getPage:()=>page,invoke,stop,launch,artifactRoot,record});
+  if (process.env.LOCAL_STUDIO_TEST_MENU === '1') await checkMenuUpdates({getPage:()=>page,invoke,artifactRoot,record,pid:()=>app.pid});
   assert.deepEqual(errors, [], 'No uncaught WebView errors');
   record('No uncaught frontend runtime errors');
   report.passed = true;

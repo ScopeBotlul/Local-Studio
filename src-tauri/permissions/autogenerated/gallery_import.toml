@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-gallery-import"
+description = "Enables the gallery_import command without any pre-configured scope."
+commands.allow = ["gallery_import"]
+
+[[permission]]
+identifier = "deny-gallery-import"
+description = "Denies the gallery_import command without any pre-configured scope."
+commands.deny = ["gallery_import"]

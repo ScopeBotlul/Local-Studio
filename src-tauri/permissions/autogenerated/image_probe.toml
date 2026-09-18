@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-image-probe"
+description = "Enables the image_probe command without any pre-configured scope."
+commands.allow = ["image_probe"]
+
+[[permission]]
+identifier = "deny-image-probe"
+description = "Denies the image_probe command without any pre-configured scope."
+commands.deny = ["image_probe"]

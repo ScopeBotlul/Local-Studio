@@ -10,6 +10,8 @@ impl Server {
         let handle=thread::spawn(move|| {
             while !worker_stop.load(Ordering::SeqCst) {
                 let Ok((mut stream,_))=listener.accept() else {thread::sleep(Duration::from_millis(5));continue};
+                // Accepted sockets inherit nonblocking mode on Windows. Read complete headers.
+                stream.set_nonblocking(false).unwrap();
                 stream.set_read_timeout(Some(Duration::from_secs(2))).unwrap();stream.set_write_timeout(Some(Duration::from_millis(250))).unwrap();
                 let mut request=Vec::new();let mut buffer=[0;1024];
                 while !request.windows(4).any(|v|v==b"\r\n\r\n") {match stream.read(&mut buffer){Ok(0)|Err(_)=>break,Ok(n)=>request.extend_from_slice(&buffer[..n])}}

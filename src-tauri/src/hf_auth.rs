@@ -495,6 +495,8 @@ fn wait_callback(
                 if !peer.ip().is_loopback() {
                     continue;
                 }
+                // Windows accept inherits listener mode; a delayed first byte is not an invalid callback.
+                if stream.set_nonblocking(false).is_err() { continue; }
                 let _ = stream.set_read_timeout(Some(Duration::from_millis(250)));
                 let _ = stream.set_write_timeout(Some(Duration::from_millis(250)));
                 let mut bytes = Zeroizing::new(Vec::new());
@@ -569,6 +571,8 @@ mod tests {
         });
         for state in ["forged", "expected"] {
             let mut stream = TcpStream::connect(addr).unwrap();
+            // Allow accept/read to occur before the HTTP request arrives.
+            std::thread::sleep(Duration::from_millis(100));
             write!(
                 stream,
                 "GET /callback?state={state}&code=only-code HTTP/1.1\r\nHost: {addr}\r\n\r\n"

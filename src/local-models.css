@@ -1,0 +1,18 @@
+.local-import { padding: 24px; margin-bottom: 25px; }
+.local-full-scan { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; padding-bottom: 20px; margin-bottom: 20px; border-bottom: 1px solid var(--border); }
+.local-full-scan > .hub-hint { flex: 1 1 300px; margin: 0; }
+.local-import-controls { display: flex; flex-wrap: wrap; gap: 10px; }
+.local-import-controls input { flex: 1 1 280px; min-width: 160px; }
+.local-scan { display: grid; gap: 12px; margin-top: 20px; font-size: 12px; }
+.local-scan > .button { justify-self: start; }
+.local-model-entries { display: grid; gap: 16px; }
+.local-model-entry { padding: 24px; }
+.local-model-entry h3 { margin: 0; overflow-wrap: anywhere; font-size: 15px; }
+.local-model-entry .section-heading { padding: 0; gap: 15px; align-items: start; }
+.local-model-entry .pill { flex-shrink: 0; white-space: normal; }
+.local-model-entry .hub-tags { color: var(--muted); font-size: 12px; }
+.local-model-entry .hub-actions { margin: 18px 0; }
+.local-model-entry details, .local-model-entry small { color: var(--muted); font-size: 12px; }
+.local-model-entry summary { cursor: pointer; }
+.local-model-library .download-path { overflow-wrap: anywhere; }
+.local-download-heading { margin: 30px 0 16px; }

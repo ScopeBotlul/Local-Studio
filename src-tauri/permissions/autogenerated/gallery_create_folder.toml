@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-gallery-create-folder"
+description = "Enables the gallery_create_folder command without any pre-configured scope."
+commands.allow = ["gallery_create_folder"]
+
+[[permission]]
+identifier = "deny-gallery-create-folder"
+description = "Denies the gallery_create_folder command without any pre-configured scope."
+commands.deny = ["gallery_create_folder"]
