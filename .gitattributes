@@ -9,3 +9,5 @@
 *.png binary
 *.ico binary
 docs/video-runtime/*.txt -text
+docs/assistant-runtime/*.txt -text
+docs/speech-runtime/*.txt -text

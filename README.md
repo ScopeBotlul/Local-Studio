@@ -1,5 +1,7 @@
 # Local Studio
 
+Version 0.24.0 ergänzt **lokalen DE/EN-Chat mit echten Studio-Werkzeugen und automatische Untertitel aus Ton/Video**. Qwen und Whisper laufen in eigenen CPU-Prozessen; Modelle werden ausdrücklich ausgewählt und heruntergeladen. [Einrichtung, Bedienung und Grenzen](docs/ASSISTANT.md).
+
 Version 0.23.0 ergänzt **Vorschau am Abspielkopf, Audio-Wellenformen, Proxies, Maus-Schnitt und Bildgriffe** für die gemeinsamen Bild-/Videoprojekte. Echte PNG/JPEG-, MP4- und WebM-Ausgaben; Originale bleiben erhalten. [Bedienung und Grenzen](docs/CREATIVE_EDITORS.md), [Einzelbildeditor](docs/IMAGE_EDITOR.md), [Projekte](docs/PROJECTS.md).
 
 Version 0.20.0 ergänzt die native **Menüleiste und signaturgeprüfte GitHub-Updates**. [Aktuelle Downloads](https://github.com/ScopeBotlul/Local-Studio/releases/latest), [Updateverfahren](docs/UPDATES.md).
@@ -49,7 +51,7 @@ einen Token-Anmeldepfad mit Windows-Anmeldespeicher. Ab 0.2.1 ist auch OAuth mit
 Ein erster SDXL-Inferenzpfad ist ab 0.6.0 vorhanden. Vollständige Runtime-/Modellverwaltung und weitere Inferenzadapter bleiben offen.
 Eine Prüfsumme ist kein Nachweis, dass eine Modelldatei sicher oder kompatibel ist.
 
-## Aktuellen Stand 0.23.0 starten
+## Aktuellen Stand 0.24.0 starten
 
 Die lokal gebauten Pakete liegen unter `releases/`: Portable ZIP, EXE und Windows-Installer.
 Build-Dateien und lokale Testberichte sind nicht im Quellcode-Repository enthalten.
@@ -86,10 +88,10 @@ Details, Sicherheitsgrenzen und die erfolgte Registrierung stehen in
 eigene Tokens ausschließlich im vorgesehenen Passwortfeld der App eingeben.
 
 Für das portable Update die bisherige App schließen und die Programmdateien einschließlich
-**image-runtime** aus dem ZIP im bisherigen Programmordner ersetzen. **Local-Studio-Data behalten.**
+**image-runtime**, **video-runtime**, **assistant-runtime** und **speech-runtime** aus dem ZIP im bisherigen Programmordner ersetzen. **Local-Studio-Data behalten.**
 Die neue separate Testkopie hat ein eigenes Profil. Zugangsdaten liegen im
 Windows-Anmeldespeicher und sind nicht Bestandteil des ZIPs.
-Die lokalen Paket-Prüfsummen stehen in `releases/SHA256SUMS-0.16.0.txt`.
+Die lokalen Paket-Prüfsummen stehen in `releases/SHA256SUMS-0.24.0.txt`.
 
 ## Vorheriger Core 0.1.1
 
@@ -118,6 +120,8 @@ Toolchain unter `.tools`, sonst die installierte Toolchain.
 npm ci
 # Einmalig die festgelegte Bildruntime im Projekt bereitstellen (keine Modelle).
 python scripts/bootstrap-image-runtime.py
+node scripts/bootstrap-video-runtime.mjs
+node scripts/bootstrap-ai-runtimes.mjs
 # Nur falls Rust fehlt: Installation im Projektordner ohne Änderung des System-PATH.
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/bootstrap-rust.ps1
 npm run desktop:dev

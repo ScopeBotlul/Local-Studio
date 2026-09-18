@@ -1,4 +1,13 @@
-# Aktueller Stand 0.23.0: direkter Schnitt und Medienvorbereitung
+# Aktueller Stand 0.24.0: lokaler Assistent und automatische Untertitel
+
+- Echter lokaler DE/EN-Chat mit Qwen-GGUF und llama.cpp auf CPU. Modellauswahl, explizites Laden/Entladen, Abbruch, persistenter Verlauf und bestätigtes Leeren. Nach Neustart keine automatische Modellaktivierung.
+- Vier fest definierte Werkzeuge: tatsächliche Hardware, vorhandene Modellbibliothek, Galerie-Metadaten und Vorbereitung geprüfter SDXL-Parameter. Explizite Übernahme ins Bild-Studio, Generierung separat. Keine Shell, freien Skripte oder autonomen Downloads.
+- Lokale Whisper-Transkription des ausgewählten Audio-/Videoclips; Zeiten berücksichtigen Ausschnitt, Clipstart und Geschwindigkeit. Text-/Zeitprüfung, Übernahme als ein Undo-Schritt, SRT und Speicherung im Projekt. Fortschritt/Abbruch und persistente Aufträge.
+- Gemeinsamer vorhandener Downloadmanager mit bewusstem Start, Katalogrevision/Größe/SHA-256, Import eigener Modelle und tatsächlicher Dateiprüfung vor Nutzung. Separate CPU-Prozesse mit Windows-Jobobjekten, Speichergrenzen und Beendigung mit dem Elternprozess. Installer/Portable enthalten jetzt vier gepinnte Runtimes mit Lizenzhinweisen; keine Modellgewichte beigepackt.
+
+[Einrichtung, Bedienung und Grenzen](docs/ASSISTANT.md). Prüfnachweise separat in [TEST_MATRIX.md](TEST_MATRIX.md). M5/M6/M8 bleiben teilweise umgesetzt: kein visueller Inhaltsindex, keine Diarization/KI-Videoerzeugung, keine Online-Modellberatung oder gelernten Präferenzen. Kleine Modelle können falsche Antworten/Transkripte liefern. CPU ist der erste Ausführungspfad; vollständige Ressourcenkoordination und 18+-Schutz bleiben offene SPEC-Anforderungen. Unübernommene Transkript-Korrekturen sind nur im aktuellen UI-Entwurf gespeichert. Der gesamte zukünftige Umfang bleibt erhalten.
+
+## Vorheriger Stand 0.23.0: direkter Schnitt und Medienvorbereitung
 
 - Einzelbilder am Abspielkopf aus echten Originalen oder geprüften Proxies, einschließlich Effekten, Keyframes und Untertiteln. Veraltete Anfragen werden abgebrochen; die bisherige gerenderte Ton-/Videowiedergabe bleibt verfügbar.
 - Lokale, abbrechbare Proxy-Erzeugung (automatisch/halb/viertel/eigene Breite) und Audio-Wellenformen aus dekodiertem Ton. Persistente Caches, Status unter Aufträge, Originale für sämtliche Exporte.

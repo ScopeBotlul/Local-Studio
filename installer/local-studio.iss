@@ -83,6 +83,8 @@ Source: "{#ProjectRoot}\.tools\webview2\MicrosoftEdgeWebview2Setup.exe"; Flags: 
 
 Source: "{#ProjectRoot}\src-tauri\target\release\image-runtime\*"; DestDir: "{app}\image-runtime"; Flags: ignoreversion
 Source: "{#ProjectRoot}\src-tauri\target\release\video-runtime\*"; DestDir: "{app}\video-runtime"; Flags: ignoreversion
+Source: "{#ProjectRoot}\src-tauri\target\release\assistant-runtime\*"; DestDir: "{app}\assistant-runtime"; Flags: ignoreversion
+Source: "{#ProjectRoot}\src-tauri\target\release\speech-runtime\*"; DestDir: "{app}\speech-runtime"; Flags: ignoreversion
 
 [Icons]
 #ifndef TestBuild

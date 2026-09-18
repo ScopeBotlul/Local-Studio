@@ -406,6 +406,7 @@ impl ModelLibrary {
             tokio::time::sleep(std::time::Duration::from_millis(25)).await;
         }
     }
+    pub(crate) fn assistant_models(&self)->Result<Vec<LocalModel>> {Ok(self.snapshot()?.entries.into_iter().filter(|m|m.discovery==Discovery::Model && m.status!="missing").collect())}
     fn snapshot(&self) -> Result<Snapshot> {
         let (mut entries, scan) = {
             let state = self.state.lock().map_err(|_| "local_storage")?;

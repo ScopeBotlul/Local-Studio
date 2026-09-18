@@ -279,3 +279,8 @@ pub fn protocol(ctx: tauri::UriSchemeContext<'_, tauri::Wry>, req: tauri::http::
 #[cfg(test)]
 #[path = "gallery_tests.rs"]
 mod tests;
+
+pub(crate) fn assistant_search(core:&Core,catalog:&GalleryCatalog,images:&ImageEngine,search:String)->Result<serde_json::Value>{
+ let root=root(core)?;let origins=catalog.sync_origins(&root,images.list()?)?;let query=Query{sort:Sort::ModifiedDesc,folder:String::new(),search,kind:"all".into(),recursive:true,offset:0,favorites_only:false,tag:String::new()};let result=list_full(&root,query,&catalog.snapshot(&root)?,&origins)?;
+ Ok(serde_json::json!({"total":result.total,"limited":result.limited,"entries":result.entries.into_iter().take(20).map(|e|serde_json::json!({"name":e.name,"kind":e.kind,"bytes":e.bytes,"tags":e.annotation.tags,"path":e.path})).collect::<Vec<_>>()}))
+}

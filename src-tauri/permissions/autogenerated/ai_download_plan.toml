@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-ai-download-plan"
+description = "Enables the ai_download_plan command without any pre-configured scope."
+commands.allow = ["ai_download_plan"]
+
+[[permission]]
+identifier = "deny-ai-download-plan"
+description = "Denies the ai_download_plan command without any pre-configured scope."
+commands.deny = ["ai_download_plan"]

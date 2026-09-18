@@ -11,13 +11,14 @@ Copy-Item -LiteralPath $binary -Destination (Join-Path $portableRoot 'Local Stud
 [IO.File]::WriteAllText((Join-Path $portableRoot 'portable.marker'), 'Local Studio Hub portable development build', [Text.UTF8Encoding]::new($false))
 & (Join-Path $PSScriptRoot 'stage-image-runtime.ps1') -Destination (Join-Path $portableRoot 'image-runtime')
 & (Join-Path $PSScriptRoot 'stage-video-runtime.ps1') -Destination (Join-Path $portableRoot 'video-runtime')
+& (Join-Path $PSScriptRoot 'stage-ai-runtimes.ps1') -Destination $portableRoot
 $readme = @'
 LOCAL STUDIO {VERSION} — CORE + HUGGING FACE ENTWICKLUNGSSTAND
 
 Start: Local Studio.exe doppelklicken. Windows x64 mit installiertem WebView2.
 Daten: Local-Studio-Data neben der EXE. Zum Entpacken einen beschreibbaren Ordner wählen.
 
-Update einer portablen Version: Alte App regulär schließen, dann die Programmdateien und die Ordner image-runtime und video-runtime
+Update einer portablen Version: Alte App regulär schließen, dann die Programmdateien und alle vier Runtime-Ordner (image-runtime, video-runtime, assistant-runtime, speech-runtime)
 aus dem ZIP in den bisherigen App-Ordner entpacken und ersetzen. Den Ordner
 Local-Studio-Data behalten; er enthält die vorhandenen Einstellungen und Aufträge.
 
@@ -34,6 +35,14 @@ Unter Hugging Face > Website im Studio liegt jetzt die echte Website.
 Die Website-Anmeldung ist separat; ihre Cookies liegen im eigenen WebView-Profil.
 App-Tokens werden nicht in Website-Cookies umgewandelt. Modellseiten lassen sich
 über In Local Studio öffnen an die Modellansicht übergeben.
+
+Neu in 0.24.0: Lokaler Assistent mit bewusstem Modelldownload, DE/EN-Chat,
+Laden/Entladen, Abbruch und sichtbaren Studio-Werkzeugen. Hardware lesen,
+installierte Modelle und Galerie-Metadaten suchen, Bildauftraege vorbereiten.
+Automatische lokale Transkription fuer Video-/Audioclips, Text/Zeiten pruefen,
+in die Timeline uebernehmen und als SRT speichern. Keine Sprechertrennung.
+Modelle sind nicht beigepackt. Alle vier Runtime-Ordner beim Update ersetzen:
+image-runtime, video-runtime, assistant-runtime und speech-runtime.
 
 Neu in 0.23.0: Einzelbildvorschau am Abspielkopf ohne kompletten Timeline-Render.
 Proxies und echte Audio-Wellenformen unter Videoschnitt berechnen. Export nutzt
@@ -198,7 +207,7 @@ $readme = $readme.Replace('{VERSION}', $version)
 [IO.File]::WriteAllText((Join-Path $portableRoot 'LIESMICH.txt'), $readme, [Text.UTF8Encoding]::new($false))
 $archive = Join-Path $releaseRoot "Local-Studio-$version-hub-portable.zip"
 # Package only the known build files, never local test or user data.
-Compress-Archive -LiteralPath @((Join-Path $portableRoot 'Local Studio.exe'), (Join-Path $portableRoot 'portable.marker'), (Join-Path $portableRoot 'LIESMICH.txt'), (Join-Path $portableRoot 'image-runtime'), (Join-Path $portableRoot 'video-runtime')) -DestinationPath $archive -Force
+Compress-Archive -LiteralPath @((Join-Path $portableRoot 'Local Studio.exe'), (Join-Path $portableRoot 'portable.marker'), (Join-Path $portableRoot 'LIESMICH.txt'), (Join-Path $portableRoot 'image-runtime'), (Join-Path $portableRoot 'video-runtime'), (Join-Path $portableRoot 'assistant-runtime'), (Join-Path $portableRoot 'speech-runtime')) -DestinationPath $archive -Force
 $installer = Join-Path $projectRoot "src-tauri\target\release\bundle\inno\Local-Studio-$version-hub-setup.exe"
 if (Test-Path -LiteralPath $installer) {
     Copy-Item -LiteralPath $installer -Destination (Join-Path $releaseRoot "Local-Studio-$version-hub-setup.exe") -Force

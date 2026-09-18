@@ -1,0 +1,5 @@
+llama.cpp b11026
+https://github.com/ggml-org/llama.cpp/tree/b11026
+Upstream archive: https://github.com/ggml-org/llama.cpp/releases/download/b11026/llama-b11026-bin-win-cpu-x64.zip
+SHA256: 617529171621548ada99e7b4f4f6234aab76129a674d3594dec4cfdfebb3ebec
+CPU runtime; no model weights included.

@@ -77,7 +77,7 @@ fn sha(file: &mut File, cancel: Option<&AtomicBool>, mut progress: impl FnMut(u6
     }
     Ok(format!("{:x}", digest.finalize()))
 }
-fn model_parts(path: &Path) -> Result<(u64, Vec<String>)> {
+pub(crate) fn model_parts(path: &Path) -> Result<(u64, Vec<String>)> {
     model_library::no_links(path).map_err(|_| "image_path")?;
     let mut budget = 16 * 1024 * 1024;
     if model_library::safetensors(path, &mut budget).map_err(|_| "image_structure")? != (true, false) { return Err("image_structure".into()); }
@@ -141,6 +141,15 @@ fn devices(runtime: &Path) -> Result<String> {
 }
 pub(crate) struct ProcessGroup(windows_sys::Win32::Foundation::HANDLE);
 impl ProcessGroup {
+    pub(crate) fn limit_memory(&self, bytes: usize) -> Result<()> {
+        use windows_sys::Win32::System::JobObjects::*;
+        let mut info: JOBOBJECT_EXTENDED_LIMIT_INFORMATION = unsafe { std::mem::zeroed() };
+        info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE | JOB_OBJECT_LIMIT_PROCESS_MEMORY | JOB_OBJECT_LIMIT_ACTIVE_PROCESS;
+        info.BasicLimitInformation.ActiveProcessLimit = 4;
+        info.ProcessMemoryLimit = bytes;
+        if unsafe { SetInformationJobObject(self.0, JobObjectExtendedLimitInformation, &info as *const _ as *const _, std::mem::size_of_val(&info) as u32) } == 0 { return Err("image_worker_guard".into()); }
+        Ok(())
+    }
     pub(crate) fn attach(child: &std::process::Child) -> Result<Self> {
         use std::os::windows::io::AsRawHandle;
         use windows_sys::Win32::System::JobObjects::*;

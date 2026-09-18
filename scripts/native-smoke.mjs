@@ -1,3 +1,4 @@
+import {checkAi24} from './check-ai24.mjs';
 import {checkCreative23} from './check-creative23.mjs';
 import {checkCreative22} from './check-creative22.mjs';
 import {checkEditor21} from './check-editor21.mjs';
@@ -42,6 +43,7 @@ const launchExe = path.join(artifactRoot, 'Local Studio.exe');
 await fs.copyFile(exe, launchExe);
 const imageRuntime = path.join(path.dirname(exe), 'image-runtime');
 if ((await fs.stat(imageRuntime).catch(() => null))?.isDirectory()) await fs.cp(imageRuntime, path.join(artifactRoot, 'image-runtime'), { recursive: true });
+for(const kind of ['assistant','speech']){const dir=path.join(path.dirname(exe),kind+'-runtime');if((await fs.stat(dir).catch(()=>null))?.isDirectory())await fs.cp(dir,path.join(artifactRoot,kind+'-runtime'),{recursive:true});}
 const videoRuntime=path.join(path.dirname(exe),'video-runtime');
 if((await fs.stat(videoRuntime).catch(()=>null))?.isDirectory())await fs.cp(videoRuntime,path.join(artifactRoot,'video-runtime'),{recursive:true});
 await fs.writeFile(path.join(artifactRoot, 'portable.marker'), 'Local Studio isolated native test\n');
@@ -286,6 +288,7 @@ try {
   if (process.env.LOCAL_STUDIO_TEST_BATCH === '1') await checkGalleryBatch({ getPage: () => page, invoke, stop, launch, artifactRoot, record });
   if (process.env.LOCAL_STUDIO_TEST_FILES === '1') await checkGalleryFiles({ getPage: () => page, invoke, stop, launch, artifactRoot, record });
   if (process.env.LOCAL_STUDIO_TEST_COMPARE === '1') await checkGalleryCompare({ getPage: () => page, invoke, stop, launch, artifactRoot, record });
+  if (process.env.LOCAL_STUDIO_TEST_AI24 === '1') await checkAi24({getPage:()=>page,invoke,stop,launch,artifactRoot,record});
   if (process.env.LOCAL_STUDIO_TEST_CREATIVE23 === '1') await checkCreative23({getPage:()=>page,invoke,stop,launch,artifactRoot,record});
   if (process.env.LOCAL_STUDIO_TEST_CREATIVE22 === '1') await checkCreative22({getPage:()=>page,invoke,stop,launch,artifactRoot,record});
   if (process.env.LOCAL_STUDIO_TEST_EDITOR21 === '1') await checkEditor21({getPage:()=>page,invoke,stop,launch,artifactRoot,record});

@@ -18,6 +18,7 @@ binary = root / 'src-tauri/target/release/local-studio.exe'
 expected = hashlib.sha256(binary.read_bytes()).hexdigest()
 video_files = json.loads((root / 'src-tauri/video-runtime.json').read_text(encoding='utf-8'))['files']
 runtime_files = json.loads((root / 'src-tauri/image-runtime.json').read_text(encoding='utf-8'))['files']
+ai_runtime_files = {kind: json.loads((root / f'src-tauri/{kind}-runtime.json').read_text(encoding='utf-8'))['files'] for kind in ['assistant', 'speech']}
 
 def record(text):
     report['checks'].append(text)
@@ -53,6 +54,9 @@ try:
             assert hashlib.sha256((destination / 'image-runtime' / name).read_bytes()).hexdigest() == digest
         for name, digest in video_files.items():
             assert hashlib.sha256((destination / 'video-runtime' / name).read_bytes()).hexdigest() == digest
+        for kind, files in ai_runtime_files.items():
+            for name, digest in files.items():
+                assert hashlib.sha256((destination / f'{kind}-runtime' / name).read_bytes()).hexdigest() == digest
         if mode == 'dynamic':
             try:
                 with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r'Software\Microsoft\Windows\CurrentVersion\Themes\Personalize') as key:
@@ -72,7 +76,7 @@ try:
         with winreg.OpenKey(winreg.HKEY_CURRENT_USER, 'Software\\Classes\\' + progid + '\\shell\\open\\command') as key:
             assert winreg.QueryValueEx(key, '')[0] == f'"{installed}" "%1"'
         record(f'{mode}: isolated project association and quoted open command installed')
-        record(f'{mode}: actual installer selects {chosen}; installed executable and both image/video runtimes match release')
+        record(f'{mode}: actual installer selects {chosen}; installed executable and all four runtimes match release')
 
         keep = destination / 'user-kept-file.txt'
         keep.write_text('preserve user files', encoding='utf-8')
@@ -87,6 +91,7 @@ try:
         assert not installed.exists() and keep.read_text(encoding='utf-8') == 'preserve user files'
         assert all(not (destination / 'image-runtime' / name).exists() for name in runtime_files)
         assert all(not (destination / 'video-runtime' / name).exists() for name in video_files)
+        assert all(not (destination / f'{kind}-runtime' / name).exists() for kind, files in ai_runtime_files.items() for name in files)
         for key_path in ['Software\\Classes\\' + progid, 'Software\\Classes\\' + extension]:
             try:
                 with winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path):

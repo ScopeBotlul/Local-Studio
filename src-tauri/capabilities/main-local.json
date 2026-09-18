@@ -129,7 +129,21 @@
     "allow-media-prepare",
     "allow-media-status",
     "allow-media-cancel",
-    "allow-media-info"
+    "allow-media-info",
+    "allow-ai-catalog",
+    "allow-ai-models",
+    "allow-ai-import",
+    "allow-ai-download-plan",
+    "allow-ai-adopt-download",
+    "allow-assistant-status",
+    "allow-assistant-load",
+    "allow-assistant-unload",
+    "allow-assistant-send",
+    "allow-assistant-cancel",
+    "allow-assistant-clear",
+    "allow-transcription-start",
+    "allow-transcription-jobs",
+    "allow-transcription-cancel"
   ],
   "webviews": [
     "main"
