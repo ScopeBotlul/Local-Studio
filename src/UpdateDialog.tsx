@@ -4,7 +4,7 @@ export default function UpdateDialog({de,version,automatic,onAutomatic,onInstall
  const dialog=useRef<HTMLDialogElement>(null);const [status,setStatus]=useState<UpdateStatus|null>(null),[error,setError]=useState('');const t=(a:string,b:string)=>de?a:b;
  useEffect(()=>{const el=dialog.current;el?.showModal();let live=true;const poll=()=>void updateApi.status().then(s=>{if(live)setStatus(s);}).catch(e=>{if(live)setError(updateError(e,de));});poll();const timer=setInterval(poll,350);return()=>{live=false;clearInterval(timer);el?.close();};},[]);
  async function action(fn:()=>Promise<unknown>){setError('');try{await fn();setStatus(await updateApi.status());}catch(e){setError(updateError(e,de));}}
- const busy=status&&['checking','downloading','installing'].includes(status.phase);
+ const busy=status&&['checking','downloading','ready','installing'].includes(status.phase);
  return <dialog ref={dialog} className="image-exit-dialog update-dialog" aria-label={t('Software-Updates','Software updates')} onCancel={e=>{e.preventDefault();onClose();}}><h2>{t('Local Studio aktualisieren','Update Local Studio')}</h2><p>{t('Installierte Version','Installed version')}: {version} · {status?.portable?'Portable':t('Installiert','Installed')}</p>
  <label className="project-exit-option"><input type="checkbox" checked={automatic} onChange={e=>onAutomatic(e.target.checked)}/>{t('Beim Start automatisch nach Updates suchen','Automatically check for updates at startup')}</label>
  {status?.phase==='current'&&<p role="status">{t('Du verwendest die aktuelle Version.','You are using the latest version.')}</p>}

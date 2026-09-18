@@ -294,7 +294,7 @@ export default function App() {
     return () => { window.removeEventListener('keydown', key); window.removeEventListener('wheel', wheel); };
   }, [canEditSettings, reportError, saveRaw]);
 
-  useEffect(()=>{if(!snapshot?.settings.setupComplete||!snapshot.settings.autoUpdateCheck||autoChecked.current)return;const timer=setTimeout(()=>{autoChecked.current=true;void updateApi.check().then(s=>{if(s.phase==='available')setToast(languageRef.current==='de'?('Update '+s.latest?.version+' verfügbar – Hilfe → Nach Updates suchen.'):('Update '+s.latest?.version+' available – Help → Check for updates.'));}).catch(()=>{});},15000);return()=>clearTimeout(timer);},[snapshot?.settings.setupComplete,snapshot?.settings.autoUpdateCheck]);
+  useEffect(()=>{if(!snapshot?.settings.setupComplete||!snapshot.settings.autoUpdateCheck||autoChecked.current)return;const timer=setTimeout(()=>{autoChecked.current=true;void updateApi.status().then(s=>s.phase==='idle'?updateApi.check():s).then(s=>{if(s.phase==='available')setToast(languageRef.current==='de'?('Update '+s.latest?.version+' verfügbar – Hilfe → Nach Updates suchen.'):('Update '+s.latest?.version+' available – Help → Check for updates.'));}).catch(()=>{});},15000);return()=>clearTimeout(timer);},[snapshot?.settings.setupComplete,snapshot?.settings.autoUpdateCheck]);
 
   function persist(settings: Settings): Promise<void> {
     if (!canEditSettings()) return settingsSave.current ?? Promise.resolve();
