@@ -2,7 +2,7 @@
 
 ## Arbeitsstand 0.25.0 – Gesamtauftrag weiterhin in Arbeit
 
-Der Nutzerauftrag umfasst den gesamten verbleibenden Masterprompt. **Noch keine vollständige Umsetzung oder Abnahme.** Der unveränderte Umfang ist in [REQUIREMENTS_STATUS.md](REQUIREMENTS_STATUS.md) nachvollziehbar; alle offenen Meilensteine bleiben erhalten. 0.25.0 ist derzeit ein lokaler Entwicklungsbuild, noch nicht auf GitHub veröffentlicht.
+Der Nutzerauftrag umfasst den gesamten verbleibenden Masterprompt. **Noch keine vollständige Umsetzung oder Abnahme.** Der unveränderte Umfang ist in [REQUIREMENTS_STATUS.md](REQUIREMENTS_STATUS.md) nachvollziehbar; alle offenen Meilensteine bleiben erhalten. [0.25.0 mit Installer und portabler ZIP](https://github.com/ScopeBotlul/Local-Studio/releases/tag/v0.25.0) ist veröffentlicht und öffentlich verifiziert. Die vorherige 0.24.0 erkennt das signierte Update, die neue Version meldet den öffentlichen Kanal als aktuell. Bei portablen Updates alle vier Runtime-Ordner ersetzen und Local-Studio-Data behalten.
 
 Implementiert: gemeinsame begrenzte Ressourcenvergabe für Bild, Chat/Laden, Transkription, Videoexport und Medienvorbereitung; optional parallele CPU/GPU-Verarbeitung; optionale echte Live-Hardwarewerte, Windows-Akzentfarbe und Weiterlaufen im Infobereich. Bestätigtes Verschieben erfasster Modelldateien mit SHA-256-Kopierprüfung, exklusiven Handles, Abbruch, Konfliktschutz und nachgelagerter Entfernung der Originale; Chat-/Speech-Registrierungen werden nach erfolgreicher Prüfung umgestellt. Alte Projekt-/Studio-Modellpfade müssen bisher anschließend neu ausgewählt werden. HF-Cache-Verknüpfungen und nicht erfasste Begleitdateien werden nicht automatisch migriert.
 
