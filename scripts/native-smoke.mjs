@@ -1,3 +1,4 @@
+import {checkEditor21} from './check-editor21.mjs';
 import {checkMenuUpdates} from './check-menu-updates.mjs';
 import {checkEditor} from './check-editor.mjs';
 import { checkMedia18 } from './check-media18.mjs';
@@ -281,6 +282,7 @@ try {
   if (process.env.LOCAL_STUDIO_TEST_BATCH === '1') await checkGalleryBatch({ getPage: () => page, invoke, stop, launch, artifactRoot, record });
   if (process.env.LOCAL_STUDIO_TEST_FILES === '1') await checkGalleryFiles({ getPage: () => page, invoke, stop, launch, artifactRoot, record });
   if (process.env.LOCAL_STUDIO_TEST_COMPARE === '1') await checkGalleryCompare({ getPage: () => page, invoke, stop, launch, artifactRoot, record });
+  if (process.env.LOCAL_STUDIO_TEST_EDITOR21 === '1') await checkEditor21({getPage:()=>page,invoke,stop,launch,artifactRoot,record});
   if (process.env.LOCAL_STUDIO_TEST_EDITOR === '1') await checkEditor({getPage:()=>page,invoke,stop,launch,artifactRoot,record});
   if (process.env.LOCAL_STUDIO_TEST_MEDIA18 === '1') await checkMedia18({getPage:()=>page,invoke,stop,launch,artifactRoot,record});
   if (process.env.LOCAL_STUDIO_TEST_MENU === '1') await checkMenuUpdates({getPage:()=>page,invoke,artifactRoot,record,pid:()=>app.pid});

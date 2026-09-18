@@ -1,4 +1,4 @@
-# Projekte ab 0.18.0
+# Projekte ab 0.21.0
 
 Die Projektleiste steht über dem Arbeitsbereich. Ohne Projekt bleiben Studio und Galerie verwendbar. Es kann genau ein Projekt aktiv sein.
 
@@ -34,3 +34,7 @@ Die aufgeklappte Projektleiste enthält **Zuletzt geöffnete Projekte** mit bis 
 Die installierte Ausgabe registriert `.localstudio` für Windows. Doppelklick oder **Öffnen mit → Local Studio** übergibt die Datei an die App. Ist Local Studio bereits geöffnet, wird das Projekt an diese Instanz weitergereicht. Bei ungespeicherten Änderungen bleibt die bekannte Bestätigung erforderlich; Abbrechen erhält das aktuelle Projekt. Archiv- und Medienvalidierung sind dieselben wie beim Öffnen über die Projektleiste. Ungültige Dateien ersetzen den bisherigen Arbeitsstand nicht.
 
 Die portable Ausgabe verändert keine Dateizuordnungen. Sie akzeptiert eine Projektdatei als Argument bzw. über **Öffnen mit**. Portable Installationsordner verwenden getrennte Instanzkennungen, damit mehrere getrennte Datenprofile unabhängig bleiben. Ohne Dateiparameter gelten die bisherigen Start-/Recovery-Regeln. Es wird pro Öffnungsanforderung genau eine `.localstudio`-Datei akzeptiert; andere Argumente werden nicht ausgeführt.
+
+## Bearbeitbare Bilder
+
+Im Bildeditor **Bearbeitung ins Projekt übernehmen**, danach Editor schließen und Projektdatei speichern. Originalbytes und aktive Schritte reisen getrennt im Container Version 2 mit; erneutes Öffnen benötigt keine ursprüngliche Galeriedatei. In der Projektleiste Bild auswählen → **Projektbild bearbeiten**. Änderungen erneut übernehmen, dann Projekt speichern. Die Übersicht und **Medien in Galerie kopieren** verwenden weiterhin Originale; eine korrigierte Ausgabe über den Editor als Variante exportieren. Lokale Projekt-Recovery enthält übernommene Rezepte. Details und Grenzen: [Bildeditor](IMAGE_EDITOR.md). Ältere App-Versionen können Container Version 2 nicht öffnen; Projekte ohne Bearbeitungsrezepte werden weiterhin als Version 1 gespeichert.

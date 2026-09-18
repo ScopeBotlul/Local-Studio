@@ -11,7 +11,7 @@ const MAX_DECODED: u64 = 128 * 1024 * 1024;
 const MAX_THUMB: usize = 512 * 1024;
 const CACHE_BYTES: i64 = 64 * 1024 * 1024;
 const CACHE_ENTRIES: i64 = 2000;
-pub(super) async fn exclusive()->Result<tokio::sync::OwnedSemaphorePermit>{slots().acquire_many_owned(2).await.map_err(|_|"gallery_thumbnail".into())}
+pub(crate) async fn exclusive()->Result<tokio::sync::OwnedSemaphorePermit>{slots().acquire_many_owned(2).await.map_err(|_|"gallery_thumbnail".into())}
 static SLOTS: OnceLock<Arc<Semaphore>> = OnceLock::new();
 fn slots() -> Arc<Semaphore> { SLOTS.get_or_init(|| Arc::new(Semaphore::new(2))).clone() }
 

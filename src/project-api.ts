@@ -1,10 +1,13 @@
 import { invoke } from '@tauri-apps/api/core';
 import type { ImageRequest } from './image-api';
-export interface ProjectAsset { id: string; name: string; kind: 'image' | 'video' | 'audio'; bytes: number; sha256: string; archiveName: string }
+import type {EditOperation,ProjectEditQuery} from './editor-state';
+export interface ProjectAsset { id: string; name: string; kind: 'image' | 'video' | 'audio'; bytes: number; sha256: string; archiveName: string; edit?:EditOperation[] }
 export interface StudioProject { id: string; name: string; path: string | null; version: string | null; request: ImageRequest | null; model: { name: string; sha256: string; source: string } | null; assets: ProjectAsset[]; removed: ProjectAsset[]; dirty: boolean; recovery: boolean }
 export interface RecoveryPoint { id: number; at: number; name: string; media: number; prompt: string; protected: boolean }
 export interface ProjectGallerySelection { rootId: string; targets: { path: string; fileId: string; version: string }[] }
 export const projectApi = {
+  addEdit:(id:string,selection:ProjectGallerySelection,operations:EditOperation[])=>invoke<StudioProject>('project_add_edit',{id,...selection,operations}),
+  saveEdit:(query:ProjectEditQuery,expected:EditOperation[],operations:EditOperation[])=>invoke<StudioProject>('project_editor_save',{query,expected,operations}),
   recent: () => invoke<RecentProject[]>("project_recent"),
   forgetRecent: (path:string) => invoke<void>("project_forget_recent",{path}),
   ackOpen: (path:string) => invoke<void>("project_ack_open",{path}),

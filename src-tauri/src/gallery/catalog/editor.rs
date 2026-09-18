@@ -5,7 +5,7 @@ use std::io::BufReader;
 
 #[derive(Clone,Serialize,Deserialize,Debug,PartialEq)]
 #[serde(tag="type",rename_all="camelCase",deny_unknown_fields)]
-pub enum Operation { Rotate { clockwise:bool }, Flip { horizontal:bool }, Crop {x:u32,y:u32,width:u32,height:u32}, Resize {width:u32,height:u32} }
+pub enum Operation { Rotate { clockwise:bool }, Flip { horizontal:bool }, Crop {x:u32,y:u32,width:u32,height:u32}, Resize {width:u32,height:u32}, Adjust {brightness:i16,contrast:i16,saturation:i16,temperature:i16} }
 #[derive(Deserialize)]
 #[serde(rename_all="camelCase",deny_unknown_fields)]
 pub struct Request {query:LineageQuery,operations:Vec<Operation>}
@@ -14,6 +14,14 @@ pub struct Request {query:LineageQuery,operations:Vec<Operation>}
 pub struct Preview {data_url:String,width:u32,height:u32,profile:bool}
 fn err(_:impl std::fmt::Display)->String{"editor_image".into()}
 fn dimensions(w:u32,h:u32)->Result<()> {if w==0||h==0||w>16384||h>16384||u64::from(w)*u64::from(h)>32_000_000{Err("editor_limit".into())}else{Ok(())}}
+pub(crate) fn validate_operations(ops:&[Operation])->Result<()>{
+ if ops.len()>1000{return Err("editor_limit".into());}
+ for op in ops {match *op {
+ Operation::Adjust{brightness,contrast,saturation,temperature}=>if [brightness,contrast,saturation,temperature].iter().any(|v|!(-100..=100).contains(v)){return Err("editor_adjust".into());},
+ Operation::Crop{x,y,width,height}=>{dimensions(width,height)?;if x.checked_add(width).is_none()||y.checked_add(height).is_none(){return Err("editor_crop".into());}},
+ Operation::Resize{width,height}=>dimensions(width,height)?,_=>{}
+ }}Ok(())
+}
 fn decode(mut file:File)->Result<(DynamicImage,Option<Vec<u8>>)> {
  if file.metadata().map_err(err)?.len()>64*1024*1024{return Err("editor_limit".into());}
  let mut signature=[0u8;8];file.read_exact(&mut signature).map_err(err)?;
@@ -31,15 +39,19 @@ fn decode(mut file:File)->Result<(DynamicImage,Option<Vec<u8>>)> {
  Ok((DynamicImage::ImageRgba8(image.to_rgba8()),profile))
 }
 fn transform(mut image:DynamicImage,ops:&[Operation])->Result<DynamicImage>{
- if ops.len()>1000{return Err("editor_limit".into());}
+ validate_operations(ops)?;
  // Validate every intermediate size before allocating; cap total work as well.
  let(mut w,mut h)=(image.width(),image.height());let mut work=0u64;
  for op in ops {match *op {
  Operation::Rotate{..}=>{std::mem::swap(&mut w,&mut h);},Operation::Flip{..}=>{},
  Operation::Crop{x,y,width,height}=>{if x.checked_add(width).is_none_or(|v|v>w)||y.checked_add(height).is_none_or(|v|v>h){return Err("editor_crop".into());}w=width;h=height;},
- Operation::Resize{width,height}=>{w=width;h=height;}
+ Operation::Resize{width,height}=>{w=width;h=height;},Operation::Adjust{..}=>{}
  }dimensions(w,h)?;work+=u64::from(w)*u64::from(h);if work>512_000_000{return Err("editor_limit".into());}}
- for op in ops {image=match *op {Operation::Rotate{clockwise:true}=>image.rotate90(),Operation::Rotate{clockwise:false}=>image.rotate270(),Operation::Flip{horizontal:true}=>image.fliph(),Operation::Flip{horizontal:false}=>image.flipv(),Operation::Crop{x,y,width,height}=>image.crop_imm(x,y,width,height),Operation::Resize{width,height}=>{
+ for op in ops {image=match *op {Operation::Adjust{brightness,contrast,saturation,temperature}=>{
+ let mut rgba=image.to_rgba8();let b=f64::from(brightness)*2.55;let c=(1.+f64::from(contrast)/100.).powi(2);let s=1.+f64::from(saturation)/100.;let warm=f64::from(temperature)*0.4;
+ for p in rgba.pixels_mut(){let rgb=[f64::from(p[0]),f64::from(p[1]),f64::from(p[2])];let l=rgb[0]*0.2126+rgb[1]*0.7152+rgb[2]*0.0722;for k in 0..3{let value=((l+(rgb[k]-l)*s)-127.5)*c+127.5+b+if k==0{warm}else if k==2{-warm}else{0.};p[k]=value.round().clamp(0.,255.) as u8;}}
+ DynamicImage::ImageRgba8(rgba)
+ },Operation::Rotate{clockwise:true}=>image.rotate90(),Operation::Rotate{clockwise:false}=>image.rotate270(),Operation::Flip{horizontal:true}=>image.fliph(),Operation::Flip{horizontal:false}=>image.flipv(),Operation::Crop{x,y,width,height}=>image.crop_imm(x,y,width,height),Operation::Resize{width,height}=>{
  // Resize premultiplied alpha to avoid dark/colored fringes at transparent edges.
  let mut rgba=image.to_rgba8();for p in rgba.pixels_mut(){for c in 0..3{p[c]=((u16::from(p[c])*u16::from(p[3])+127)/255) as u8;}}
  let mut scaled=image::imageops::resize(&rgba,width,height,image::imageops::FilterType::Lanczos3);for p in scaled.pixels_mut(){if p[3]>0{for c in 0..3{p[c]=((u32::from(p[c])*255+u32::from(p[3])/2)/u32::from(p[3])).min(255) as u8;}}}
@@ -52,8 +64,14 @@ fn encode(image:&DynamicImage,profile:Option<Vec<u8>>,format:&str,quality:u8)->R
  "jpeg"=>{if !(1..=100).contains(&quality){return Err("editor_format".into());}let mut rgb=image::RgbImage::new(image.width(),image.height());let rgba=image.to_rgba8();for (src,dst) in rgba.pixels().zip(rgb.pixels_mut()){for c in 0..3{dst[c]=((u32::from(src[c])*u32::from(src[3])+255*(255-u32::from(src[3]))+127)/255) as u8;}}let mut e=image::codecs::jpeg::JpegEncoder::new_with_quality(&mut bytes,quality);if let Some(p)=profile{e.set_icc_profile(p).map_err(err)?;}e.encode(&rgb,image.width(),image.height(),image::ExtendedColorType::Rgb8).map_err(err)?;},
  _=>return Err("editor_format".into())};Ok(bytes)
 }
-fn preview(root:&Path,request:Request)->Result<Preview>{let(_path,file,_pins)=checked(root,&request.query)?;let(image,profile)=decode(file)?;let image=transform(image,&request.operations)?;let(width,height)=(image.width(),image.height());let small=image.thumbnail(1600,1600);let has_profile=profile.is_some();let bytes=encode(&small,profile,"png",90)?;Ok(Preview{width,height,profile:has_profile,data_url:format!("data:image/png;base64,{}",base64::engine::general_purpose::STANDARD.encode(bytes))})}
+pub(crate) fn render_preview(file:File,operations:&[Operation])->Result<Preview>{let(image,profile)=decode(file)?;let image=transform(image,operations)?;let(width,height)=(image.width(),image.height());let small=image.thumbnail(1600,1600);let has_profile=profile.is_some();let bytes=encode(&small,profile,"png",90)?;Ok(Preview{width,height,profile:has_profile,data_url:format!("data:image/png;base64,{}",base64::engine::general_purpose::STANDARD.encode(bytes))})}
+fn preview(root:&Path,request:Request)->Result<Preview>{let(_path,file,_pins)=checked(root,&request.query)?;render_preview(file,&request.operations)}
+pub(crate) fn render_bytes(file:File,operations:&[Operation],format:&str,quality:u8)->Result<Vec<u8>>{let(image,profile)=decode(file)?;encode(&transform(image,operations)?,profile,format,quality)}
 impl GalleryCatalog {
+ pub(crate) fn export_project_edit(&self,root:&Path,name:&str,bytes:&[u8],recipe:serde_json::Value,format:&str)->Result<String>{
+ let _gate=self.files_gate.lock().map_err(err)?;let _pins=directory_guards(root)?;let id=uuid::Uuid::new_v4().to_string();let name=format!("{} - edit-{}.{}",Path::new(name).file_stem().unwrap_or_default().to_string_lossy().chars().take(60).collect::<String>(),&id[..8],if format=="jpeg"{"jpg"}else{"png"});let destination=root.join(&name);let temp=root.join(format!(".localstudio-edit-{id}.tmp"));let mut output=OpenOptions::new().read(true).write(true).access_mode(0xc0010000).share_mode(1).create_new(true).open(&temp).map_err(err)?;
+ let result=(||{output.write_all(bytes).map_err(err)?;output.sync_all().map_err(err)?;let node=Node{id:id.clone(),parent:None,group:id,path:relative(root,&destination)?,name,kind:"image".into(),file_id:identity(&output)?,stamp:stamp(&output.metadata().map_err(err)?),created_at:chrono::Utc::now().timestamp_millis(),operation:"edit".into(),origin:None,edit:Some(recipe)};let db=self.db.lock().map_err(err)?;put(&db,root,&node)?;rename_handle(&output,&destination)?;Ok(node.path)})();if result.is_err(){let _=delete_handle(&output);}result
+ }
  fn export_edit(&self,root:&Path,request:Request,format:String,quality:u8,origin:Option<BoundOrigin>)->Result<String>{
  let _gate=self.files_gate.lock().map_err(err)?;let(path,file,_pins)=checked(root,&request.query)?;let(image,profile)=decode(file.try_clone().map_err(err)?)?;let image=transform(image,&request.operations)?;let bytes=encode(&image,profile,&format,quality)?;
  let db=self.db.lock().map_err(err)?;let parent=source(&db,root,&request.query,&path,&file,origin)?;

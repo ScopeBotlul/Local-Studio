@@ -1,4 +1,13 @@
-# Aktueller Stand 0.20.0: Menüleiste und signierte GitHub-Updates
+# Aktueller Stand 0.21.0: Bildkorrekturen, bearbeitbare Projekte und Stapelverarbeitung
+
+- Helligkeit, Kontrast, Sättigung und relative Farbtemperatur von −100 bis +100 im Bildeditor. Angewendete Korrekturen sind rückgängig/wiederholbar; Vorher/Nachher zeigt Original und aktuellen Stand nebeneinander. Vorschau und Export verwenden dieselbe begrenzte Rust-Verarbeitung.
+- **Bearbeitung ins Projekt übernehmen** kopiert das Original samt aktiven Bearbeitungsschritten in den lokalen Projektarbeitsstand. Weitere Übernahmen aus demselben geöffneten Editor aktualisieren diesen Eintrag. Nach Schließen des Editors schreibt Projekt speichern/Strg+S die transportable Datei. Projektmedien lassen sich direkt im Editor weiterbearbeiten und als neue Galerievarianten exportieren, auch ohne ursprüngliche Galeriedatei.
+- Projektcontainer mit Rezepten verwenden Version 2; Projekte ohne Rezepte bleiben Version 1. Alte Anwendungen weisen Version 2 ausdrücklich zurück. Quellen werden gegen SHA-256 geprüft, veraltete Rezeptänderungen abgewiesen. Rezepte enthalten ausschließlich typisierte passive Operationen.
+- Galerie-Mehrfachauswahl → **Bilder korrigieren …**: gemeinsame Korrekturen, Vorschau des ersten Bildes, PNG/JPEG und Qualität, sequentielle Verarbeitung, Fortschritt und Einzelfehler. Abbruch endet nach dem aktuellen Bild; fertige Varianten bleiben erhalten, Originale werden nicht überschrieben. App-Beenden wartet auf das aktuelle Bild und startet kein weiteres.
+
+[Bildeditor](docs/IMAGE_EDITOR.md), [Projekte](docs/PROJECTS.md). Implementierung hier; tatsächliche Prüfnachweise separat in [TEST_MATRIX.md](TEST_MATRIX.md). Relative 8-Bit-RGB-Korrekturen sind keine Kelvin-Weißabgleich-/ICC-Farbmanagementlösung. Lokaler Undo/Redo-Entwurf bleibt getrennt vom transportierten aktiven Rezept. Keine automatische Fortsetzung abgebrochener Stapel. Ebenen, Masken, RAW/HDR, KI-Bearbeitung und übrige M3–M12-Anforderungen bleiben offen.
+
+## Vorheriger Stand 0.20.0: Menüleiste und signierte GitHub-Updates
 
 - Native Windows-Menüleiste Datei / Bearbeiten / Ansicht / Hilfe; Sprache, Theme und sichtbare Tastenkürzel folgen den Einstellungen. Projektaktionen verwenden den vorhandenen Controller einschließlich Konflikten, Recovery und gemeinsamen Speicherbestätigungen. Zuletzt geöffnete Projekte als Untermenü. Bildansicht und Undo/Redo arbeiten im aktiven Galerie-/Editorkontext; während anderer Dialoge sind unpassende Aktionen deaktiviert.
 - Lokale Anleitung und Versionsdialog. Die bisherige Projektleiste bleibt für Status, Medien und Details erhalten; häufige Dateiaktionen stehen zentral im Menü. Neue Projektkürzel sind in Einstellungen anpassbar.

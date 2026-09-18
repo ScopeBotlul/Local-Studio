@@ -1,0 +1,5 @@
+import {neutralCorrections,type Corrections} from './editor-state';
+export default function CorrectionControls({value,onChange,de,disabled=false}:{value:Corrections;onChange:(c:Corrections)=>void;de:boolean;disabled?:boolean}){
+ const labels:Record<keyof Corrections,string>={brightness:de?'Helligkeit':'Brightness',contrast:de?'Kontrast':'Contrast',saturation:de?'Sättigung':'Saturation',temperature:de?'Farbtemperatur':'Temperature'};
+ return <fieldset className="correction-controls" disabled={disabled}><legend>{de?'Bildkorrekturen':'Image corrections'}</legend>{(Object.keys(labels) as (keyof Corrections)[]).map(k=><label key={k}><span>{labels[k]} <output>{value[k]>0?'+':''}{value[k]}</output></span><input aria-label={labels[k]} type="range" min={-100} max={100} step={1} value={value[k]} onChange={e=>onChange({...value,[k]:Number(e.target.value)})}/></label>)}<button className="text-button" onClick={()=>onChange({...neutralCorrections})}>{de?'Regler zurücksetzen':'Reset sliders'}</button><small>{de?'Relative RGB-Korrekturen; Farbtemperatur: kühl ↔ warm.':'Relative RGB corrections; temperature: cool ↔ warm.'}</small></fieldset>;
+}

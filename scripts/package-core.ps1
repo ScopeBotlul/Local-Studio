@@ -34,6 +34,14 @@ Die Website-Anmeldung ist separat; ihre Cookies liegen im eigenen WebView-Profil
 App-Tokens werden nicht in Website-Cookies umgewandelt. Modellseiten lassen sich
 über In Local Studio öffnen an die Modellansicht übergeben.
 
+Neu in 0.21.0: Helligkeit / Kontrast / Saettigung / relative Farbtemperatur,
+Vorher/Nachher, Original + aktive Bearbeitungsschritte in .localstudio-Projekten.
+Im Editor ins Projekt uebernehmen, Editor schliessen und Projekt speichern.
+Projektbild bearbeiten funktioniert auch ohne urspruengliche Galeriedatei.
+Galerie-Mehrfachauswahl > Bilder korrigieren: neue PNG/JPEG-Varianten, Fortschritt,
+Einzelfehler und Abbruch nach aktuellem Bild. Originale bleiben unveraendert.
+Projektdateien mit Rezept benoetigen Version 0.21.0 oder neuer.
+
 Neu in 0.20.0: Windows-Menueleiste Datei / Bearbeiten / Ansicht / Hilfe.
 Projekte erstellen, oeffnen, zuletzt geoeffnete, speichern / speichern unter,
 schliessen; Rueckgaengig / Wiederholen im Bildeditor, Zoom, Anleitung und Info.
@@ -48,7 +56,7 @@ PNG mit Alpha oder JPEG mit Qualitaet als neue Datei/Variante exportieren.
 Lokale Entwuerfe beim erneuten Oeffnen desselben Bildes bewusst fortsetzen.
 Originale bleiben erhalten. Statische 8-Bit-PNG/JPEG/BMP bis 64 MiB / 32 MP.
 ICC-RGB-Profile bleiben erhalten, EXIF/GPS werden entfernt.
-Ebenen, Masken, RAW/HDR, weitere Formate und Projekttransport folgen spaeter.
+Ebenen, Masken, RAW/HDR und weitere Formate folgen spaeter.
 
 Neu in 0.18.0: Video-Miniaturen aus lokal decodierten Videoframes mit Cache.
 Windows-Ordnerueberwachung aktualisiert die Galerie bei Datei-Aenderungen.

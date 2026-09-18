@@ -27,16 +27,12 @@ export async function checkProjects({ getPage, invoke, stop, launch, artifactRoo
   const encoded = await page.evaluate(async () => {
     const c = document.createElement('canvas'); c.width = 320; c.height = 180; const ctx = c.getContext('2d'); ctx.fillStyle = '#6550a8'; ctx.fillRect(0, 0, 320, 180);
     const png = c.toDataURL('image/png').split(',')[1];
-    const stream = c.captureStream(10), chunks = []; const recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp8' });
-    const done = new Promise(resolve => recorder.onstop = async () => { const data = new Uint8Array(await new Blob(chunks).arrayBuffer()); resolve(btoa(String.fromCharCode(...data))); });
-    recorder.ondataavailable = event => chunks.push(event.data); recorder.start();
-    for (let i = 0; i < 8; i++) { ctx.fillStyle = i % 2 ? '#cc8877' : '#6550a8'; ctx.fillRect(0, 0, 320, 180); await new Promise(r => setTimeout(r, 100)); }
-    recorder.stop(); const webm = await done; stream.getTracks().forEach(track => track.stop()); return { png, webm };
+    return {png};
   });
   const names = ['Bild ü.png', 'Clip.webm', 'Ton.wav'];
   const samples = 22050, wav = Buffer.alloc(44 + samples * 2); wav.write('RIFF'); wav.writeUInt32LE(wav.length - 8, 4); wav.write('WAVEfmt ', 8); wav.writeUInt32LE(16, 16); wav.writeUInt16LE(1, 20); wav.writeUInt16LE(1, 22); wav.writeUInt32LE(22050, 24); wav.writeUInt32LE(44100, 28); wav.writeUInt16LE(2, 32); wav.writeUInt16LE(16, 34); wav.write('data', 36); wav.writeUInt32LE(samples * 2, 40);
   for (let i = 0; i < samples; i++) wav.writeInt16LE(Math.round(Math.sin(i / 8) * 500), 44 + i * 2);
-  const bytes = [Buffer.from(encoded.png, 'base64'), Buffer.from(encoded.webm, 'base64'), wav];
+  const bytes = [Buffer.from(encoded.png, 'base64'), await fs.readFile(new URL('./fixtures/colors-vp8.webm',import.meta.url)), wav];
   for (let i = 0; i < names.length; i++) await fs.writeFile(path.join(source, names[i]), bytes[i]);
   const model = path.join(source, 'reference-only.safetensors'); await fs.writeFile(model, 'checksum fixture, never used for inference');
   await page.getByRole('button', { name: 'Studio', exact: true }).first().click();

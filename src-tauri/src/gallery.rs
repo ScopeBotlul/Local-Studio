@@ -12,6 +12,8 @@ pub use compare::gallery_compare;
 mod thumbnails;
 pub use thumbnails::{gallery_thumbnail,gallery_thumbnail_clear,gallery_video_thumbnail_store};
 mod catalog;
+pub(crate) use catalog::editor::{Operation as EditOperation,Preview as EditPreview,render_preview,render_bytes,validate_operations};
+pub(crate) use thumbnails::exclusive as editor_permit;
 pub use catalog::{editor_preview,editor_export};
 pub use catalog::{gallery_lineage,gallery_create_variant,gallery_set_primary,GalleryCatalog, gallery_annotate, gallery_annotate_batch, gallery_file_action,gallery_trash_list,gallery_trash_action,gallery_trash_detail};
 pub(crate) use catalog::files::delete_owned;
@@ -65,7 +67,7 @@ fn resolve_internal(root: &Path, relative: &str) -> Result<PathBuf> {
     let path = fs::canonicalize(path).map_err(|_| "gallery_missing")?;
     if !path.starts_with(root) { return Err("gallery_path".into()); } Ok(path)
 }
-fn root(core: &Core) -> Result<PathBuf> {
+pub(crate) fn root(core: &Core) -> Result<PathBuf> {
     let path = PathBuf::from(core.storage_paths()?.gallery);
     model_library::no_links(&path).map_err(|_| "gallery_path")?;
     fs::canonicalize(path).map_err(|_| "gallery_missing".into())

@@ -1,6 +1,6 @@
 fn main() {
     tauri_build::try_build(tauri_build::Attributes::new().app_manifest(
-        tauri_build::AppManifest::new().commands(&["update_status","update_check","update_download","update_cancel","update_arm","update_disarm","update_open_download", "app_menu_update", "editor_preview", "editor_export", "project_ack_open",
+        tauri_build::AppManifest::new().commands(&["project_editor_preview","project_editor_save","project_editor_export","project_add_edit","update_status","update_check","update_download","update_cancel","update_arm","update_disarm","update_open_download", "app_menu_update", "editor_preview", "editor_export", "project_ack_open",
 "gallery_watch","gallery_video_thumbnail_store","gallery_lineage","gallery_create_variant","gallery_set_primary","project_recent","project_forget_recent","project_take_open",
             "project_snapshot",
         "project_history",

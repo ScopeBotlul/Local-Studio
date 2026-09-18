@@ -1,5 +1,7 @@
 import {setMenuContext} from './menu-context';
 import ImageEditor from './ImageEditor';
+import BatchCorrections from './BatchCorrections';
+import type {EditOperation,ProjectEditQuery} from './editor-state';
 import GalleryLineage from './GalleryLineage';
 import { useGalleryWatch } from './useGalleryWatch';
 import GalleryImage from './GalleryImage';
@@ -23,7 +25,7 @@ import { formatBytes } from './helpers';
 import './gallery.css';
 import { shortcutFor, type Shortcuts } from './shortcuts';
 
-export default function Gallery({ maxUndo, onAddToProject, projectDisabled, shortcuts, language, onRestore, restoreDisabled }: { maxUndo:number; onAddToProject: (selection: ProjectGallerySelection) => Promise<boolean>; projectDisabled: boolean; shortcuts: Shortcuts; language: Language; onRestore: (request: ImageRequest) => void; restoreDisabled: boolean }) {
+export default function Gallery({ onAddEdit,onSaveEdit,maxUndo, onAddToProject, projectDisabled, shortcuts, language, onRestore, restoreDisabled }: { onAddEdit:(selection:ProjectGallerySelection,ops:EditOperation[])=>Promise<ProjectEditQuery|null>;onSaveEdit:(query:ProjectEditQuery,expected:EditOperation[],ops:EditOperation[])=>Promise<boolean>;maxUndo:number; onAddToProject: (selection: ProjectGallerySelection) => Promise<boolean>; projectDisabled: boolean; shortcuts: Shortcuts; language: Language; onRestore: (request: ImageRequest) => void; restoreDisabled: boolean }) {
   const [editor,setEditor]=useState<{entry:GalleryEntry;rootId:string}|null>(null);
   const [comparison,setComparison]=useState<{entries:GalleryEntry[];rootId:string}|null>(null);
   const [sort,setSort]=useState<GallerySort>(()=>{try{const value=localStorage.getItem('gallery-sort');return ['modifiedDesc','modifiedAsc','nameAsc','nameDesc','sizeAsc','sizeDesc'].includes(value??'')?value as GallerySort:'modifiedDesc';}catch{return 'modifiedDesc';}});
@@ -31,6 +33,7 @@ export default function Gallery({ maxUndo, onAddToProject, projectDisabled, shor
   const de = language === 'de'; const [folder,setFolder] = useState(''); const [search,setSearch] = useState(''); const [kind,setKind] = useState<'all'|MediaKind>('all');
   const [view,setView] = useState<'grid'|'list'>(()=>{try{return localStorage.getItem('gallery-view')==='list'?'list':'grid';}catch{return 'grid';}});
   const [thumbnailEpoch,setThumbnailEpoch] = useState(0);
+  const [correctionBatch,setCorrectionBatch]=useState<{entries:GalleryEntry[];rootId:string}|null>(null);
   const [chosen,setChosen] = useState<Record<string,GalleryEntry>>({}); const [batchBusy,setBatchBusy] = useState(false); const [selectionReady,setSelectionReady] = useState(false);
   const [favoritesOnly,setFavoritesOnly] = useState(false); const [tag,setTag] = useState('');
   const [recursive,setRecursive] = useState(true); const [offset,setOffset] = useState(0); const [listing,setListing] = useState<GalleryListing|null>(null);
@@ -130,7 +133,8 @@ export default function Gallery({ maxUndo, onAddToProject, projectDisabled, shor
   const label = (kind: string) => kind==='image' ? (de?'Bilder':'Images') : kind==='video' ? 'Video' : (de?'Audio / Musik':'Audio / Music');
   if(trash)return <GalleryTrash de={de} onBack={()=>{setTrash(false);setTick(n=>n+1);}}/>;
   return <div className="page gallery-page" data-file-drop="gallery" tabIndex={-1} onKeyDown={galleryKey}>
-    {editor&&<ImageEditor entry={editor.entry} rootId={editor.rootId} de={de} shortcuts={shortcuts} maxUndo={maxUndo} onClose={()=>{setEditor(null);setBatchBusy(false);setTick(n=>n+1);}}/>}
+    {correctionBatch&&<BatchCorrections {...correctionBatch} de={de} onClose={()=>{setCorrectionBatch(null);setBatchBusy(false);setChosen({});setSelectionReady(false);setTick(n=>n+1);}}/>}
+    {editor&&<ImageEditor onSaveProject={onSaveEdit} onAddToProject={projectDisabled?undefined:ops=>onAddEdit({rootId:editor.rootId,targets:[{path:editor.entry.path,fileId:editor.entry.fileId!,version:editor.entry.thumbnailVersion}]},ops)} entry={editor.entry} rootId={editor.rootId} de={de} shortcuts={shortcuts} maxUndo={maxUndo} onClose={()=>{setEditor(null);setBatchBusy(false);setTick(n=>n+1);}}/>}
     {comparison&&<GalleryCompare shortcuts={shortcuts} entries={comparison.entries} rootId={comparison.rootId} de={de} onClose={()=>{setComparison(null);setBatchBusy(false);setTick(n=>n+1);}}/>}
     <header className="page-heading"><div><div className="eyebrow">{de?'LOKALE MEDIEN':'LOCAL MEDIA'}</div><h1>{de?'Galerie':'Gallery'}</h1><p>{de?'Bilder, Videos, Audio und Musik in echten Ordnern. Neue Dateien werden automatisch erkannt.':'Images, videos, audio and music in real folders. New files are detected automatically.'}</p></div></header>
     {error && <p className="notice warning" role="alert">{error}<button className="text-button" onClick={()=>setError('')}>{de?'Schließen':'Dismiss'}</button></p>}
@@ -160,6 +164,7 @@ export default function Gallery({ maxUndo, onAddToProject, projectDisabled, shor
     <div className={`gallery-layout gallery-layout-${view}`}><section className="panel gallery-files"><div className="section-heading"><h2>{de?'Medien':'Media'} <small>({listing?.total ?? '…'})</small></h2><div className="gallery-actions" role="group" aria-label={de?'Galerieansicht':'Gallery view'}>{(['grid','list'] as const).map(mode=><button key={mode} className="icon-button" aria-label={mode==='grid'?(de?'Rasteransicht':'Grid view'):(de?'Listenansicht':'List view')} aria-pressed={view===mode} onClick={()=>changeView(mode)}>{mode==='grid'?<Grid2X2 size={18}/>:<List size={18}/>}</button>)}</div></div>
       <div className="gallery-actions gallery-selection-controls"><button className="text-button" disabled={batchBusy||!selectionReady||!entries.some(e=>e.fileId)} onClick={selectPage}>{de?'Alle auf dieser Seite auswählen':'Select all on this page'}</button><button className="text-button" disabled={batchBusy||!Object.keys(chosen).length} onClick={()=>setChosen({})}>{de?'Auswahl aufheben':'Clear selection'}</button><span className="hub-hint" role="status">{de?`${Object.keys(chosen).length} ausgewählt`:`${Object.keys(chosen).length} selected`}</span></div>
       <details className="gallery-shortcuts"><summary>{de?'Auswahl & Tastatur':'Selection & keyboard'}</summary><p className="hub-hint">{de?'Strg + Klick: einzeln auswählen · Umschalt + Klick: Bereich auswählen · Klick: Vorschau öffnen. Esc: Auswahl aufheben. Weitere Tastenkürzel sind in den Einstellungen frei belegbar. Links/Rechts wechselt Medien; mit Umschalt einen Bereich auswählen.':'Ctrl + click: toggle selection · Shift + click: select a range · Click: open preview. Esc: clear selection. Other shortcuts can be customized in Settings. Left/right switch media; hold Shift to select a range.'}</p></details>
+      <button className="button secondary" disabled={busy||batchBusy||!selectionReady||!Object.values(chosen).length||Object.values(chosen).some(e=>e.kind!=='image'||!e.fileId)} onClick={()=>{setCorrectionBatch({entries:Object.values(chosen),rootId:listing!.rootId});setBatchBusy(true);}}>{de?'Bilder korrigieren …':'Batch image corrections …'}</button>
       <GalleryFileActions extra={<button className="button secondary" disabled={busy||batchBusy||!selectionReady||Object.values(chosen).length!==2||Object.values(chosen).some(e=>e.kind!=='image'||!e.fileId)} data-gallery-compare onClick={()=>{setComparison({entries:Object.values(chosen),rootId:listing!.rootId});setBatchBusy(true);}}>{de?'Zwei Bilder vergleichen':'Compare two images'}</button>} entries={Object.keys(chosen).length?Object.values(chosen):(current?.fileId?[current]:[])} rootId={listing?.rootId??''} de={de} disabled={busy||batchBusy||!selectionReady} onBusy={setBatchBusy} onPrepare={()=>{generation.current++;setDetail(null);}} onFinished={report=>{setChosen({});setSelectionReady(false);setTick(n=>n+1);if(report){setNote(de?`${report.completed.length} Dateiaktionen abgeschlossen.`:`Completed ${report.completed.length} file operations.`);setError(report.errors.map(e=>galleryError(e,de)).join('\n'));}}}/>
       <button className="button secondary" disabled={busy || batchBusy || projectDisabled || !selectionReady || !(Object.keys(chosen).length || current?.fileId)} onClick={() => void act(async () => {
         const selected = Object.keys(chosen).length ? Object.values(chosen) : current ? [current] : [];

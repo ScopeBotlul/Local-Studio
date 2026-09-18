@@ -245,6 +245,7 @@ fn checksum_failures_and_unsupported_versions_leave_active_project_intact() {
         .unwrap();
     let id = uuid();
     let a = Asset {
+        edit:vec![],
         id: id.clone(),
         name: "image.png".into(),
         kind: "image".into(),
@@ -276,6 +277,21 @@ fn checksum_failures_and_unsupported_versions_leave_active_project_intact() {
     m.version = 1;
     m.assets[0].bytes = MAX_BYTES + 1;
     assert!(validate(&m).is_err());
+    m.assets[0] = a.clone();
+    m.assets[0].edit = vec![gallery::EditOperation::Adjust{brightness:10,contrast:0,saturation:0,temperature:0}];
+    assert!(validate(&m).is_err(), "v1 must not silently accept a recipe");
+    m.version = 2;
+    assert!(validate(&m).is_ok());
+    m.assets[0].kind = "audio".into();
+    m.assets[0].name = "audio.wav".into();
+    m.assets[0].archive_name = format!("media/{id}.wav");
+    assert!(validate(&m).is_err(), "image operations cannot target audio");
+    m.assets[0] = a.clone();
+    m.assets[0].edit = vec![gallery::EditOperation::Adjust{brightness:101,contrast:0,saturation:0,temperature:0}];
+    assert!(validate(&m).is_err());
+    let mut json=serde_json::to_value(&m).unwrap();
+    json["assets"][0]["edit"]=serde_json::json!([{"type":"execute","code":"untrusted"}]);
+    assert!(serde_json::from_value::<Manifest>(json).is_err());
     m.assets[0] = a.clone();
     m.assets.push(a);
     assert!(validate(&m).is_err());

@@ -39,6 +39,10 @@ export const galleryApi = {
 export function galleryError(error: unknown, de: boolean): string {
   const text = String(error);
   const errors: Record<string, [string,string]> = {
+    editor_adjust:['Korrekturwerte müssen zwischen −100 und 100 liegen.','Correction values must be between −100 and 100.'],
+    project_changed:['Projekt oder Bearbeitungsstand wurde geändert. Editor schließen und neu öffnen.','Project or edit state changed. Close and reopen the editor.'],
+    project_hash:['Das eingebettete Original wurde verändert. Projektdatei erneut öffnen.','The embedded original changed. Reopen the project file.'],
+    project_inactive:['Projekt zuerst öffnen oder fortsetzen.','Open or resume the project first.'],
     editor_limit:['Editorgrenze erreicht: maximal 64 MiB, 32 Megapixel, 16.384 Pixel je Kante oder zu viele aufwendige Schritte. Zwischenstand exportieren und als neue Quelle öffnen.','Editor limit: 64 MiB, 32 megapixels, 16,384 pixels per edge, or too many expensive steps. Export and reopen the intermediate result.'],
     editor_format:['Der Editor öffnet derzeit statische PNG-, JPEG- und BMP-Bilder. Export: PNG oder JPEG.','The editor currently opens still PNG, JPEG and BMP images. Export: PNG or JPEG.'],
     editor_depth:['Dieser erste Editorpfad unterstützt 8-Bit-Bilder. 16-Bit/RAW/HDR folgen später; die Quelle bleibt unverändert.','This initial editor supports 8-bit images. 16-bit/RAW/HDR are planned; the source is unchanged.'],

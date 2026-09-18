@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { open, save, confirm } from '@tauri-apps/plugin-dialog';
 import { projectApi, projectError, type StudioProject, type RecoveryPoint, type RecentProject, type ProjectGallerySelection } from './project-api';
 import { defaultImageRequest, type useImageWorkspace } from './useImageWorkspace';
+import type {EditOperation,ProjectEditQuery} from './editor-state';
 const filters = [{ name: 'Local Studio', extensions: ['localstudio'] }];
 
 export function useProject(enabled: boolean, studio: ReturnType<typeof useImageWorkspace>, de: boolean, directory: string) {
@@ -80,6 +81,8 @@ export function useProject(enabled: boolean, studio: ReturnType<typeof useImageW
   },[ready,busy,studio.ready]);
   return {
     project, ready, busy, error, notice, history, recent, openPath,
+    addEdit:(selection:ProjectGallerySelection,operations:EditOperation[])=>run(async()=>{const p=await ensureProject();accept(await projectApi.addEdit(p.id,selection,operations));setNotice(de?'Original und Bearbeitung im Projektarbeitsstand. Projektdatei mit Strg+S speichern.':'Original and edits added to project workspace. Save the project file with Ctrl+S.');}),
+    saveEdit:(query:ProjectEditQuery,expected:EditOperation[],operations:EditOperation[])=>run(async()=>{accept(await projectApi.saveEdit(query,expected,operations));}),
     forgetRecent: (path:string)=>run(async()=>{await projectApi.forgetRecent(path);}), save: saveProject,
     rename: (name: string) => run(async () => { if (current.current) accept(await projectApi.rename(current.current.id, name)); }),
     restoreMedia: (id: string) => run(async () => { accept(await projectApi.restoreMedia(id)); }),

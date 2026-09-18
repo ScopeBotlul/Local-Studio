@@ -225,7 +225,7 @@ impl Projects {
         }
         let m = Manifest {
             format: "local-studio".into(),
-            version: 1,
+            version: if p.assets.iter().any(|a| !a.edit.is_empty()) {2} else {1},
             name: p.name.clone(),
             request,
             model: p.model.clone(),

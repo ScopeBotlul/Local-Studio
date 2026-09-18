@@ -2,6 +2,16 @@ use super::*;
 use std::io::Cursor;
 fn request(root:&Path,ops:Vec<Operation>)->Request{let path=root.join("source.png");let file=lock_file(&path).unwrap();let id=identity(&file).unwrap();Request{query:LineageQuery{root_id:root_id(root),target:FileTarget{path:"source.png".into(),version:thumbnails::version(root,&path,&file.metadata().unwrap(),Some(&id)),file_id:id}},operations:ops}}
 fn fixture()->DynamicImage{let mut i=image::RgbaImage::new(3,2);for (n,p) in i.pixels_mut().enumerate(){*p=image::Rgba([(n*30) as u8,80,150,if n==0{0}else{255}]);}DynamicImage::ImageRgba8(i)}
+#[test]fn corrections_are_bounded_deterministic_and_preserve_alpha(){
+ let original=fixture();let adjust=|brightness,contrast,saturation,temperature|Operation::Adjust{brightness,contrast,saturation,temperature};
+ assert_eq!(transform(original.clone(),&[adjust(0,0,0,0)]).unwrap().to_rgba8(),original.to_rgba8());
+ let neutral=image::DynamicImage::ImageRgba8(image::RgbaImage::from_pixel(1,1,image::Rgba([100,100,100,37])));
+ assert_eq!(transform(neutral.clone(),&[adjust(10,0,0,0)]).unwrap().to_rgba8().get_pixel(0,0).0,[126,126,126,37]);
+ assert_eq!(transform(neutral.clone(),&[adjust(0,0,0,50)]).unwrap().to_rgba8().get_pixel(0,0).0,[120,100,80,37]);
+ let gray=transform(original.clone(),&[adjust(0,0,-100,0)]).unwrap().to_rgba8();for p in gray.pixels(){assert_eq!(p[0],p[1]);assert_eq!(p[1],p[2]);}
+ for op in [adjust(101,0,0,0),adjust(0,-101,0,0),adjust(0,0,101,0),adjust(0,0,0,-101)]{assert!(transform(original.clone(),&[op]).is_err());}
+ for op in [adjust(100,100,100,100),adjust(-100,-100,-100,-100)]{let out=transform(original.clone(),&[op]).unwrap().to_rgba8();assert_eq!(out.pixels().map(|p|p[3]).collect::<Vec<_>>(),original.to_rgba8().pixels().map(|p|p[3]).collect::<Vec<_>>());}
+}
 #[test]fn transformations_have_exact_pixels_and_dimensions(){
  let original=fixture();let rotated=transform(original.clone(),&[Operation::Rotate{clockwise:true}]).unwrap();assert_eq!((rotated.width(),rotated.height()),(2,3));assert_eq!(rotated.to_rgba8().get_pixel(1,0),original.to_rgba8().get_pixel(0,0));
  let roundtrip=transform(rotated,&[Operation::Rotate{clockwise:false}]).unwrap();assert_eq!(roundtrip.to_rgba8(),original.to_rgba8());

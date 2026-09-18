@@ -4,7 +4,7 @@
   "description": "Privileged commands for the local main webview only; hf-website has no capability.",
   "local": true,
   "permissions": [
-    "allow-bootstrap", "allow-update-status", "allow-update-check", "allow-update-download", "allow-update-cancel", "allow-update-arm", "allow-update-disarm", "allow-update-open-download", "allow-app-menu-update", "allow-editor-preview", "allow-editor-export",
+    "allow-project-editor-preview", "allow-project-editor-save", "allow-project-editor-export", "allow-project-add-edit", "allow-bootstrap", "allow-update-status", "allow-update-check", "allow-update-download", "allow-update-cancel", "allow-update-arm", "allow-update-disarm", "allow-update-open-download", "allow-app-menu-update", "allow-editor-preview", "allow-editor-export",
     "allow-save-settings",
     "allow-get-hardware",
     "allow-list-jobs",

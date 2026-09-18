@@ -27,13 +27,10 @@ export async function checkGallery({getPage,invoke,stop,launch,artifactRoot,reco
   const encoded=await page.evaluate(async()=>{
     const canvas=document.createElement('canvas');canvas.width=320;canvas.height=180;const context=canvas.getContext('2d');context.fillStyle='#274060';context.fillRect(0,0,320,180);context.fillStyle='#a78bfa';context.fillRect(40,40,100,100);
     const png=canvas.toDataURL('image/png').split(',')[1];
-    const stream=canvas.captureStream(15), chunks=[];const recorder=new MediaRecorder(stream,{mimeType:'video/webm;codecs=vp8'});
-    const finished=new Promise(resolve=>{recorder.onstop=async()=>{const bytes=new Uint8Array(await new Blob(chunks,{type:'video/webm'}).arrayBuffer());let binary='';for(const b of bytes)binary+=String.fromCharCode(b);resolve(btoa(binary));};});recorder.ondataavailable=e=>chunks.push(e.data);recorder.start();
-    for(let i=0;i<15;i++){context.fillStyle=i%2?'#274060':'#477090';context.fillRect(0,0,320,180);await new Promise(r=>setTimeout(r,70));}
-    recorder.stop();const webm=await finished;stream.getTracks().forEach(track=>track.stop());return {png,webm};
+    return {png};
   });
   await fs.writeFile(path.join(source,'Testbild ü.png'),Buffer.from(encoded.png,'base64'));
-  await fs.writeFile(path.join(source,'Bewegung.webm'),Buffer.from(encoded.webm,'base64'));
+  await fs.writeFile(path.join(source,'Bewegung.webm'),await fs.readFile(new URL('./fixtures/colors-vp8.webm',import.meta.url)));
   const samples=44100*2, wav=Buffer.alloc(44+samples*2);wav.write('RIFF');wav.writeUInt32LE(wav.length-8,4);wav.write('WAVEfmt ',8);wav.writeUInt32LE(16,16);wav.writeUInt16LE(1,20);wav.writeUInt16LE(1,22);wav.writeUInt32LE(44100,24);wav.writeUInt32LE(88200,28);wav.writeUInt16LE(2,32);wav.writeUInt16LE(16,34);wav.write('data',36);wav.writeUInt32LE(samples*2,40);for(let i=0;i<samples;i++)wav.writeInt16LE(Math.round(Math.sin(i*440*2*Math.PI/44100)*1000),44+i*2);
   await fs.writeFile(path.join(source,'Musik.wav'),wav);
   await page.getByRole('button',{name:'Gallery',exact:true}).first().click();

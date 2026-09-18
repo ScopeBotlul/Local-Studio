@@ -1,4 +1,6 @@
-//! Local, passive project containers. Archive names never become filesystem paths.
+mod editor;
+pub use editor::{project_editor_preview,project_editor_save,project_editor_export,project_add_edit};
+// Local, passive project containers. Archive names never become filesystem paths.
 mod recent;
 pub use recent::{project_recent,project_forget_recent};
 use crate::{core::Core, gallery, image_engine::ImageRequest};
@@ -34,6 +36,8 @@ pub struct Asset {
     pub bytes: u64,
     pub sha256: String,
     pub archive_name: String,
+    #[serde(default,skip_serializing_if="Vec::is_empty")]
+    pub edit: Vec<gallery::EditOperation>,
 }
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -107,7 +111,7 @@ fn valid_request(request: &Option<ImageRequest>) -> Result<()> {
     Ok(())
 }
 fn validate(m: &Manifest) -> Result<()> {
-    if m.format != "local-studio" || m.version != 1 {
+    if m.format != "local-studio" || !matches!(m.version,1|2) {
         return Err("project_version".into());
     }
     if m.name.trim().is_empty()
@@ -117,6 +121,7 @@ fn validate(m: &Manifest) -> Result<()> {
     {
         return Err("project_manifest".into());
     }
+    if serde_json::to_vec(m).map_err(err)?.len() as u64 > MAX_MANIFEST { return Err("project_limit".into()); }
     valid_request(&m.request)?;
     if m.request.as_ref().is_some_and(|r| !r.model_path.is_empty()) {
         return Err("project_manifest".into());
@@ -131,6 +136,8 @@ fn validate(m: &Manifest) -> Result<()> {
     let mut ids = HashSet::new();
     let mut total = 0u64;
     for a in &m.assets {
+        gallery::validate_operations(&a.edit)?;
+        if !a.edit.is_empty() && (m.version < 2 || a.kind != "image") { return Err("project_manifest".into()); }
         let p = Path::new(&a.name);
         let ext = p
             .extension()
@@ -356,12 +363,12 @@ impl Projects {
         Ok(p)
     }
     fn add(&self, sources: Vec<String>) -> Result<Project> {
-        self.add_for(None, sources)
+        self.add_for(None, sources, None)
     }
     fn add_to(&self, id: &str, sources: Vec<String>) -> Result<Project> {
-        self.add_for(Some(id), sources)
+        self.add_for(Some(id), sources, None)
     }
-    fn add_for(&self, id: Option<&str>, sources: Vec<String>) -> Result<Project> {
+    fn add_for(&self, id: Option<&str>, sources: Vec<String>, edit: Option<Vec<gallery::EditOperation>>) -> Result<Project> {
         let mut s = self.state.lock().map_err(err)?;
         let mut p = Self::require(&s)?;
         if id.is_some_and(|id| id != p.id) {
@@ -397,6 +404,7 @@ impl Projects {
                     kind: kind.into(),
                     bytes,
                     sha256: String::new(),
+                    edit: edit.clone().unwrap_or_default(),
                     archive_name: format!("media/{id}.{ext}"),
                 };
                 let destination = owned(&p, &a)?;
@@ -415,6 +423,7 @@ impl Projects {
                 p.assets.push(a);
             }
             p.dirty = true;
+            if serde_json::to_vec(&p).map_err(err)?.len() as u64>MAX_MANIFEST{return Err("project_limit".into());}
             persist(&mut s, Some(p.clone()))?;
             Ok(p.clone())
         })();
@@ -494,6 +503,7 @@ impl Projects {
         {
             p.request = request;
             p.dirty = true;
+            if serde_json::to_vec(&p).map_err(err)?.len() as u64>MAX_MANIFEST{return Err("project_limit".into());}
             persist(&mut s, Some(p.clone()))?;
         }
         Ok(p)

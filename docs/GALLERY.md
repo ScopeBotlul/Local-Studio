@@ -134,3 +134,7 @@ Die Kette zeigt Original/Import, bekannte lokale Bildgenerierung oder Variantenk
 Zuordnungen verwenden Datei-ID und Inhaltszeitstempel. Internes oder innerhalb der Galerie externes Umbenennen lässt sich wieder zuordnen; die Suche ist auf die bestehenden 20.000 Einträge/32 Ordnerebenen begrenzt. Veränderte, fehlende oder im Papierkorb liegende Quellen werden nicht als unveränderte Version geöffnet. Nach endgültigem Löschen bleibt nur der Metadateneintrag; es wird keine versteckte Quellenkopie aufbewahrt. Andere Varianten bleiben unabhängig erhalten. Externe Bearbeitungen erzeugen nicht automatisch eine behauptete Bearbeitungskette.
 
 Die Herkunftsdaten liegen lokal in `gallery.sqlite3`, die Dateien bleiben echte Galeriedateien. Projektcontainer transportieren diese zusätzlichen Galeriebeziehungen noch nicht. KI-/Editoroperationen und vollständige Versionsgruppenansichten bleiben weitere Arbeit.
+
+## Stapelkorrekturen ab 0.21.0
+
+Mehrere Bilder auswählen → **Bilder korrigieren …**. Gemeinsame RGB-Korrekturen, Vorschau, PNG/JPEG-Varianten, Fortschritt, Einzelfehler und Abbruch nach dem aktuellen Bild. Originale bleiben erhalten. [Anleitung und Grenzen](IMAGE_EDITOR.md).
