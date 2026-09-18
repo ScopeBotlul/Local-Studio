@@ -123,10 +123,12 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .register_asynchronous_uri_scheme_protocol("gallery", gallery::protocol)
         .register_asynchronous_uri_scheme_protocol("project", projects::preview::protocol)
+        .register_asynchronous_uri_scheme_protocol("video", projects::creative::video::protocol)
         .setup(|app| {
             let executable = std::env::current_exe()?;
             let executable_dir = executable.parent().ok_or("Application directory unavailable.")?;
             let portable = executable_dir.join("portable.marker").is_file();
+            #[allow(unused_mut)]
             let mut config_dir = if portable { executable_dir.join("Local-Studio-Data/config") } else { app.path().app_config_dir()? };
             #[cfg(debug_assertions)]
             if let Some(isolated) = std::env::var_os("LOCAL_STUDIO_CONFIG_DIR") {
@@ -142,6 +144,9 @@ pub fn run() {
             let runtime_dir = if runtime_dir.is_dir() { runtime_dir } else { std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../.tools/image-runtime") };
             app.manage(Updater::new(&config_dir,executable_dir,portable));
             app.manage(Projects::new(&config_dir)?);
+            let video_runtime=executable_dir.join("video-runtime");
+            #[cfg(debug_assertions)] let video_runtime=if video_runtime.is_dir(){video_runtime}else{std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../.tools/video-runtime")};
+            app.manage(VideoEngine::new(&config_dir,video_runtime)?);
             app.manage(Arc::new(Maintenance::new()));
             app.manage(GalleryCatalog::new(&config_dir)?);
             app.manage(Arc::new(GalleryWatch::new()));
@@ -154,7 +159,7 @@ pub fn run() {
             app.manage(core);
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![project_editor_preview,project_editor_save,project_editor_export,project_add_edit,update_status,update_check,update_download,update_cancel,update_arm,update_disarm,update_open_download, app_menu_update, editor_preview, editor_export, project_ack_open, gallery_watch, gallery_video_thumbnail_store, gallery_lineage, gallery_create_variant, gallery_set_primary, project_recent, project_forget_recent, project_take_open, project_history, project_checkpoint, project_restore_point, project_rename, project_restore_media, project_add_gallery, project_add_image, storage_cleanup_preview, storage_cleanup_apply, storage_cleanup_auto, project_snapshot, project_new, project_open, project_save, project_update, project_add, project_remove, project_close, project_recover, project_relink, project_export_gallery, gallery_compare, gallery_file_action, gallery_trash_list, gallery_trash_action, gallery_trash_detail, gallery_annotate_batch, gallery_thumbnail, gallery_thumbnail_clear, gallery_annotate, gallery_list, gallery_detail, gallery_import, gallery_create_folder, gallery_open_folder, image_workspace, image_workspace_save, image_recover, image_discard, image_resume, image_probe, image_jobs, image_generate, image_cancel, image_output, image_save, model_library_list, model_scan_start, model_scan_full, model_scan_quick, model_scan_cancel, model_library_recheck, model_library_forget, download_list, download_plan, download_start, download_action, hf_browser_mount, hf_browser_layout, hf_browser_hide, hf_browser_state, hf_browser_action, hf_status, hf_start_login, hf_cancel_login, hf_connect_token, hf_logout, hf_verify, hf_search, hf_model_detail, hf_model_size, hf_open_page, bootstrap, save_settings, get_hardware, list_jobs, enqueue_hash_job, cancel_job, dismiss_recovery, get_logs, mark_clean_exit])
+        .invoke_handler(tauri::generate_handler![caption_read,caption_write,project_creative_save,canvas_preview,canvas_export,video_probe,video_start,video_jobs,video_cancel,project_editor_preview,project_editor_save,project_editor_export,project_add_edit,update_status,update_check,update_download,update_cancel,update_arm,update_disarm,update_open_download, app_menu_update, editor_preview, editor_export, project_ack_open, gallery_watch, gallery_video_thumbnail_store, gallery_lineage, gallery_create_variant, gallery_set_primary, project_recent, project_forget_recent, project_take_open, project_history, project_checkpoint, project_restore_point, project_rename, project_restore_media, project_add_gallery, project_add_image, storage_cleanup_preview, storage_cleanup_apply, storage_cleanup_auto, project_snapshot, project_new, project_open, project_save, project_update, project_add, project_remove, project_close, project_recover, project_relink, project_export_gallery, gallery_compare, gallery_file_action, gallery_trash_list, gallery_trash_action, gallery_trash_detail, gallery_annotate_batch, gallery_thumbnail, gallery_thumbnail_clear, gallery_annotate, gallery_list, gallery_detail, gallery_import, gallery_create_folder, gallery_open_folder, image_workspace, image_workspace_save, image_recover, image_discard, image_resume, image_probe, image_jobs, image_generate, image_cancel, image_output, image_save, model_library_list, model_scan_start, model_scan_full, model_scan_quick, model_scan_cancel, model_library_recheck, model_library_forget, download_list, download_plan, download_start, download_action, hf_browser_mount, hf_browser_layout, hf_browser_hide, hf_browser_state, hf_browser_action, hf_status, hf_start_login, hf_cancel_login, hf_connect_token, hf_logout, hf_verify, hf_search, hf_model_detail, hf_model_size, hf_open_page, bootstrap, save_settings, get_hardware, list_jobs, enqueue_hash_job, cancel_job, dismiss_recovery, get_logs, mark_clean_exit])
         .build(context)
         .expect("Local Studio could not initialize. Check that the local configuration folder is writable and no other instance is using it.");
     app.run(|handle, event| {
@@ -162,6 +167,7 @@ pub fn run() {
             event,
             tauri::RunEvent::ExitRequested { .. } | tauri::RunEvent::Exit
         ) {
+            if let Some(video)=handle.try_state::<Arc<VideoEngine>>(){video.stop();}
             if let Some(images) = handle.try_state::<Arc<ImageEngine>>() { images.stop(); }
             if let Some(library) = handle.try_state::<Arc<ModelLibrary>>() { library.stop(); }
             if let Some(downloads) = handle.try_state::<Arc<Downloads>>() { downloads.stop(); }

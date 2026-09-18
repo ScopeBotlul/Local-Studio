@@ -1,0 +1,12 @@
+[
+  {
+    "name": "FFmpeg-3e11912860.tar.gz",
+    "url": "https://codeload.github.com/FFmpeg/FFmpeg/tar.gz/3e11912860",
+    "sha256": "346636d3f218fac9dd9bd7de48f4e44c7cb259775c8255c75bf3769cc735f5bf"
+  },
+  {
+    "name": "FFmpeg-Builds-3e6685e.tar.gz",
+    "url": "https://codeload.github.com/BtbN/FFmpeg-Builds/tar.gz/3e6685e",
+    "sha256": "6084bd5dc10b1fed5be43727806264e25ceebeb93feb0a0af47372c7db1ce6d8"
+  }
+]

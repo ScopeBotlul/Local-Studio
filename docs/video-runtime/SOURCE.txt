@@ -1,0 +1,16 @@
+Local Studio video runtime
+
+FFmpeg Copyright (c) the FFmpeg developers.
+This unmodified, separately invoked LGPL build is provided by BtbN.
+See LICENSE.txt and COPYING.GPLv3.txt for license terms.
+
+Exact upstream FFmpeg source: https://github.com/FFmpeg/FFmpeg/tree/3e11912860
+Exact build recipes, patches and dependency sources: https://github.com/BtbN/FFmpeg-Builds/tree/3e6685e
+Build scripts: scripts.d; each lists the source, version and build steps of its component.
+The build configuration is included as BUILD-CONFIG.txt.
+Source archive identities are recorded in the Local Studio repository at docs/video-runtime/sources.json.
+
+Local Studio uses the command line; it does not link to these libraries.
+Development builds can replace the runtime and update src-tauri/video-runtime.json
+with their own verified file hashes. No restrictions on modifying these components
+are added by Local Studio. Models and user media are not included.

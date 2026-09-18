@@ -254,6 +254,7 @@ fn checksum_failures_and_unsupported_versions_leave_active_project_intact() {
         archive_name: format!("media/{id}.png"),
     };
     let mut m = Manifest {
+        creative:None,
         format: "local-studio".into(),
         version: 1,
         name: "corrupt".into(),

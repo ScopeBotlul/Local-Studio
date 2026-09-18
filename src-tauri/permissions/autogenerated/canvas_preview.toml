@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-canvas-preview"
+description = "Enables the canvas_preview command without any pre-configured scope."
+commands.allow = ["canvas_preview"]
+
+[[permission]]
+identifier = "deny-canvas-preview"
+description = "Denies the canvas_preview command without any pre-configured scope."
+commands.deny = ["canvas_preview"]

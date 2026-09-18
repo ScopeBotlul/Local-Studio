@@ -1,4 +1,13 @@
-# Aktueller Stand 0.21.0: Bildkorrekturen, bearbeitbare Projekte und Stapelverarbeitung
+# Aktueller Stand 0.22.0: Ebenen/Masken und erste Video-Timeline
+
+- Drei Studio-Bereiche: Bildgenerierung, Ebeneneditor, Videoschnitt. Lokaler gemeinsamer Arbeitsstand mit Undo/Redo, Projektformat 3, Originalschutz und expliziter Recovery.
+- Echte Ebenenkomposition mit Maskenpinsel/Rechteck/Ellipse, Gruppenauswahl, Sperre, freier Transformation, Ausrichtung, Mischmodi und relativen Korrekturen; PNG/JPEG-Export und Vorschau.
+- Klassischer lokaler Video-/Audio-Mehrspurschnitt mit Trimmen/Teilen, Geschwindigkeit, Fades, linearen Keyframes, Effekten und manuellen Untertiteln/SRT. Echte FFmpeg-Vorschau sowie MP4/H.264/AAC und WebM/VP9/Opus; begrenzte, abbrechbare isolierte Prozesse und unveränderliche Renderaufträge.
+- Gepinnte separate Video-Runtime mit Integritätsprüfung, Entwickler-Bootstrap und Lizenz-/Quellhinweisen; in Installer und Portable enthalten. Typisierte Hauptfenster-IPC; keine frei übergebenen Filter/Shellbefehle.
+
+[Bedienung und Grenzen](docs/CREATIVE_EDITORS.md). Implementierung hier, Nachweise in [TEST_MATRIX.md](TEST_MATRIX.md). Erste 8-Bit-Pfade: kein RAW/HDR-Farbmanagement, keine KI-Videoerzeugung, keine automatische Transkription/Proxies/Tracking. Video-Renderordner werden noch nicht automatisch bereinigt. M4 und M8 sind teilweise umgesetzt, der gesamte weitere SPEC-Umfang bleibt erhalten.
+
+## Vorheriger Stand 0.21.0: Bildkorrekturen, bearbeitbare Projekte und Stapelverarbeitung
 
 - Helligkeit, Kontrast, Sättigung und relative Farbtemperatur von −100 bis +100 im Bildeditor. Angewendete Korrekturen sind rückgängig/wiederholbar; Vorher/Nachher zeigt Original und aktuellen Stand nebeneinander. Vorschau und Export verwenden dieselbe begrenzte Rust-Verarbeitung.
 - **Bearbeitung ins Projekt übernehmen** kopiert das Original samt aktiven Bearbeitungsschritten in den lokalen Projektarbeitsstand. Weitere Übernahmen aus demselben geöffneten Editor aktualisieren diesen Eintrag. Nach Schließen des Editors schreibt Projekt speichern/Strg+S die transportable Datei. Projektmedien lassen sich direkt im Editor weiterbearbeiten und als neue Galerievarianten exportieren, auch ohne ursprüngliche Galeriedatei.

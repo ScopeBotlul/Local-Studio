@@ -12,7 +12,7 @@ pub use compare::gallery_compare;
 mod thumbnails;
 pub use thumbnails::{gallery_thumbnail,gallery_thumbnail_clear,gallery_video_thumbnail_store};
 mod catalog;
-pub(crate) use catalog::editor::{Operation as EditOperation,Preview as EditPreview,render_preview,render_bytes,validate_operations};
+pub(crate) use catalog::editor::{Operation as EditOperation,Preview as EditPreview,render_preview,render_bytes,render_rgba,encode_rgba,validate_operations};
 pub(crate) use thumbnails::exclusive as editor_permit;
 pub use catalog::{editor_preview,editor_export};
 pub use catalog::{gallery_lineage,gallery_create_variant,gallery_set_primary,GalleryCatalog, gallery_annotate, gallery_annotate_batch, gallery_file_action,gallery_trash_list,gallery_trash_action,gallery_trash_detail};

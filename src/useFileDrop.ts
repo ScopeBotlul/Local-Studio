@@ -22,6 +22,7 @@ export function useFileDrop(disabled: boolean, addProject: (paths: string[]) => 
         setTarget(event.payload.type === 'drop' ? null : destination);
         if (event.payload.type !== 'drop' || !destination) return;
         const paths = event.payload.paths;
+        if (destination === 'canvas'||destination === 'timeline') window.dispatchEvent(new CustomEvent('creative-file-drop',{detail:{paths,destination}}));
         if (destination === 'project') await current.current.addProject(paths);
         if (destination === 'gallery') window.dispatchEvent(new CustomEvent('studio-file-drop', { detail: { paths } }));
       } catch (error) { if (!disposed) { setTarget(null); current.current.onError(error); } }

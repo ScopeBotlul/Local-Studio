@@ -224,8 +224,9 @@ impl Projects {
             r.model_path.clear();
         }
         let m = Manifest {
+            creative:p.creative.clone(),
             format: "local-studio".into(),
-            version: if p.assets.iter().any(|a| !a.edit.is_empty()) {2} else {1},
+            version: if p.creative.is_some(){3}else if p.assets.iter().any(|a| !a.edit.is_empty()) {2} else {1},
             name: p.name.clone(),
             request,
             model: p.model.clone(),

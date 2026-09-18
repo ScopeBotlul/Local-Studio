@@ -27,6 +27,7 @@ if ($Action -eq 'test' -or $Action -eq 'check') {
     & npm.cmd run tauri -- build --no-bundle
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     & (Join-Path $PSScriptRoot 'stage-image-runtime.ps1') -Destination (Join-Path $projectRoot 'src-tauri\target\release\image-runtime')
+    & (Join-Path $PSScriptRoot 'stage-video-runtime.ps1') -Destination (Join-Path $projectRoot 'src-tauri\target\release\video-runtime')
     & (Join-Path $PSScriptRoot 'build-installer.ps1')
 } else {
     & npm.cmd run tauri -- $Action

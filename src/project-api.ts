@@ -1,8 +1,9 @@
+import type {Creative} from './creative-state';
 import { invoke } from '@tauri-apps/api/core';
 import type { ImageRequest } from './image-api';
 import type {EditOperation,ProjectEditQuery} from './editor-state';
 export interface ProjectAsset { id: string; name: string; kind: 'image' | 'video' | 'audio'; bytes: number; sha256: string; archiveName: string; edit?:EditOperation[] }
-export interface StudioProject { id: string; name: string; path: string | null; version: string | null; request: ImageRequest | null; model: { name: string; sha256: string; source: string } | null; assets: ProjectAsset[]; removed: ProjectAsset[]; dirty: boolean; recovery: boolean }
+export interface StudioProject { creative?:Creative; id: string; name: string; path: string | null; version: string | null; request: ImageRequest | null; model: { name: string; sha256: string; source: string } | null; assets: ProjectAsset[]; removed: ProjectAsset[]; dirty: boolean; recovery: boolean }
 export interface RecoveryPoint { id: number; at: number; name: string; media: number; prompt: string; protected: boolean }
 export interface ProjectGallerySelection { rootId: string; targets: { path: string; fileId: string; version: string }[] }
 export const projectApi = {

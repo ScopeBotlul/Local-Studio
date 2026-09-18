@@ -82,6 +82,7 @@ Source: "{#ProjectRoot}\src-tauri\target\release\local-studio.exe"; DestDir: "{a
 Source: "{#ProjectRoot}\.tools\webview2\MicrosoftEdgeWebview2Setup.exe"; Flags: dontcopy
 
 Source: "{#ProjectRoot}\src-tauri\target\release\image-runtime\*"; DestDir: "{app}\image-runtime"; Flags: ignoreversion
+Source: "{#ProjectRoot}\src-tauri\target\release\video-runtime\*"; DestDir: "{app}\video-runtime"; Flags: ignoreversion
 
 [Icons]
 #ifndef TestBuild

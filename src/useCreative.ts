@@ -1,0 +1,18 @@
+import {useEffect,useRef,useState} from 'react';
+import type {useProject} from './useProject';
+import {creativeApi,creativeError,type Creative} from './creative-state';
+import {editorActivity} from './editor-state';
+export function useCreative(projects:ReturnType<typeof useProject>,de:boolean,maxUndo:number){
+ const p=projects.project;const initial:Creative={revision:0,image:null,video:null};const [data,setData]=useState<Creative>(initial),[error,setError]=useState(''),[saving,setSaving]=useState(false),[history,setHistory]=useState<{past:Creative[];future:Creative[]}>({past:[],future:[]});
+ const current=useRef(data),past=useRef<Creative[]>([]),future=useRef<Creative[]>([]),owner=useRef<string|null>(null),revision=useRef(0),saved=useRef(''),inflight=useRef<Promise<void>|null>(null),ctx=useRef({projects,de});ctx.current={projects,de};
+ const fingerprint=(d:Creative)=>JSON.stringify([d.image,d.video]);
+ useEffect(()=>{if((p?.id??null)!==owner.current||(p?.creative?.revision??0)!==revision.current){owner.current=p?.id??null;revision.current=p?.creative?.revision??0;const d=p?.creative??{revision:0,image:null,video:null};current.current=d;saved.current=fingerprint(d);setData(d);past.current=[];future.current=[];setHistory({past:[],future:[]});setError('');}},[p?.id,p?.creative?.revision]);
+ const flush=async()=>{if(inflight.current){await inflight.current;return flush();}if(!owner.current||fingerprint(current.current)===saved.current)return;setSaving(true);const task=(async()=>{while(owner.current&&fingerprint(current.current)!==saved.current){const d=current.current,id=owner.current;const p=await creativeApi.save(id,revision.current,d);if(owner.current!==id)throw Error('project_changed');revision.current=p.creative!.revision;saved.current=fingerprint(d);ctx.current.projects.acceptCreative(p);}})();inflight.current=task;try{await task;setError('');}catch(e){setError(creativeError(e,ctx.current.de));throw e;}finally{inflight.current=null;setSaving(false);}};
+ const flushRef=useRef(flush);flushRef.current=flush;
+ useEffect(()=>{editorActivity.flushCreative=()=>{const focused=document.activeElement;if(focused instanceof HTMLInputElement||focused instanceof HTMLTextAreaElement)focused.blur();return flushRef.current();};return()=>{editorActivity.flushCreative=null;};},[]);
+ useEffect(()=>{const timer=setTimeout(()=>{void flushRef.current().catch(()=>{});},450);return()=>clearTimeout(timer);},[data]);
+ function change(next:Creative){if(ctx.current.projects.get()?.recovery)return;past.current=[...past.current,current.current].slice(-Math.max(1,maxUndo));future.current=[];current.current=next;setData(next);setHistory({past:past.current,future:[]});}
+ function undo(){const d=past.current.at(-1);if(!d)return;future.current=[current.current,...future.current];past.current=past.current.slice(0,-1);current.current=d;setData(d);setHistory({past:past.current,future:future.current});}
+ function redo(){const d=future.current[0];if(!d)return;past.current=[...past.current,current.current];future.current=future.current.slice(1);current.current=d;setData(d);setHistory({past:past.current,future:future.current});}
+ return {data,error,saving,change,undo,redo,canUndo:!!history.past.length,canRedo:!!history.future.length,flush,get:()=>current.current,ready:!!p&&!p.recovery&&projects.ready,ensure:async()=>{if(!await projects.prepareCreative())return false;const p=projects.get()!;if(owner.current!==p.id){owner.current=p.id;revision.current=p.creative?.revision??0;current.current=p.creative??initial;saved.current=fingerprint(current.current);setData(current.current);}return true;}};
+}

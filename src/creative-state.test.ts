@@ -1,0 +1,6 @@
+import {describe,it,expect} from 'vitest';import {splitClip,poseAt,parseSrt,srtText,defaultPose,type Clip} from './creative-state';
+const clip:Clip={id:'a',assetId:'source',trackId:'video',name:'sample',start:2,sourceIn:10,sourceOut:18,speed:2,fadeIn:.4,fadeOut:.4,blur:0,brightness:0,contrast:1,saturation:1,keyframes:[defaultPose(),{...defaultPose(),time:4,x:100,opacity:0,volume:.5}]};
+describe('creative timeline',()=>{
+ it('splits at timeline time while preserving exact source time and keyframe continuity',()=>{const [a,b]=splitClip(clip,3)!;expect(a.sourceOut).toBe(12);expect(b.sourceIn).toBe(12);expect(b.start).toBe(3);expect(poseAt(a,1).x).toBe(25);expect(poseAt(b,0).x).toBe(25);expect(poseAt(b,3).x).toBe(100);expect(a.keyframes.at(-1)?.opacity).toBe(.75);expect(b.keyframes[0].volume).toBe(.875);expect(splitClip(clip,2)).toBeNull();expect(splitClip(clip,6)).toBeNull();});
+ it('roundtrips multiline SRT with millisecond precision and rejects malformed ranges',()=>{const c=parseSrt('1\r\n00:00:01,250 --> 00:00:03,750\r\nHallo\r\nWelt\r\n');expect(c[0].text).toBe('Hallo\nWelt');expect(parseSrt(srtText(c))[0]).toMatchObject({start:1.25,end:3.75,text:'Hallo\nWelt'});expect(()=>parseSrt('1\n00:00:03,000 --> 00:00:02,000\nbad')).toThrow();expect(()=>parseSrt('1\n00:99:00,000 --> 01:00:00,000\nbad')).toThrow();});
+});

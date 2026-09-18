@@ -1,3 +1,4 @@
+import {checkCreative22} from './check-creative22.mjs';
 import {checkEditor21} from './check-editor21.mjs';
 import {checkMenuUpdates} from './check-menu-updates.mjs';
 import {checkEditor} from './check-editor.mjs';
@@ -40,6 +41,8 @@ const launchExe = path.join(artifactRoot, 'Local Studio.exe');
 await fs.copyFile(exe, launchExe);
 const imageRuntime = path.join(path.dirname(exe), 'image-runtime');
 if ((await fs.stat(imageRuntime).catch(() => null))?.isDirectory()) await fs.cp(imageRuntime, path.join(artifactRoot, 'image-runtime'), { recursive: true });
+const videoRuntime=path.join(path.dirname(exe),'video-runtime');
+if((await fs.stat(videoRuntime).catch(()=>null))?.isDirectory())await fs.cp(videoRuntime,path.join(artifactRoot,'video-runtime'),{recursive:true});
 await fs.writeFile(path.join(artifactRoot, 'portable.marker'), 'Local Studio isolated native test\n');
 if (process.env.LOCAL_STUDIO_TEST_LIBRARY) {
   const config = path.join(artifactRoot, 'Local-Studio-Data/config');
@@ -282,6 +285,7 @@ try {
   if (process.env.LOCAL_STUDIO_TEST_BATCH === '1') await checkGalleryBatch({ getPage: () => page, invoke, stop, launch, artifactRoot, record });
   if (process.env.LOCAL_STUDIO_TEST_FILES === '1') await checkGalleryFiles({ getPage: () => page, invoke, stop, launch, artifactRoot, record });
   if (process.env.LOCAL_STUDIO_TEST_COMPARE === '1') await checkGalleryCompare({ getPage: () => page, invoke, stop, launch, artifactRoot, record });
+  if (process.env.LOCAL_STUDIO_TEST_CREATIVE22 === '1') await checkCreative22({getPage:()=>page,invoke,stop,launch,artifactRoot,record});
   if (process.env.LOCAL_STUDIO_TEST_EDITOR21 === '1') await checkEditor21({getPage:()=>page,invoke,stop,launch,artifactRoot,record});
   if (process.env.LOCAL_STUDIO_TEST_EDITOR === '1') await checkEditor({getPage:()=>page,invoke,stop,launch,artifactRoot,record});
   if (process.env.LOCAL_STUDIO_TEST_MEDIA18 === '1') await checkMedia18({getPage:()=>page,invoke,stop,launch,artifactRoot,record});

@@ -10,13 +10,14 @@ New-Item -ItemType Directory -Path $portableRoot -Force | Out-Null
 Copy-Item -LiteralPath $binary -Destination (Join-Path $portableRoot 'Local Studio.exe') -Force
 [IO.File]::WriteAllText((Join-Path $portableRoot 'portable.marker'), 'Local Studio Hub portable development build', [Text.UTF8Encoding]::new($false))
 & (Join-Path $PSScriptRoot 'stage-image-runtime.ps1') -Destination (Join-Path $portableRoot 'image-runtime')
+& (Join-Path $PSScriptRoot 'stage-video-runtime.ps1') -Destination (Join-Path $portableRoot 'video-runtime')
 $readme = @'
 LOCAL STUDIO {VERSION} — CORE + HUGGING FACE ENTWICKLUNGSSTAND
 
 Start: Local Studio.exe doppelklicken. Windows x64 mit installiertem WebView2.
 Daten: Local-Studio-Data neben der EXE. Zum Entpacken einen beschreibbaren Ordner wählen.
 
-Update einer portablen Version: Alte App regulär schließen, dann die Programmdateien und den Ordner image-runtime
+Update einer portablen Version: Alte App regulär schließen, dann die Programmdateien und die Ordner image-runtime und video-runtime
 aus dem ZIP in den bisherigen App-Ordner entpacken und ersetzen. Den Ordner
 Local-Studio-Data behalten; er enthält die vorhandenen Einstellungen und Aufträge.
 
@@ -33,6 +34,12 @@ Unter Hugging Face > Website im Studio liegt jetzt die echte Website.
 Die Website-Anmeldung ist separat; ihre Cookies liegen im eigenen WebView-Profil.
 App-Tokens werden nicht in Website-Cookies umgewandelt. Modellseiten lassen sich
 über In Local Studio öffnen an die Modellansicht übergeben.
+
+Neu in 0.22.0: Studio mit Ebenen/Masken und lokalem Video-/Audio-Mehrspurschnitt.
+PNG/JPEG-Kompositionen, MP4/WebM-Export, Keyframes, manuelle Untertitel und SRT.
+Beide Editoren samt Medien in einer Projektdatei speichern (Format 3).
+Keine KI-Videoerzeugung; Vorschau bewusst rendern. FFmpeg-Lizenzen/Quellen
+stehen unter video-runtime. Originalmedien bleiben unveraendert.
 
 Neu in 0.21.0: Helligkeit / Kontrast / Saettigung / relative Farbtemperatur,
 Vorher/Nachher, Original + aktive Bearbeitungsschritte in .localstudio-Projekten.
@@ -170,7 +177,7 @@ Retry, Priorität und Neustart-Recovery. Lokale Dateien unter Modelle > Lokal
 gespeichert erneut prüfen. Hash-Prüfung bedeutet keine Ausführbarkeit.
 
 Noch nicht enthalten: universelle Modell-/Runtime-Verwaltung, weitere Bildadapter,
-vollstaendiger Bildeditor, Video-/Audioeditor, vollstaendige Galerie/Projekte,
+vollstaendiger Bildeditor, erweiterte Video-/Audiofunktionen, vollstaendige Galerie/Projekte,
 Assistent und Workflows. Keine Modelle beigepackt. Die abschaltbare Updatepruefung
 verbindet sich beim Start mit GitHub; sie uebertraegt keine Medien oder Prompts.
 Bei einem anderen Programmordner oder PC ist eine erneute Anmeldung erforderlich.
@@ -184,7 +191,7 @@ $readme = $readme.Replace('{VERSION}', $version)
 [IO.File]::WriteAllText((Join-Path $portableRoot 'LIESMICH.txt'), $readme, [Text.UTF8Encoding]::new($false))
 $archive = Join-Path $releaseRoot "Local-Studio-$version-hub-portable.zip"
 # Package only the known build files, never local test or user data.
-Compress-Archive -LiteralPath @((Join-Path $portableRoot 'Local Studio.exe'), (Join-Path $portableRoot 'portable.marker'), (Join-Path $portableRoot 'LIESMICH.txt'), (Join-Path $portableRoot 'image-runtime')) -DestinationPath $archive -Force
+Compress-Archive -LiteralPath @((Join-Path $portableRoot 'Local Studio.exe'), (Join-Path $portableRoot 'portable.marker'), (Join-Path $portableRoot 'LIESMICH.txt'), (Join-Path $portableRoot 'image-runtime'), (Join-Path $portableRoot 'video-runtime')) -DestinationPath $archive -Force
 $installer = Join-Path $projectRoot "src-tauri\target\release\bundle\inno\Local-Studio-$version-hub-setup.exe"
 if (Test-Path -LiteralPath $installer) {
     Copy-Item -LiteralPath $installer -Destination (Join-Path $releaseRoot "Local-Studio-$version-hub-setup.exe") -Force

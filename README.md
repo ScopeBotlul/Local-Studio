@@ -1,6 +1,6 @@
 # Local Studio
 
-Version 0.21.0 ergänzt **Bildkorrekturen, Vorher/Nachher, bearbeitbare Projektrezepte und Stapelkorrekturen**. Originale bleiben erhalten. [Bildeditor](docs/IMAGE_EDITOR.md), [Projekte](docs/PROJECTS.md).
+Version 0.22.0 verbindet **Ebenen/Masken und klassischen Video-/Audio-Mehrspurschnitt** in gemeinsamen Projekten. Echte PNG/JPEG-, MP4- und WebM-Ausgaben; Originale bleiben erhalten. [Bedienung und Grenzen](docs/CREATIVE_EDITORS.md), [Einzelbildeditor](docs/IMAGE_EDITOR.md), [Projekte](docs/PROJECTS.md).
 
 Version 0.20.0 ergänzt die native **Menüleiste und signaturgeprüfte GitHub-Updates**. [Aktuelle Downloads](https://github.com/ScopeBotlul/Local-Studio/releases/latest), [Updateverfahren](docs/UPDATES.md).
 
@@ -49,7 +49,7 @@ einen Token-Anmeldepfad mit Windows-Anmeldespeicher. Ab 0.2.1 ist auch OAuth mit
 Ein erster SDXL-Inferenzpfad ist ab 0.6.0 vorhanden. Vollständige Runtime-/Modellverwaltung und weitere Inferenzadapter bleiben offen.
 Eine Prüfsumme ist kein Nachweis, dass eine Modelldatei sicher oder kompatibel ist.
 
-## Aktuellen Stand 0.21.0 starten
+## Aktuellen Stand 0.22.0 starten
 
 Die lokal gebauten Pakete liegen unter `releases/`: Portable ZIP, EXE und Windows-Installer.
 Build-Dateien und lokale Testberichte sind nicht im Quellcode-Repository enthalten.

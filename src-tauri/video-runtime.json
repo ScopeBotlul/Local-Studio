@@ -1,0 +1,24 @@
+{
+  "tag": "autobuild-2026-09-17-13-19",
+  "name": "ffmpeg-n9.0.1-69-g3e11912860-win64-lgpl-shared-9.0.zip",
+  "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-09-17-13-19/ffmpeg-n9.0.1-69-g3e11912860-win64-lgpl-shared-9.0.zip",
+  "sha256": "3fa84213e8c38fae99cdab620cb47f8cebfef6c550d5e950700948133edce5c6",
+  "size": 76394819,
+  "version": "9.0.1-69-g3e11912860",
+  "license": "LGPL shared",
+  "files": {
+    "avcodec-63.dll": "76c90b2146a6c26d195273bec51f347ed35340cc3bdf79f48fec7d35270deb2d",
+    "avdevice-63.dll": "fcfde53726e6e5e45def2443e37609d72b054083475b2bfc8ba360d2a1e6ce7d",
+    "avfilter-12.dll": "27455514b1ceab60f968532108edefb26716b7f0072beb855cf006c11c23304f",
+    "avformat-63.dll": "2cd3c7fa0e037bb9d5787c129d4a71d351d4d073fee4b91edb63df6fc4aafee1",
+    "avutil-61.dll": "198c72089402cd83ddd5c66fa50226ad4f716eacc43d10ef7c6a81e5af3a4f05",
+    "ffmpeg.exe": "2deb3e0609ef34435248c0f46c8e597638924e1390028c124a154302186c1098",
+    "ffprobe.exe": "437a508fcd30fb4d8a02ca91e85af64278e3217c208899a0c02c8a3cc1fa0950",
+    "LICENSE.txt": "da7eabb7bafdf7d3ae5e9f223aa5bdc1eece45ac569dc21b3b037520b4464768",
+    "SOURCE.txt": "d8f79e74d9978a534829bf4ccaa9c96612f6328b53755ac078cc2fcdde492b8e",
+    "swresample-7.dll": "85846e143863936ec50ca5a64e27d6ca4b5a4e035efe521b1e9e2fdfe80e327f",
+    "swscale-10.dll": "f56f60a3b4299d16be4b7682683fac39d5686a42aa88bc93583abc9cd7e803cf",
+    "COPYING.GPLv3.txt": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903",
+    "BUILD-CONFIG.txt": "4e84bd094bd1453a0152f180606398f0d6260cb28ebd74dcf902a4e9c28f9448"
+  }
+}

@@ -1,3 +1,5 @@
+pub mod creative;
+pub use creative::{caption_read,caption_write,project_creative_save,canvas_preview,canvas_export,video_probe,video_start,video_jobs,video_cancel,VideoEngine};
 mod editor;
 pub use editor::{project_editor_preview,project_editor_save,project_editor_export,project_add_edit};
 // Local, passive project containers. Archive names never become filesystem paths.
@@ -42,6 +44,8 @@ pub struct Asset {
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct Manifest {
+    #[serde(default,skip_serializing_if="Option::is_none")]
+    creative: Option<creative::Creative>,
     format: String,
     version: u32,
     name: String,
@@ -52,6 +56,8 @@ struct Manifest {
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Project {
+    #[serde(default,skip_serializing_if="Option::is_none")]
+    pub creative: Option<creative::Creative>,
     pub id: String,
     pub name: String,
     pub path: Option<String>,
@@ -111,7 +117,7 @@ fn valid_request(request: &Option<ImageRequest>) -> Result<()> {
     Ok(())
 }
 fn validate(m: &Manifest) -> Result<()> {
-    if m.format != "local-studio" || !matches!(m.version,1|2) {
+    if m.format != "local-studio" || !matches!(m.version,1|2|3) {
         return Err("project_version".into());
     }
     if m.name.trim().is_empty()
@@ -122,6 +128,7 @@ fn validate(m: &Manifest) -> Result<()> {
         return Err("project_manifest".into());
     }
     if serde_json::to_vec(m).map_err(err)?.len() as u64 > MAX_MANIFEST { return Err("project_limit".into()); }
+    if let Some(c)=&m.creative {if m.version<3{return Err("project_version".into());}creative::validate(c,&m.assets)?;}
     valid_request(&m.request)?;
     if m.request.as_ref().is_some_and(|r| !r.model_path.is_empty()) {
         return Err("project_manifest".into());
@@ -195,6 +202,7 @@ fn create(root: &Path, name: String, request: Option<ImageRequest>) -> Result<Pr
     let directory = sessions.join(&id);
     fs::create_dir(&directory).map_err(err)?;
     Ok(Project {
+        creative: None,
         id,
         name,
         path: None,
@@ -453,6 +461,7 @@ impl Projects {
         let mut z = archive(&mut input)?;
         let m = read_manifest(&mut z)?;
         let mut p = create(recovery, m.name, m.request)?;
+        p.creative=m.creative;
         p.model = m.model;
         p.path = Some(path.to_string_lossy().into());
         p.version = Some(version);
@@ -518,6 +527,7 @@ impl Projects {
         if !p.assets.iter().any(|a| a.id == id) {
             return Err("project_media".into());
         }
+        if p.creative.as_ref().is_some_and(|c|creative::referenced(c,id)){return Err("creative_in_use".into());}
         p.removed
             .push(p.assets.iter().find(|a| a.id == id).unwrap().clone());
         while p.removed.len() > limit.clamp(1, 1000) {

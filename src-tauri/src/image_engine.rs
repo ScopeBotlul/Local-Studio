@@ -139,9 +139,9 @@ fn devices(runtime: &Path) -> Result<String> {
     output.lines().find(|line| line.starts_with("Vulkan") && line.contains('\t') && line.to_uppercase().contains("NVIDIA"))
         .map(str::to_owned).ok_or_else(|| "image_gpu".into())
 }
-struct ProcessGroup(windows_sys::Win32::Foundation::HANDLE);
+pub(crate) struct ProcessGroup(windows_sys::Win32::Foundation::HANDLE);
 impl ProcessGroup {
-    fn attach(child: &std::process::Child) -> Result<Self> {
+    pub(crate) fn attach(child: &std::process::Child) -> Result<Self> {
         use std::os::windows::io::AsRawHandle;
         use windows_sys::Win32::System::JobObjects::*;
         unsafe {

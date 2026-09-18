@@ -1,3 +1,4 @@
+import {editorActivity} from './editor-state';
 import { listen } from '@tauri-apps/api/event';
 import { useEffect, useRef, useState } from 'react';
 import { open, save, confirm } from '@tauri-apps/plugin-dialog';
@@ -47,7 +48,7 @@ export function useProject(enabled: boolean, studio: ReturnType<typeof useImageW
     if (working.current || !ready) return false;
     working.current = true; setBusy(true); setError(''); setNotice('');
     if (timer.current) clearTimeout(timer.current);
-    const task = (async () => { await pending.current; await context.current.studio.flush(); await sync(); return (await action()) !== false; })();
+    const task = (async () => { await pending.current; await editorActivity.flushCreative?.(); await context.current.studio.flush(); await sync(); return (await action()) !== false; })();
     pending.current = task;
     try { return await task; }
     catch (e) { setError(projectError(e, context.current.de)); return false; }
@@ -81,6 +82,7 @@ export function useProject(enabled: boolean, studio: ReturnType<typeof useImageW
   },[ready,busy,studio.ready]);
   return {
     project, ready, busy, error, notice, history, recent, openPath,
+    acceptCreative:accept, prepareCreative:()=>run(async()=>{await ensureProject();}),
     addEdit:(selection:ProjectGallerySelection,operations:EditOperation[])=>run(async()=>{const p=await ensureProject();accept(await projectApi.addEdit(p.id,selection,operations));setNotice(de?'Original und Bearbeitung im Projektarbeitsstand. Projektdatei mit Strg+S speichern.':'Original and edits added to project workspace. Save the project file with Ctrl+S.');}),
     saveEdit:(query:ProjectEditQuery,expected:EditOperation[],operations:EditOperation[])=>run(async()=>{accept(await projectApi.saveEdit(query,expected,operations));}),
     forgetRecent: (path:string)=>run(async()=>{await projectApi.forgetRecent(path);}), save: saveProject,
