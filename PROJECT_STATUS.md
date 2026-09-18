@@ -6,7 +6,7 @@
 - Bildeditor: Skalier-/Drehgriffe, Pinselkontur; beide Editoren übernehmen vorhandene Projektmedien ohne erneute Quellkopie.
 - Bestehende Speicherbereinigung erfasst registrierte Render-, Proxy- und Wellenform-Dateien. Aktive Projektcaches, laufende Aufträge, Originale und Galerieausgaben geschützt; Identität, Größe und SHA-256 vor Löschung geprüft. Hauptfenster-exklusive typisierte IPC und isolierte FFmpeg-Prozesse.
 
-Installer und portable ZIP sind gebaut, nativ geprüft und mit signiertem Update-Manifest für die Veröffentlichung vorbereitet. [Bedienung und Grenzen](docs/CREATIVE_EDITORS.md), Prüfnachweise separat in [TEST_MATRIX.md](TEST_MATRIX.md). Einzelbildvorschau ist keine garantierte Echtzeitwiedergabe; Proxies dienen dieser Vorschau. Keine automatische Transkription, KI-Videoerzeugung, HDR/ICC-Abnahme oder vollständige M4/M8-Abnahme. Unregistrierte Altcaches/Absturzreste werden nicht pauschal gelöscht. Übriger SPEC-Umfang bleibt erhalten.
+[Release 0.23.0 mit Installer und portabler ZIP](https://github.com/ScopeBotlul/Local-Studio/releases/tag/v0.23.0) veröffentlicht und öffentlich verifiziert. Die vorherige 0.22.0 erkennt das signierte Update; die neue Version meldet denselben Kanal als aktuell. Beim portablen Update Local-Studio-Data behalten. [Bedienung und Grenzen](docs/CREATIVE_EDITORS.md), Prüfnachweise separat in [TEST_MATRIX.md](TEST_MATRIX.md). Einzelbildvorschau ist keine garantierte Echtzeitwiedergabe; Proxies dienen dieser Vorschau. Keine automatische Transkription, KI-Videoerzeugung, HDR/ICC-Abnahme oder vollständige M4/M8-Abnahme. Unregistrierte Altcaches/Absturzreste werden nicht pauschal gelöscht. Übriger SPEC-Umfang bleibt erhalten.
 
 ## Vorheriger Stand 0.22.0: Ebenen/Masken und erste Video-Timeline
 
