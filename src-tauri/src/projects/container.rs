@@ -165,6 +165,7 @@ pub(super) fn recover_save(s: &mut State) -> Result<()> {
 }
 impl Projects {
     pub(super) fn save(&self, path: &Path) -> Result<Project> {
+        self.ensure_reference_asset()?;
         let mut s = self.state.lock().map_err(err)?;
         no_intent(&s)?;
         let mut p = Self::require(&s)?;
@@ -222,11 +223,22 @@ impl Projects {
                 });
             }
             r.model_path.clear();
+            if let Some(reference)=r.reference.as_mut(){
+                let asset=p.assets.iter().find(|a|a.sha256==reference.sha256&&a.kind=="image").ok_or("project_manifest")?;
+                reference.path=asset.archive_name.clone();
+                if let Some(mask)=reference.mask.as_mut(){mask.path=p.assets.iter().find(|a|a.sha256==mask.sha256&&a.kind=="image").ok_or("project_manifest")?.archive_name.clone();}
+            }
+        }
+        if let Some(reference)=request.as_ref().and_then(|r|r.reference.as_ref()) {
+            let asset=p.assets.iter().find(|a|a.archive_name==reference.path).ok_or("project_manifest")?;
+            let stored=owned(&p,asset)?.to_string_lossy().into_owned();
+            p.request.as_mut().unwrap().reference.as_mut().unwrap().path=stored;
+            if let Some(mask)=reference.mask.as_ref(){let asset=p.assets.iter().find(|a|a.archive_name==mask.path).ok_or("project_manifest")?;let stored=owned(&p,asset)?.to_string_lossy().into_owned();p.request.as_mut().unwrap().reference.as_mut().unwrap().mask.as_mut().unwrap().path=stored;}
         }
         let m = Manifest {
             creative:p.creative.clone(),
             format: "local-studio".into(),
-            version: if p.creative.is_some(){3}else if p.assets.iter().any(|a| !a.edit.is_empty()) {2} else {1},
+            version: if request.as_ref().is_some_and(|r|r.reference.is_some()||r.vae_on_cpu){4}else if p.creative.is_some(){3}else if p.assets.iter().any(|a| !a.edit.is_empty()) {2} else {1},
             name: p.name.clone(),
             request,
             model: p.model.clone(),

@@ -504,7 +504,9 @@ fn wait_callback(
                 let mut chunk = [0u8; 1024];
                 while bytes.len() < 8192 && Instant::now() < until && !cancelled() {
                     match stream.read(&mut chunk) {
-                        Ok(0) | Err(_) => break,
+                        Ok(0) => break,
+                        Err(error) if matches!(error.kind(), std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut | std::io::ErrorKind::Interrupted) => continue,
+                        Err(_) => break,
                         Ok(n) => bytes.extend_from_slice(&chunk[..n]),
                     }
                     if bytes.windows(4).any(|w| w == b"\r\n\r\n") {
@@ -572,10 +574,13 @@ mod tests {
         for state in ["forged", "expected"] {
             let mut stream = TcpStream::connect(addr).unwrap();
             // Allow accept/read to occur before the HTTP request arrives.
-            std::thread::sleep(Duration::from_millis(100));
+            // Delayed/fragmented browser headers must survive an individual read timeout.
+            std::thread::sleep(Duration::from_millis(350));
+            write!(stream, "GET /callback?state={state}").unwrap();
+            std::thread::sleep(Duration::from_millis(350));
             write!(
                 stream,
-                "GET /callback?state={state}&code=only-code HTTP/1.1\r\nHost: {addr}\r\n\r\n"
+                "&code=only-code HTTP/1.1\r\nHost: {addr}\r\n\r\n"
             )
             .unwrap();
             let mut response = String::new();

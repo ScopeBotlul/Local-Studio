@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-hardware-live"
+description = "Enables the hardware_live command without any pre-configured scope."
+commands.allow = ["hardware_live"]
+
+[[permission]]
+identifier = "deny-hardware-live"
+description = "Denies the hardware_live command without any pre-configured scope."
+commands.deny = ["hardware_live"]

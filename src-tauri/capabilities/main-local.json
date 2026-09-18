@@ -143,7 +143,26 @@
     "allow-assistant-clear",
     "allow-transcription-start",
     "allow-transcription-jobs",
-    "allow-transcription-cancel"
+    "allow-transcription-cancel",
+    "allow-resource-status",
+    "allow-background-hide",
+    "allow-desktop-accent",
+    "allow-hardware-live",
+    "allow-model-move-plan",
+    "allow-model-move-start",
+    "allow-model-move-status",
+    "allow-model-move-cancel",
+    "allow-model-updates-status",
+    "allow-model-updates-check",
+    "allow-model-updates-prepare",
+    "allow-benchmark-list",
+    "allow-benchmark-clear",
+    "allow-preferences-list",
+    "allow-preference-save",
+    "allow-preference-forget",
+    "allow-image-reference",
+    "allow-image-generate-batch",
+    "allow-canvas-export-mask"
   ],
   "webviews": [
     "main"

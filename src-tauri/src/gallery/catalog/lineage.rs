@@ -56,7 +56,7 @@ pub async fn gallery_set_primary(query:LineageQuery,core:State<'_,Arc<Core>>,cat
  }
  #[test]fn generated_origin_is_inherited_only_from_the_bound_source(){
  let t=tempfile::tempdir().unwrap();let root=fs::canonicalize(t.path()).unwrap();fs::write(root.join("generated.png"),b"passive metadata fixture").unwrap();let c=GalleryCatalog::new(&root).unwrap();
- let request=ImageRequest{model_path:"D:/models/test.safetensors".into(),prompt:"Recorded prompt, no inference in this test".into(),negative_prompt:"noise".into(),width:512,height:512,steps:20,guidance:5.0,seed:42,sampler:"euler".into()};
+ let request=ImageRequest { vae_on_cpu:false,  reference:None,model_path:"D:/models/test.safetensors".into(),prompt:"Recorded prompt, no inference in this test".into(),negative_prompt:"noise".into(),width:512,height:512,steps:20,guidance:5.0,seed:42,sampler:"euler".into()};
  let origin=Origin{job_id:uuid::Uuid::new_v4().to_string(),request,model_name:"test.safetensors".into(),model_sha256:Some("a".repeat(64)),runtime:"metadata fixture".into(),created_at:"2026-01-01T00:00:00Z".into(),association:"fileIdentity".into()};
  let bound=BoundOrigin{stamp:stamp(&fs::metadata(root.join("generated.png")).unwrap()),info:origin.clone()};
  let copied=c.variant(&root,query(&root,"generated.png"),Some(bound)).unwrap();let family=c.family(&root,query(&root,&copied),None).unwrap();assert_eq!(family.versions[0].node.operation,"textToImage");assert_eq!(family.versions[1].node.origin.as_ref().unwrap().job_id,origin.job_id);assert_eq!(family.versions[1].node.origin.as_ref().unwrap().request.prompt,origin.request.prompt);

@@ -3,6 +3,11 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Settings {
+    #[serde(default)] pub live_hardware: bool,
+    #[serde(default)] pub system_accent: bool,
+    #[serde(default)] pub minimize_to_tray: bool,
+    #[serde(default)] pub parallel_generation: bool,
+    #[serde(default = "crate::settings::auto_cleanup_default")] pub auto_model_updates: bool,
     #[serde(default = "crate::settings::auto_cleanup_default")]
     pub auto_update_check: bool,
     pub language: String,

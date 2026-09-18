@@ -1,8 +1,9 @@
 use super::*;
+#[test]fn batch_limits_and_seed_overflow_are_rejected_before_model_work(){assert!(batch_parameters(0,0,true).is_err());assert!(batch_parameters(21,0,false).is_err());assert!(batch_parameters(2,u32::MAX,true).is_err());assert!(batch_parameters(20,u32::MAX,false).is_ok());assert!(batch_parameters(20,u32::MAX-19,true).is_ok());}
 
 fn fixture(engine: &ImageEngine, path: &Path) -> ImageJob {
     let mut request = super::super::tests::request(); request.model_path = path.to_string_lossy().into();
-    let job = ImageJob { id: uuid::Uuid::new_v4().to_string(), request, status: "queued".into(), phase: "queued".into(), step: 0, hashed_bytes: 0, model_bytes: 4, model_sha256: Some("immutable test hash".into()), runtime: "unit fixture".into(), device: "unit fixture".into(), created_at: crate::database::now(), elapsed_ms: 0, error: None, output: None, saved_path: None, saved_binding: None, working_directory: None, log_tail: String::new(), discarded: false, started_at: None, finished_at: None, queue_position: None };
+    let job = ImageJob { batch:None,sampling_steps:None, id: uuid::Uuid::new_v4().to_string(), request, status: "queued".into(), phase: "queued".into(), step: 0, hashed_bytes: 0, model_bytes: 4, model_sha256: Some("immutable test hash".into()), runtime: "unit fixture".into(), device: "unit fixture".into(), created_at: crate::database::now(), elapsed_ms: 0, error: None, output: None, saved_path: None, saved_binding: None, working_directory: None, log_tail: String::new(), discarded: false, started_at: None, finished_at: None, queue_position: None };
     fs::create_dir(engine.config.join(&job.id)).unwrap();
     let mut state = engine.state.lock().unwrap(); persist(&state, &job).unwrap(); state.jobs.insert(0, job.clone());
     state.queue.push_back(PreparedImage { id: job.id.clone(), model: read_locked(path).unwrap() }); job

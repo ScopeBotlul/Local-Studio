@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-model-updates-prepare"
+description = "Enables the model_updates_prepare command without any pre-configured scope."
+commands.allow = ["model_updates_prepare"]
+
+[[permission]]
+identifier = "deny-model-updates-prepare"
+description = "Denies the model_updates_prepare command without any pre-configured scope."
+commands.deny = ["model_updates_prepare"]

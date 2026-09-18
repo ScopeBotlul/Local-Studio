@@ -6,7 +6,7 @@ fn fixture(engine: &ImageEngine) -> ImageJob {
     let mut encoder = png::Encoder::new(File::create(&path).unwrap(), 2, 2); encoder.set_color(png::ColorType::Rgb); encoder.set_depth(png::BitDepth::Eight);
     encoder.write_header().unwrap().write_image_data(&[120; 12]).unwrap();
     for name in ["prompt.txt", "negative.txt", "metadata.json"] { fs::write(directory.join(name), b"fixture").unwrap(); }
-    let job = ImageJob { id, request, status: "completed".into(), phase: "completed".into(), step: 20, hashed_bytes: 10, model_bytes: 10, model_sha256: None, runtime: "test fixture".into(), device: "test fixture".into(), created_at: crate::database::now(), elapsed_ms: 0, error: None, output: Some(path.to_string_lossy().into()), saved_path: None, saved_binding: None, working_directory: None, log_tail: String::new(), discarded: false, started_at: None, finished_at: None, queue_position: None };
+    let job = ImageJob { batch:None,sampling_steps:None, id, request, status: "completed".into(), phase: "completed".into(), step: 20, hashed_bytes: 10, model_bytes: 10, model_sha256: None, runtime: "test fixture".into(), device: "test fixture".into(), created_at: crate::database::now(), elapsed_ms: 0, error: None, output: Some(path.to_string_lossy().into()), saved_path: None, saved_binding: None, working_directory: None, log_tail: String::new(), discarded: false, started_at: None, finished_at: None, queue_position: None };
     let mut state = engine.state.lock().unwrap(); persist(&state, &job).unwrap(); state.jobs.insert(0, job.clone()); job
 }
 
@@ -34,6 +34,23 @@ fn cleanup_never_deletes_unsaved_or_active_results_and_verifies_saved_duplicate(
     let second=fixture(&engine);engine.update(&second.id,true,|j|j.created_at="2000-01-01T00:00:00Z".into()).unwrap();let saved=engine.save(&second.id,&gallery).unwrap();let candidate=engine.cleanup_inventory(cutoff).unwrap().files.into_iter().find(|c|c.owner==second.id&&c.path.ends_with("image.png")).unwrap();
     fs::write(saved,b"external change").unwrap();assert!(engine.cleanup_file(&candidate,cutoff).is_err());assert!(Path::new(&candidate.path).exists());
     engine.update(&second.id,true,|j|j.status="paused".into()).unwrap();assert!(!engine.cleanup_file(&candidate,cutoff).unwrap());
+}
+
+#[test]
+fn cleanup_rechecks_reference_inputs_adopted_after_its_preview() {
+    let t=tempfile::tempdir().unwrap();let engine=ImageEngine::new(t.path(),t.path().join("runtime")).unwrap();
+    let job=fixture(&engine);let directory=engine.config.join(&job.id);
+    let mut bytes=vec![];{let mut encoder=png::Encoder::new(&mut bytes,512,512);encoder.set_color(png::ColorType::Rgb);encoder.set_depth(png::BitDepth::Eight);encoder.write_header().unwrap().write_image_data(&vec![120;512*512*3]).unwrap();}
+    fs::write(directory.join("image.png"),&bytes).unwrap();let path=directory.join("reference.png");fs::write(&path,&bytes).unwrap();
+    let reference=ImageReference{mask:None,path:path.to_string_lossy().into(),sha256:format!("{:x}",Sha256::digest(&bytes)),width:512,height:512,strength:0.65};
+    engine.update(&job.id,true,|j|{j.request.width=512;j.request.height=512;j.request.reference=Some(reference.clone());j.created_at="2000-01-01T00:00:00Z".into();}).unwrap();
+    let gallery=t.path().join("gallery");fs::create_dir(&gallery).unwrap();engine.save(&job.id,&gallery).unwrap();
+    let cutoff=978307200;let candidate=engine.cleanup_inventory(cutoff).unwrap().files.into_iter().find(|c|c.path.ends_with("reference.png")).unwrap();
+    let mut workspace=engine.workspace().unwrap().workspace;let mut request=job.request.clone();request.width=512;request.height=512;request.reference=Some(reference);workspace.request=Some(request);engine.save_workspace(workspace.clone()).unwrap();
+    assert!(!engine.cleanup_file(&candidate,cutoff).unwrap());assert_eq!(fs::read(&path).unwrap(),bytes);
+    assert!(!engine.cleanup_inventory(cutoff).unwrap().files.iter().any(|c|c.path==candidate.path));
+    workspace.models.insert("remembered-model".into(),workspace.request.take().unwrap());engine.save_workspace(workspace).unwrap();
+    assert!(!engine.cleanup_file(&candidate,cutoff).unwrap());
 }
 #[test]
 fn custom_output_location_survives_restart_recovery_save_and_scoped_discard() {

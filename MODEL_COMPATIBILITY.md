@@ -1,14 +1,14 @@
 # Modellkompatibilität
 
-Ab 0.6.0 ist der erste lokale Bildpfad mit zwei vorhandenen SDXL-Safetensors-Checkpoints tatsächlich ausgeführt. Der Nachweis gilt für die unten genannten Bytes, Parameter und Hardware, nicht pauschal für sämtliche SDXL-Dateien. Frühere `hf-internal-testing/tiny-random-gpt2`-Dateien bleiben ausschließlich Download-/Importfixtures; kein GPT-2-Chatadapter wurde integriert. Video, Audio, Musik, Vision und Assistent bleiben ungeprüft.
+Ab 0.6.0 ist der erste lokale Bildpfad mit zwei vorhandenen SDXL-Safetensors-Checkpoints tatsächlich ausgeführt. Der Nachweis gilt für die unten genannten Bytes, Parameter und Hardware, nicht pauschal für sämtliche SDXL-Dateien. Frühere `hf-internal-testing/tiny-random-gpt2`-Dateien bleiben ausschließlich Download-/Importfixtures; kein GPT-2-Chatadapter wurde integriert. KI-Video, Musik und Vision bleiben ungeprüft. Lokaler Qwen-Chat und Whisper-Transkription wurden ab 0.24.0 tatsächlich ausgeführt; siehe Ergänzung unten.
 
 | Aufgabenbereich | Geplanter Meilenstein | Adapter/Runtime | Modell/Revision/Variante | Stand |
 | --- | --- | --- | --- | --- |
-| Kleiner DE/EN-Assistent, ca. 1–3B | Einrichtung M1, Ausführung M5 | llama.cpp/GGUF vorgesehen | Noch auszuwählen | Ungeprüft |
+| Kleiner DE/EN-Assistent, ca. 1–3B | Einrichtung M1, Ausführung M5 | llama.cpp b11026 / CPU | Qwen2.5 1.5B Instruct Q4_K_M, gepinnter Hash unten | Echte DE/EN-Inferenz und begrenzte Tools ab 0.24.0 geprüft |
 | Bildgenerierung | M2 | stable-diffusion.cpp cc515a0 · Windows Vulkan | Juggernaut XL v9; DreamShaper XL Turbo V2, konkrete lokale Hashes unten | Reale 512×512-Smoke-Läufe bestanden; vollständige Abnahme offen |
 | Segmentierung/Grounding, Erase, Cutout, Upscale, Restore | M4 | Noch auszuwählen | Noch auszuwählen | Ungeprüft |
 | Bild-/Videoanalyse, Inhaltsindex | M6 | Noch auszuwählen | Noch auszuwählen | Ungeprüft |
-| Transkription, Diarization, Audioanalyse | M6/M8 | Noch auszuwählen | Noch auszuwählen | Ungeprüft |
+| Transkription; Diarization und weitere Audioanalyse offen | M6/M8 | whisper.cpp b5130 / CPU | Whisper Base multilingual, gepinnter Hash unten | Echte DE/EN-Transkription ab 0.24.0 geprüft; keine Diarization-Abnahme |
 | Videoerzeugung/Motion, zwei Modelle derselben Unteraufgabe | M7 | Noch auszuwählen | Zwei reale Kandidaten erforderlich | Ungeprüft |
 | Video-Inpainting, Matting, Interpolation, Restore, Lipsync, Extend | M9 | Noch auszuwählen | Noch auszuwählen | Ungeprüft |
 | Musikgenerierung, Stems, Music-Extend | M10 | Noch auszuwählen | Noch auszuwählen | Ungeprüft |
@@ -38,3 +38,14 @@ Offen bleiben insbesondere Parameter-/Qualitätsabnahme bei 768/1024 Pixeln, get
 ## Ergänzung 0.8.0: reale sequenzielle Aufträge
 
 [Warteschlangennachweis](.artifacts/native-1789680730133/queue-results.json): Juggernaut XL mit 1024×1024, 60 Schritten und Euler/Karras; danach DreamShaper XL mit 512×512, 4 Schritten und DPM++ 2M/Karras, jeweils NVIDIA RTX 4080/Vulkan. Unterschiedliche Modelldigests und unveränderliche Eingaben bestätigt. Zusätzliche Crash-/Resume-Ausführung des wartenden DreamShaper-Auftrags erfolgreich. Kurze Funktionsprüfung, keine Qualitätsbewertung oder neue allgemeine Kompatibilitätszusage.
+
+## Nachweis 0.24.0: lokaler Chat und Transkription
+
+Qwen2.5 1.5B Instruct Q4_K_M (Apache-2.0) und Whisper Base multilingual (MIT), exakte Revisionen/Hashes in src-tauri/ai-models.json. llama.cpp b11026 und whisper.cpp b5130, offizielle Windows-x64-CPU-Runtimes mit Dateimanifesten. Reale DE/EN-Antworten, Hardware-/Galerie-/Bildvorbereitungs-Toolaufrufe, Laden/Entladen/Abbruch und Prozessende geprüft; keine allgemeine Modell-Qualitätszusage. Echte DE/EN-WAVs transkribiert, Zeiten/Timeline/SRT/Undo/Projekttransport geprüft. [Native Prüfung](.artifacts/native-1789715748322/report.json). GPU-Betrieb dieser Adapter, Diarization und vollständige Netzsperren-Abnahme bleiben offen.
+
+
+## SDXL-Referenzen und Inpainting 0.25.0
+
+[Tatsächliche Bildprüfung](.artifacts/native-1789720949322/report.json): dieselben oben dokumentierten DreamShaper-XL-Turbo-V2- und Juggernaut-XL-v9-Hashes, stable-diffusion.cpp cc515a0, Windows 11/RTX 4080. Bild-zu-Bild mit 512×512, 6 angeforderten Schritten, Euler/Karras, CFG 5, Stärke 0,8 bzw. 0,65 und bewusst aktivierter CPU-VAE. DreamShaper-Stapel Seeds 42/43 liefert unterschiedliche echte Ausgaben; Juggernaut als zweite Modellvariante ausgeführt. Maskiertes DreamShaper-Inpainting verändert den weißen Bereich, während alle 131.072 Pixel im schwarzen Halbteil exakt erhalten bleiben. Dies ist ein Ausführungs-/Parameter-/Originalschutznachweis, keine pauschale ästhetische oder allgemeine Modellfreigabe.
+
+Ein all-GPU-Referenzlauf scheiterte bei belegtem VRAM. CPU-VAE ist eine explizite Option; keine automatische Verkleinerung oder Beendigung anderer GPU-Anwendungen. Alle Testbilder sind Entwicklungsfixtures. Modelle wurden nicht mit der App gebündelt oder an externe Dienste übertragen.

@@ -1,6 +1,6 @@
 use super::*;
 fn request() -> ImageRequest {
-    ImageRequest {
+    ImageRequest { vae_on_cpu:false,  reference:None,
         model_path: String::new(),
         prompt: "Project prompt ü".into(),
         negative_prompt: "noise".into(),

@@ -2,8 +2,24 @@ use super::*;
 
 pub(super) struct PreparedImage { pub id: String, pub model: File }
 const MAX_WAITING: usize = 20;
+#[derive(Clone,Serialize,Deserialize)]#[serde(rename_all="camelCase")]
+pub struct BatchInfo{pub id:String,pub index:u32,pub count:u32}
+#[derive(Serialize)]#[serde(rename_all="camelCase")]
+pub struct BatchResult{pub jobs:Vec<ImageJob>,pub error:Option<String>}
+fn batch_parameters(count:u32,seed:u32,increment:bool)->Result<()>{if !(1..=20).contains(&count)||increment&&seed.checked_add(count-1).is_none(){return Err("image_batch".into());}Ok(())}
 
 impl ImageEngine {
+    fn start_batch(self:&Arc<Self>,mut request:ImageRequest,count:u32,increment:bool,temporary:&Path)->Result<BatchResult>{
+        batch_parameters(count,request.seed,increment)?;
+        if self.state.lock().map_err(|_|"image_storage")?.queue.len()+count as usize>MAX_WAITING{return Err("image_queue_full".into());}
+        let (probe,model,digest)=self.prepare(&mut request)?;
+        let mut reference_pins=vec![];if let Some(reference)=&request.reference{for(_,reference) in reference.inputs(){let path=Path::new(&reference.path);reference_pins.extend(crate::gallery::directory_guards(path.parent().ok_or("image_path")?)?);reference_pins.push(read_locked(path)?);reference::bytes(&reference,path)?;}}
+        let batch=uuid::Uuid::new_v4().to_string();let mut result=BatchResult{jobs:vec![],error:None};
+        for index in 0..count {let mut current=request.clone();if increment{current.seed+=index;}
+            let job=(||self.start_prepared(current,probe.clone(),model.try_clone().map_err(|_|"image_path")?,digest.clone(),Some(temporary),Some(BatchInfo{id:batch.clone(),index:index+1,count})))();
+            match job{Ok(job)=>result.jobs.push(job),Err(error)=>{result.error=Some(error);break;}}
+        }Ok(result)
+    }
     fn prepare(&self, request: &mut ImageRequest) -> Result<(ImageProbe, File, String)> {
         if self.stopped.load(Ordering::Relaxed) { return Err("image_closing".into()); }
         if self.workspace()?.recovery_available { return Err("image_recovery_pending".into()); }
@@ -17,7 +33,10 @@ impl ImageEngine {
     }
     pub(super) fn start_in(self: &Arc<Self>, mut request: ImageRequest, temporary: Option<&Path>) -> Result<ImageJob> {
         let (probe, model, digest) = self.prepare(&mut request)?;
-        let job = ImageJob {
+        self.start_prepared(request,probe,model,digest,temporary,None)
+    }
+    fn start_prepared(self:&Arc<Self>,request:ImageRequest,probe:ImageProbe,model:File,digest:String,temporary:Option<&Path>,batch:Option<BatchInfo>)->Result<ImageJob>{
+        let job = ImageJob { batch, sampling_steps:None,
             id: uuid::Uuid::new_v4().to_string(), request, status: "queued".into(), phase: "queued".into(),
             step: 0, hashed_bytes: 0, model_bytes: probe.model_bytes.unwrap_or(0), model_sha256: Some(digest),
             runtime: probe.runtime, device: probe.device.unwrap_or_default(), created_at: crate::database::now(),
@@ -55,6 +74,14 @@ impl ImageEngine {
             model_library::no_links(directory.parent().ok_or("image_path")?).map_err(|_| "image_path")?;
             fs::create_dir(directory).map_err(|_| "image_storage")?;
         }
+        let directory=job_directory(&job,&self.config)?;
+        if let Err(error)=reference::prepare(&job.request,&directory,resume){if !resume{let _=fs::remove_dir(&directory);}return Err(error);}
+        // Publish the job with its own immutable input paths. Restoring its parameters
+        // must not depend on a user file which may have moved since queueing.
+        if !resume { if let Some(input)=job.request.reference.as_mut(){
+            input.path=directory.join("reference.png").to_string_lossy().into();
+            if let Some(mask)=input.mask.as_mut(){mask.path=directory.join("mask.png").to_string_lossy().into();}
+        }}
         job.status = "queued".into(); job.phase = "queued".into(); job.error = None;
         persist(&state, &job)?;
         if resume { *state.jobs.iter_mut().find(|j| j.id == job.id).unwrap() = job.clone(); }
@@ -129,6 +156,8 @@ impl ImageEngine {
     }
 }
 
+#[tauri::command]
+pub async fn image_generate_batch(request:ImageRequest,count:u32,increment_seed:bool,core:tauri::State<'_,Arc<Core>>,state:tauri::State<'_,Arc<ImageEngine>>)->Result<BatchResult>{let state=state.inner().clone();let temporary=PathBuf::from(core.storage_paths()?.temporary);tauri::async_runtime::spawn_blocking(move||state.start_batch(request,count,increment_seed,&temporary)).await.map_err(|_|"image_storage")?}
 #[tauri::command]
 pub async fn image_resume(id: String, state: tauri::State<'_, Arc<ImageEngine>>) -> Result<ImageJob> {
     let engine = state.inner().clone(); tauri::async_runtime::spawn_blocking(move || engine.resume(&id)).await.map_err(|_| "image_storage")?

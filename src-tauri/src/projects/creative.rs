@@ -1,6 +1,8 @@
 use super::*;
 #[cfg(test)]mod tests;
 pub mod canvas;
+mod mask_export;
+pub use mask_export::canvas_export_mask;
 pub mod video;
 pub use canvas::{canvas_preview,canvas_export};
 pub use video::{video_frame,media_prepare,media_status,media_cancel,media_info,caption_read,caption_write,video_probe,video_start,video_jobs,video_cancel,VideoEngine};

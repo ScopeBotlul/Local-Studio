@@ -65,7 +65,13 @@ export function useProject(enabled: boolean, studio: ReturnType<typeof useImageW
     const p = current.current!;
     const path = !as && p.path ? p.path : await save({ title: de ? 'Projekt speichern' : 'Save project', defaultPath: p.path ?? `${context.current.directory}/${p.name.replace(/[<>:"/\\|?*]/g, '_')}.localstudio`, filters });
     if (!path) return false;
-    accept(await projectApi.save(path)); setNotice(de ? 'Projekt gespeichert.' : 'Project saved.');
+    const sourceReference=current.current?.request?.reference;
+    const saved=await projectApi.save(path);accept(saved);
+    const storedReference=saved.request?.reference;
+    if(sourceReference&&storedReference&&sourceReference.sha256===storedReference.sha256&&(sourceReference.path!==storedReference.path||sourceReference.mask?.path!==storedReference.mask?.path)){
+      context.current.studio.setRequest(r=>r.reference?.sha256===sourceReference.sha256&&r.reference.path===sourceReference.path?{...r,reference:{...r.reference,path:storedReference.path,mask:r.reference.mask&&sourceReference.mask&&storedReference.mask&&r.reference.mask.sha256===sourceReference.mask.sha256?{...r.reference.mask,path:storedReference.mask.path}:r.reference.mask}}:r);
+    }
+    setNotice(de ? 'Projekt gespeichert.' : 'Project saved.');
   });
   async function ensureProject() {
     if (context.current.studio.recovery || current.current?.recovery) throw 'project_inactive';

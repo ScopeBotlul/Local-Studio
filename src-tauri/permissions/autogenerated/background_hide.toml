@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-background-hide"
+description = "Enables the background_hide command without any pre-configured scope."
+commands.allow = ["background_hide"]
+
+[[permission]]
+identifier = "deny-background-hide"
+description = "Denies the background_hide command without any pre-configured scope."
+commands.deny = ["background_hide"]

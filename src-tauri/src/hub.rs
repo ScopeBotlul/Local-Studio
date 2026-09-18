@@ -243,7 +243,7 @@ pub fn detail(repo: &str, revision: &str, token: Option<&str>) -> HubResult<Mode
     detail_metadata(repo, revision, token, true)
 }
 
-fn detail_metadata(repo: &str, revision: &str, token: Option<&str>, include_card: bool) -> HubResult<ModelDetail> {
+pub(crate) fn detail_metadata(repo: &str, revision: &str, token: Option<&str>, include_card: bool) -> HubResult<ModelDetail> {
     validate_repo(repo)?;
     if revision.is_empty()
         || [".", ".."].contains(&revision)

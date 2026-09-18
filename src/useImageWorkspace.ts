@@ -47,7 +47,7 @@ export function useImageWorkspace(enabled: boolean) {
     if (modelPath === current.modelPath) return;
     if (current.modelPath) value.current.models[current.modelPath] = { ...current, prompt: '', negativePrompt: '' };
     const preferences = value.current.models[modelPath] ?? defaultImageRequest;
-    setRequest({ ...preferences, modelPath, prompt: current.prompt, negativePrompt: current.negativePrompt });
+    setRequest({ ...preferences, modelPath, prompt: current.prompt, negativePrompt: current.negativePrompt, reference: current.reference ?? null, ...(current.reference ? {width:current.reference.width,height:current.reference.height} : {}) });
   }, [setRequest]);
   const restore = useCallback((next: ImageRequest) => {
     selectModel(next.modelPath); setRequest({ ...next });

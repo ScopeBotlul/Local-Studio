@@ -1,4 +1,6 @@
-# Lokale Bildgenerierung – Stand 0.9.0
+# Lokale Bildgenerierung
+
+Ab 0.25.0: [Bild-zu-Bild, Referenzen, Inpainting, Stapel, CPU-VAE und Messwerte](IMAGE_REFERENCES.md). Die folgenden Schritte beschreiben den grundlegenden SDXL-Pfad.
 
 1. **Modelle → Lokal gespeichert → Schnellsuche** findet typische Modellablagen. Alternativ den gewünschten Ordner durchsuchen.
 2. Bei einem vollständigen SDXL-Safetensors-Checkpoint **Im Studio prüfen** wählen. Im Studio stehen erkannte lokale Safetensors außerdem im Modellwahlschalter mit GB-Größe; eine direkte Dateiauswahl bleibt möglich. Die Liste bestätigt noch keine SDXL-Ausführbarkeit.
@@ -23,7 +25,7 @@ Die Dateiliste zeigt GB; die Studio-Prüfung unterscheidet fehlende Bestandteile
 - Beim Ansichtswechsel bleiben Eingaben und Ergebnisse erhalten. Modellwechsel behalten Prompts und stellen die jeweiligen Parameter wieder her. Die Auswahl allein lädt kein Modell.
 - Beim Beenden: **Bilder speichern und beenden** speichert alle fertigen Entwürfe; **Bilder verwerfen und beenden** entfernt nur ihre bekannten temporären Dateien; **Abbrechen** lässt App und Generierung weiterlaufen. Gespeicherte Galeriebilder bleiben erhalten. Auftragsmetadaten bleiben im Verlauf. Bei Speicherfehlern bleibt die App offen.
 - Unter **Einstellungen → Studio beim Start** ist eine leere Sitzung voreingestellt. Bei Wiederherstellung gibt es zusätzlich **Arbeitsstand behalten und beenden**, einschließlich ungespeicherter Bilder. Nach einem Crash wird der lokal gesicherte Arbeitsstand unabhängig davon angeboten. Eingaben werden nach 450 ms Ruhe gespeichert; die allerletzte Eingabe vor einem harten Absturz kann fehlen. Unterbrochene Generierung wird nicht fortgesetzt.
-- Automatische Bereinigung, drei geschützte Recovery-Punkte und vollständige Projekt-/Medien-Recovery bleiben offen. Ab 0.9.0 zeigt die [Galerie](GALLERY.md) zusätzlich extern abgelegte Bilder, Videos und Audio/Musik aus dem tatsächlichen Galerieordner.
+- Automatische Bereinigung und geschützte Projekt-Recovery-Punkte sind vorhanden; siehe [Einstellungen](SETTINGS.md) und [Projekte](PROJECTS.md). Aktuell verwendete und pro Modell gemerkte Bildreferenzen bleiben geschützt. Die [Galerie](GALLERY.md) zeigt zusätzlich extern abgelegte Bilder, Videos und Audio/Musik aus dem tatsächlichen Galerieordner.
 
 ## Runtime und Grenzen
 
@@ -33,4 +35,4 @@ Für Entwickler: `python scripts/bootstrap-image-runtime.py` lädt ausdrücklich
 
 Die App startet feste CLI-Argumente, keine Shell und keinen Modellcode. Der Worker erhält eine reduzierte Umgebung, keine HF-Zugangsdaten und keine Remote-/RPC-Argumente. Der Pfad verwendet lokale Modell-, Prompt- und Ausgabedateien. Eine Betriebssystem-Netzwerksperre oder vollständige Sandbox gegen Fehler des nativen Tensorparsers ist damit nicht implementiert. Ein vollständiger Test bei deaktiviertem Netzwerk bleibt separat offen.
 
-Weitere Grenzen: keine Diffusers-Ordner, kein SD 1.5/FLUX/Z-Image, keine LoRA-/ControlNet-/Inpainting-Anbindung, keine automatische Modellreparatur und noch keine 18+-Sperre aus SPEC §§55–58. M2 und die vollständige Galerie M3 sind dadurch nicht abgeschlossen. Konkrete Ausführungsnachweise stehen in [MODEL_COMPATIBILITY.md](../MODEL_COMPATIBILITY.md), Testresultate in [TEST_MATRIX.md](../TEST_MATRIX.md).
+Weitere Grenzen: keine Diffusers-Ordner, kein SD 1.5/FLUX/Z-Image, keine LoRA-/ControlNet-Anbindung, keine automatische Modellreparatur und noch keine 18+-Sperre aus SPEC §§55–58. M2 und die vollständige Galerie M3 sind dadurch nicht abgeschlossen. Konkrete Ausführungsnachweise stehen in [MODEL_COMPATIBILITY.md](../MODEL_COMPATIBILITY.md), Testresultate in [TEST_MATRIX.md](../TEST_MATRIX.md).

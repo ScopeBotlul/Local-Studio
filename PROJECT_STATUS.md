@@ -1,4 +1,19 @@
-# Aktueller Stand 0.24.0: lokaler Assistent und automatische Untertitel
+# Aktueller Stand 0.25.0: Bildreferenzen, Modelle und Ressourcen
+
+## Arbeitsstand 0.25.0 – Gesamtauftrag weiterhin in Arbeit
+
+Der Nutzerauftrag umfasst den gesamten verbleibenden Masterprompt. **Noch keine vollständige Umsetzung oder Abnahme.** Der unveränderte Umfang ist in [REQUIREMENTS_STATUS.md](REQUIREMENTS_STATUS.md) nachvollziehbar; alle offenen Meilensteine bleiben erhalten. 0.25.0 ist derzeit ein lokaler Entwicklungsbuild, noch nicht auf GitHub veröffentlicht.
+
+Implementiert: gemeinsame begrenzte Ressourcenvergabe für Bild, Chat/Laden, Transkription, Videoexport und Medienvorbereitung; optional parallele CPU/GPU-Verarbeitung; optionale echte Live-Hardwarewerte, Windows-Akzentfarbe und Weiterlaufen im Infobereich. Bestätigtes Verschieben erfasster Modelldateien mit SHA-256-Kopierprüfung, exklusiven Handles, Abbruch, Konfliktschutz und nachgelagerter Entfernung der Originale; Chat-/Speech-Registrierungen werden nach erfolgreicher Prüfung umgestellt. Alte Projekt-/Studio-Modellpfade müssen bisher anschließend neu ausgewählt werden. HF-Cache-Verknüpfungen und nicht erfasste Begleitdateien werden nicht automatisch migriert.
+
+Modellupdates: abschaltbare automatische Metadatenprüfung für abgeschlossene HF-Downloads gegen main, Vergleich der tatsächlich ausgewählten Dateien, fehlende Dateien als Prüfbedarf; bewusste gemeinsame Downloadvorschau und Queue-Start. Neue Revisionen erhalten eigene Ordner, alte Dateien bleiben erhalten. Keine automatische Installation oder Modellauswahl; externe unbekannte Quellen werden nicht erfunden. Bis 100 Varianten pro Prüfung und 16 gemeinsam vorbereitete Updates.
+
+Bildgenerierungen schreiben lokale Messwerte (Modellhash, Parameter, Laufzeit ohne Ressourcenwartezeit, Windows-Worker-Spitzenspeicher). Unbekannte VRAM-Spitzen bleiben null. Separate lokale gelernte Modell-/Parameterpräferenzen, Bearbeiten, einzelnes Löschen und Reset; explizite aktuelle Nutzerwahl hat Vorrang. Der Assistent erhält nur begrenzte Lese-Tools für Messwerte und Präferenzen.
+
+SDXL-Bild-zu-Bild mit geprüfter eigener Referenzkopie pro Auftrag, Stärke und Hashbindung; zunächst statische 8-Bit-PNG mit 512/768/1024 Pixeln je Achse. Projektformat 4 bettet Referenzbilder und Masken ein und stellt ihren Pfad nach Öffnen auf die Projektkopie um. Alte Formate bleiben lesbar; Referenzprojekte werden nicht als mit älteren Builds kompatibel ausgegeben. Maskiertes Inpainting erhält schwarze Bereiche einschließlich Alpha pixelgenau; graue Bereiche werden gewichtet überblendet. Stapel mit 1–20 Bildern und expliziter Seed-Folge, wählbare CPU-VAE und tatsächlich gemessene Sampling-Schrittzahl. Maskenexport nutzt denselben Ebenenrenderer; Galerie-PNGs können direkt als Referenz übernommen werden. Aufträge speichern eigene Eingabepfade; aktive oder pro Modell gemerkte Eingaben sind vor Temporärbereinigung geschützt. Weitere Eingabeformate und übrige SPEC-Funktionen bleiben offen. Zusätzlich: kleine Maskenvorschauen behalten ihre exakten Pixel; kanonische Windows-Pfade werden bei Galerieübergabe korrekt verbunden. Der lokale OAuth-Rückruf toleriert einzelne Read-Timeouts innerhalb seiner begrenzten Headerfrist und bleibt gegen falschen State geschützt. Tatsächliche Prüfungen stehen ausschließlich in TEST_MATRIX.md.
+
+
+## Weiterhin enthalten: 0.24.0
 
 - Echter lokaler DE/EN-Chat mit Qwen-GGUF und llama.cpp auf CPU. Modellauswahl, explizites Laden/Entladen, Abbruch, persistenter Verlauf und bestätigtes Leeren. Nach Neustart keine automatische Modellaktivierung.
 - Vier fest definierte Werkzeuge: tatsächliche Hardware, vorhandene Modellbibliothek, Galerie-Metadaten und Vorbereitung geprüfter SDXL-Parameter. Explizite Übernahme ins Bild-Studio, Generierung separat. Keine Shell, freien Skripte oder autonomen Downloads.

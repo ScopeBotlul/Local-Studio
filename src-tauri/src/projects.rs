@@ -1,6 +1,7 @@
 pub mod creative;
-pub use creative::{video_frame,media_prepare,media_status,media_cancel,media_info,caption_read,caption_write,project_creative_save,canvas_preview,canvas_export,video_probe,video_start,video_jobs,video_cancel,VideoEngine};
+pub use creative::{video_frame,media_prepare,media_status,media_cancel,media_info,caption_read,caption_write,project_creative_save,canvas_preview,canvas_export,canvas_export_mask,video_probe,video_start,video_jobs,video_cancel,VideoEngine};
 mod editor;
+mod image_reference;
 pub use editor::{project_editor_preview,project_editor_save,project_editor_export,project_add_edit};
 // Local, passive project containers. Archive names never become filesystem paths.
 mod recent;
@@ -117,7 +118,7 @@ fn valid_request(request: &Option<ImageRequest>) -> Result<()> {
     Ok(())
 }
 fn validate(m: &Manifest) -> Result<()> {
-    if m.format != "local-studio" || !matches!(m.version,1|2|3) {
+    if m.format != "local-studio" || !matches!(m.version,1|2|3|4) {
         return Err("project_version".into());
     }
     if m.name.trim().is_empty()
@@ -130,6 +131,10 @@ fn validate(m: &Manifest) -> Result<()> {
     if serde_json::to_vec(m).map_err(err)?.len() as u64 > MAX_MANIFEST { return Err("project_limit".into()); }
     if let Some(c)=&m.creative {if m.version<3{return Err("project_version".into());}creative::validate(c,&m.assets)?;}
     valid_request(&m.request)?;
+    if m.version<4&&m.request.as_ref().is_some_and(|r|r.vae_on_cpu){return Err("project_version".into());}
+    if let Some(reference)=m.request.as_ref().and_then(|r|r.reference.as_ref()) {
+        if m.version<4||reference.inputs().iter().any(|(_,r)|!m.assets.iter().any(|a|a.archive_name==r.path&&a.sha256==r.sha256&&a.kind=="image")) {return Err("project_manifest".into());}
+    }
     if m.request.as_ref().is_some_and(|r| !r.model_path.is_empty()) {
         return Err("project_manifest".into());
     }
@@ -487,6 +492,7 @@ impl Projects {
                 }
                 p.assets.push(a);
             }
+            image_reference::restore_reference(&mut p)?;
             p.dirty = false;
             persist(&mut s, Some(p.clone()))?;
             Ok(p.clone())

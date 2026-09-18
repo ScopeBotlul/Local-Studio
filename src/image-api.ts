@@ -1,12 +1,15 @@
 import { invoke } from '@tauri-apps/api/core';
 
-export interface ImageRequest { modelPath: string; prompt: string; negativePrompt: string; width: number; height: number; steps: number; guidance: number; seed: number; sampler: string; }
-export interface ImageJob { id: string; request: ImageRequest; status: string; phase: string; step: number; hashedBytes: number; modelBytes: number; modelSha256: string | null; runtime: string; device: string; createdAt: string; elapsedMs: number; error: string | null; output: string | null; savedPath: string | null; logTail: string; discarded: boolean; startedAt: string | null; finishedAt: string | null; queuePosition: number | null; }
+export interface ImageMask {path:string;sha256:string;width:number;height:number}
+export interface ImageReference {mask?:ImageMask|null;path:string;sha256:string;width:number;height:number;strength:number}
+export interface ImageRequest { vaeOnCpu?:boolean; reference?:ImageReference|null; modelPath: string; prompt: string; negativePrompt: string; width: number; height: number; steps: number; guidance: number; seed: number; sampler: string; }
+export interface ImageJob { batch?:{id:string;index:number;count:number}|null; samplingSteps?:number|null; id: string; request: ImageRequest; status: string; phase: string; step: number; hashedBytes: number; modelBytes: number; modelSha256: string | null; runtime: string; device: string; createdAt: string; elapsedMs: number; error: string | null; output: string | null; savedPath: string | null; logTail: string; discarded: boolean; startedAt: string | null; finishedAt: string | null; queuePosition: number | null; }
 export interface ImageProbe { ready: boolean; family: string | null; modelBytes: number | null; missing: string[]; runtime: string; device: string | null; vramBytes: number | null; modelLicense: string; runtimeLicense: string; }
 export interface ImageWorkspace { request: ImageRequest | null; models: Record<string, ImageRequest>; }
 export interface WorkspaceSnapshot { workspace: ImageWorkspace; recoveryAvailable: boolean; unsaved: number; }
 export const activeImage = (job: ImageJob) => job.status === 'running' || job.status === 'queued';
 export const imageApi = {
+  generateBatch:(request:ImageRequest,count:number,incrementSeed:boolean)=>invoke<{jobs:ImageJob[];error:string|null}>('image_generate_batch',{request,count,incrementSeed}),
   resume: (id: string) => invoke<ImageJob>('image_resume', { id }),
   workspace: () => invoke<WorkspaceSnapshot>('image_workspace'),
   saveWorkspace: (workspace: ImageWorkspace) => invoke<void>('image_workspace_save', { workspace }),
@@ -21,6 +24,12 @@ export const imageApi = {
 };
 
 const errors: Record<string, [string, string]> = {
+  image_mask:['Die Maske muss ein undurchsichtiges PNG mit gleichen RGB-Grauwerten und mindestens einem hellen Bereich sein. Weiß wird bearbeitet, Schwarz bleibt erhalten.','The mask must be an opaque grayscale PNG with at least one non-black area. White is edited, black is preserved.'],
+  resource_memory:['Nicht genug freier RAM. Andere Modelle entladen und erneut versuchen.','Not enough available RAM. Unload other models and try again.'],
+  resource_timeout:['Zu lange auf Ressourcen gewartet. Den Auftrag bei Bedarf erneut einreihen.','Resource wait timed out. Queue the job again if needed.'],
+  image_batch: ['Stapelgröße 1 bis 20 wählen. Bei aufsteigenden Seeds darf der letzte Seed 4294967295 nicht überschreiten.', 'Choose a batch size from 1 to 20. With increasing seeds, the last seed must not exceed 4294967295.'],
+  image_reference_parameters: ['Referenz: PNG in 8 Bit, Breite und Höhe jeweils 512, 768 oder 1024 Pixel. Ausgabegröße muss übereinstimmen; Stärke 0,05 bis 1.', 'Reference: 8-bit PNG with width and height of 512, 768 or 1024 pixels. Output dimensions must match; strength must be 0.05 to 1.'],
+  image_reference_changed: ['Das Referenzbild wurde verändert. Bitte erneut auswählen.', 'The reference image changed. Select it again.'],
   image_closing: ['Die Anwendung wird gerade beendet.', 'The application is closing.'],
   image_unsaved: ['Ein Bild wurde während des Beendens fertig. Bitte erneut speichern oder verwerfen.', 'An image completed while closing. Please choose save or discard again.'],
   image_recovery_pending: ['Bitte zuerst den Bild-Arbeitsstand wiederherstellen.', 'Restore the image workspace first.'],
@@ -44,7 +53,8 @@ const errors: Record<string, [string, string]> = {
   image_busy: ['Es läuft bereits eine Bildgenerierung.', 'An image generation is already running.'],
   image_cancelled: ['Generierung abgebrochen; Modell entladen.', 'Generation cancelled; model unloaded.'],
   image_timeout: ['Zeitlimit erreicht. Der Worker wurde beendet und der Grafikspeicher freigegeben.', 'Time limit reached. The worker was stopped and graphics memory released.'],
-  image_execution: ['Generierung fehlgeschlagen. Details prüfen; bei Speichermangel eine kleinere Auflösung wählen.', 'Generation failed. Check details; choose a smaller resolution if memory was exhausted.'],
+  image_execution: ['Generierung fehlgeschlagen. Bitte die technischen Auftragsdetails prüfen.', 'Generation failed. Check the technical job details.'],
+  image_memory: ['Zu wenig verfügbarer Speicher für die Generierung. Bei knappem VRAM „VAE auf CPU“ wählen oder andere GPU-Aufgaben beenden und erneut starten.', 'Insufficient available memory for generation. If VRAM is limited, select “Run VAE on CPU” or finish other GPU tasks before trying again.'],
   image_output: ['Der Worker hat kein gültiges PNG in der gewünschten Auflösung geliefert.', 'The worker did not return a valid PNG at the requested resolution.'],
   image_storage: ['Lokale Bilddaten konnten nicht gespeichert oder gelesen werden.', 'Unable to read or save local image data.'],
   image_missing: ['Das Ergebnis ist nicht mehr verfügbar.', 'The result is no longer available.'],

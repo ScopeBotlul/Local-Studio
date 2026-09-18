@@ -3,6 +3,9 @@ import { open } from '@tauri-apps/plugin-dialog';
 import { invoke } from '@tauri-apps/api/core';
 import { FolderOpen, HardDrive, RefreshCw, Search, X } from 'lucide-react';
 import DownloadsPage from './DownloadsPage';
+import ModelTransfer from './ModelTransfer';
+import ModelUpdates from './ModelUpdates';
+import Benchmarks from './Benchmarks';
 import { formatBytes, formatDate, formatGigabytes } from './helpers';
 import type { Language } from './types';
 import './local-models.css';
@@ -42,7 +45,8 @@ export default function LocalModels({ language, showImage }: { language: Languag
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null); const [path, setPath] = useState('');
   const [error, setError] = useState(''); const [busy, setBusy] = useState(false); const locked = useRef(false);
   const alive = useRef(true); const generation = useRef(0);
-  const running = snapshot?.scan.status === 'running';
+  const [moving, setMoving] = useState(false), [moveModel, setMoveModel] = useState<LocalModel | null>(null);
+  const running = snapshot?.scan.status === 'running' || moving;
   const [category, setCategory] = useState<'model' | 'candidate' | 'excluded'>('model');
   const [page, setPage] = useState(0);
   const filtered = snapshot?.entries.filter(entry => entry.discovery === category) ?? [];
@@ -70,6 +74,9 @@ export default function LocalModels({ language, showImage }: { language: Languag
     if (typeof selected === 'string' && alive.current) setPath(selected);
   }
   return <div className="local-model-library">
+    <Benchmarks language={language} />
+    <ModelUpdates language={language} />
+    <ModelTransfer language={language} model={moveModel} dismiss={() => setMoveModel(null)} onBusy={setMoving} />
     <section className="panel local-import" aria-label={de ? 'Modelle vom PC einbinden' : 'Import models from PC'}>
       <h2>{de ? 'Modelle vom PC einbinden' : 'Import models from PC'}</h2>
       <p className="hub-hint">{de ? 'Durchsucht den gewählten Ordner mit Unterordnern. Dateien bleiben am Originalort; Modellcode wird nicht ausgeführt. Die Erkennung bestätigt noch keine Ausführbarkeit.' : 'Scans the selected folder and its subfolders. Files stay in place; model code is never executed. Detection does not confirm that a model can run.'}</p>
@@ -114,6 +121,7 @@ export default function LocalModels({ language, showImage }: { language: Languag
       <p className="hub-hint">{text(entry.discoveryReason)}</p>
       <small>{de ? 'Zuletzt geprüft' : 'Last inspected'}: {formatDate(entry.checkedAt, language)}</small>
       <div className="hub-actions">{entry.format === 'safetensors' && entry.discovery === 'model' && <button className="button primary" onClick={() => showImage(entry.path)}>{de ? 'Im Studio prüfen' : 'Check in Studio'}</button>}<button className="button secondary" disabled={busy || running} onClick={() => void act(() => invoke('model_library_recheck', { id: entry.id }))}><RefreshCw size={14} />{de ? 'Erneut prüfen' : 'Recheck'}</button><button className="text-button" disabled={busy || running} title={de ? 'Entfernt nur den Listeneintrag; die Dateien bleiben erhalten.' : 'Removes only the list entry; files are kept.'} onClick={() => void act(() => invoke('model_library_forget', { id: entry.id }))}>{de ? 'Aus Liste entfernen' : 'Remove from list'}</button></div>
+      {entry.discovery === 'model' && <button className="button secondary" disabled={busy || running || !['checked', 'recognized'].includes(entry.status)} onClick={() => setMoveModel(entry)}>{de ? 'Dateien verschieben' : 'Move files'}</button>}
       <details><summary>{de ? 'Erfasste Dateien' : 'Recorded files'} ({entry.files.length})</summary><ul className="download-file-list">{entry.files.map(file => <li key={file.path}><span className="download-path">{file.path}</span><span>{formatGigabytes(file.size, language)}</span></li>)}</ul></details>
     </article>)}</div>
     {pages > 1 && <div className="hub-actions"><button className="button secondary" disabled={currentPage === 0} onClick={() => setPage(currentPage - 1)}>{de ? 'Zurück' : 'Previous'}</button><span>{de ? 'Seite' : 'Page'} {currentPage + 1} / {pages}</span><button className="button secondary" disabled={currentPage + 1 >= pages} onClick={() => setPage(currentPage + 1)}>{de ? 'Weiter' : 'Next'}</button></div>}

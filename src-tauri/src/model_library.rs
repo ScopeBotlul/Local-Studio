@@ -7,6 +7,9 @@ use std::{collections::{BTreeSet, HashSet}, fs::{self, File}, io::{Read}, path::
 #[path = "model_discovery.rs"]
 mod discovery;
 use discovery::{classify_discovery, excluded_location, migrate_discovery};
+#[path = "model_transfers.rs"]
+mod transfers;
+pub use transfers::*;
 
 type Result<T> = std::result::Result<T, String>;
 const MAX_HEADER: u64 = 16 * 1024 * 1024;
@@ -101,7 +104,7 @@ impl Default for Scan {
     fn default() -> Self { Self { mode: ScanMode::Folder, roots: Vec::new(), roots_finished: 0, status: "idle".into(), root: String::new(), visited: 0, found: 0, imported: 0, skipped: 0, truncated: false, notes: Vec::new() } }
 }
 struct State { db: Connection, scan: Scan }
-pub struct ModelLibrary { state: Mutex<State>, cancel: AtomicBool }
+pub struct ModelLibrary { state: Mutex<State>, cancel: AtomicBool, transfer: Mutex<transfers::TransferState>, transfer_cancel: AtomicBool, maintenance: AtomicBool }
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Snapshot { entries: Vec<LocalModel>, scan: Scan }
@@ -296,7 +299,8 @@ impl ModelLibrary {
         migrate_discovery(&mut db)?;
         let mut scan = db.query_row("SELECT json FROM model_scan WHERE id=1", [], |row| row.get::<_, String>(0)).ok().and_then(|s| serde_json::from_str::<Scan>(&s).ok()).unwrap_or_default();
         if scan.status == "running" { scan.status = "interrupted".into(); }
-        Ok(Arc::new(Self { state: Mutex::new(State { db, scan }), cancel: AtomicBool::new(false) }))
+        let transfer = transfers::load(&db)?;
+        Ok(Arc::new(Self { state: Mutex::new(State { db, scan }), cancel: AtomicBool::new(false), transfer: Mutex::new(transfer), transfer_cancel: AtomicBool::new(false), maintenance: AtomicBool::new(false) }))
     }
     fn note(scan: &mut Scan, path: &Path, code: &str) {
         scan.skipped += 1;
@@ -391,7 +395,7 @@ impl ModelLibrary {
     fn start_roots(self: &Arc<Self>, roots: Vec<PathBuf>, mode: ScanMode) -> Result<Scan> {
         let scan = Scan { mode, roots: roots.iter().map(|p| p.to_string_lossy().into()).collect(), status: "running".into(), root: roots.first().map(|p| p.to_string_lossy().into()).unwrap_or_default(), ..Scan::default() };
         { let mut state = self.state.lock().map_err(|_| "local_storage")?;
-            if state.scan.status == "running" { return Err("local_busy".into()); }
+            if state.scan.status == "running" || self.maintenance.load(Ordering::SeqCst) { return Err("local_busy".into()); }
             self.cancel.store(false, Ordering::Relaxed); state.scan = scan.clone();
             if let Err(error) = Self::save_scan(&state) { state.scan.status = "failed".into(); return Err(error); }
         }
@@ -401,8 +405,9 @@ impl ModelLibrary {
     pub fn stop(&self) { self.cancel.store(true, Ordering::Relaxed); }
     pub async fn shutdown(&self) {
         self.stop();
+        self.transfer_cancel.store(true, Ordering::SeqCst);
         loop {
-            if self.state.lock().map(|s| s.scan.status != "running").unwrap_or(true) { break; }
+            if self.state.lock().map(|s| s.scan.status != "running").unwrap_or(true) && !self.maintenance.load(Ordering::SeqCst) { break; }
             tokio::time::sleep(std::time::Duration::from_millis(25)).await;
         }
     }
@@ -429,7 +434,7 @@ impl ModelLibrary {
     }
     fn recheck(&self, id: &str) -> Result<()> {
         let state = self.state.lock().map_err(|_| "local_storage")?;
-        if state.scan.status == "running" { return Err("local_busy".into()); }
+        if state.scan.status == "running" || self.maintenance.load(Ordering::SeqCst) { return Err("local_busy".into()); }
         let json: String = state.db.query_row("SELECT json FROM local_models WHERE id=?1", [id], |r| r.get(0)).map_err(|_| "local_missing")?;
         let old: LocalModel = serde_json::from_str(&json).map_err(|_| "local_storage")?;
         let mut next = inspect(Path::new(&old.path), &old.source_root);
@@ -439,7 +444,7 @@ impl ModelLibrary {
     }
     fn forget(&self, id: &str) -> Result<()> {
         let state = self.state.lock().map_err(|_| "local_storage")?;
-        if state.scan.status == "running" { return Err("local_busy".into()); }
+        if state.scan.status == "running" || self.maintenance.load(Ordering::SeqCst) { return Err("local_busy".into()); }
         state.db.execute("DELETE FROM local_models WHERE id=?1", [id]).map_err(|_| "local_storage")?; Ok(())
     }
 }

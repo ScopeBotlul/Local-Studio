@@ -5,7 +5,7 @@ fn restored_history_keeps_creation_order_after_updates_and_recovers_running_jobs
     let directory = tempfile::tempdir().unwrap();
     let create = || ImageEngine::new(directory.path(), directory.path().join("absent-runtime")).unwrap();
     let engine = create();
-    let make = |id: &str, created: &str, status: &str| ImageJob {
+    let make = |id: &str, created: &str, status: &str| ImageJob { batch:None,sampling_steps:None,
         id: id.into(), request: super::tests::request(), status: status.into(), phase: status.into(),
         step: 0, hashed_bytes: 0, model_bytes: 10, model_sha256: None, runtime: "test fixture".into(), device: "test fixture".into(),
         created_at: created.into(), elapsed_ms: 0, error: None, output: None, saved_path: None, saved_binding: None, working_directory: None, log_tail: String::new(), discarded: false, started_at: None, finished_at: None, queue_position: None,

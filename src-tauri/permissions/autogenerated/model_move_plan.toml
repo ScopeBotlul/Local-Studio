@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-model-move-plan"
+description = "Enables the model_move_plan command without any pre-configured scope."
+commands.allow = ["model_move_plan"]
+
+[[permission]]
+identifier = "deny-model-move-plan"
+description = "Denies the model_move_plan command without any pre-configured scope."
+commands.deny = ["model_move_plan"]

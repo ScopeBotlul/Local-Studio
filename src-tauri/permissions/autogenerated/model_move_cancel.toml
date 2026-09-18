@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-model-move-cancel"
+description = "Enables the model_move_cancel command without any pre-configured scope."
+commands.allow = ["model_move_cancel"]
+
+[[permission]]
+identifier = "deny-model-move-cancel"
+description = "Denies the model_move_cancel command without any pre-configured scope."
+commands.deny = ["model_move_cancel"]

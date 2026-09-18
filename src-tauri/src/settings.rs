@@ -5,7 +5,9 @@ use std::path::{Component, Path};
 
 pub fn defaults(root: &Path) -> Settings {
     Settings {
+        live_hardware: false, system_accent: false, minimize_to_tray: false, parallel_generation: false,
         auto_update_check: true,
+        auto_model_updates: true,
         language: if sys_locale::get_locale()
             .unwrap_or_default()
             .to_lowercase()

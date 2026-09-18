@@ -1,7 +1,6 @@
 import {useEffect,useRef,useState} from 'react';
 import {invoke} from '@tauri-apps/api/core';
 import {listen} from '@tauri-apps/api/event';
-import {getCurrentWindow} from '@tauri-apps/api/window';
 import type {useProject} from './useProject';
 import type {Settings} from './types';
 import {menuContext} from './menu-context';
@@ -16,7 +15,7 @@ export default function AppMenu(props:Props){
  if(!p.locked&&(!modal||document.querySelector('.image-editor[open]'))){ids.push('uiZoomIn','uiZoomOut','uiZoomReset');if(context)ids.push(...Object.keys(context.actions));}return ids;
  }
  async function action(id:string){if(!enabled().includes(id))return;const p=latest.current;const view=menuContext()?.actions[id as keyof NonNullable<ReturnType<typeof menuContext>>['actions']];if(view){view();return;}if(id.startsWith('recent-')){const r=p.projects.recent[Number(id.slice(7))];if(r)await p.projects.openPath(r.path);return;}
- switch(id){case'projectNew':setCreating(true);break;case'projectOpen':await p.projects.open();break;case'projectSave':await p.projects.save();break;case'projectSaveAs':await p.projects.save(true);break;case'projectAdd':await p.projects.add();break;case'projectRecover':await p.projects.recover();break;case'projectClose':await p.projects.close();break;case'exit':await getCurrentWindow().close();break;case'settings':p.onSettings();break;case'help':p.onHelp();break;case'about':p.onAbout();break;case'updates':p.onUpdates();break;case'uiZoomIn':p.onZoom(p.settings.uiScale+.1);break;case'uiZoomOut':p.onZoom(p.settings.uiScale-.1);break;case'uiZoomReset':p.onZoom(1);break;}
+ switch(id){case'projectNew':setCreating(true);break;case'projectOpen':await p.projects.open();break;case'projectSave':await p.projects.save();break;case'projectSaveAs':await p.projects.save(true);break;case'projectAdd':await p.projects.add();break;case'projectRecover':await p.projects.recover();break;case'projectClose':await p.projects.close();break;case'exit':window.dispatchEvent(new Event('local-studio-exit'));break;case'settings':p.onSettings();break;case'help':p.onHelp();break;case'about':p.onAbout();break;case'updates':p.onUpdates();break;case'uiZoomIn':p.onZoom(p.settings.uiScale+.1);break;case'uiZoomOut':p.onZoom(p.settings.uiScale-.1);break;case'uiZoomReset':p.onZoom(1);break;}
  }
  const handler=useRef(action);handler.current=action;
  useEffect(()=>{let disposed=false;let off:(()=>void)|undefined;void listen<string>('app-menu',e=>void handler.current(e.payload).catch(latest.current.onError)).then(fn=>{if(disposed)fn();else off=fn;});const key=(e:KeyboardEvent)=>{if(e.defaultPrevented||e.repeat)return;const command=shortcutFor(e,latest.current.settings.shortcuts);if(command&&['projectNew','projectOpen','projectSaveAs','projectClose'].includes(command)){e.preventDefault();void handler.current(command).catch(latest.current.onError);}};window.addEventListener('keydown',key);return()=>{disposed=true;off?.();window.removeEventListener('keydown',key);};},[]);

@@ -18,7 +18,11 @@ Die vollständige und verbindliche Anforderung steht in `SPEC.md`. Der Umfang bl
 | M11 — Workflows | Ein gemeinsamer Graph, Schrittansicht/Node-Editor, `.lsworkflow`, Modellreferenzen, sichere Imports, zurückhaltende Vorschläge | Workflow vollständig lokal ausführen; fehlende Modelle melden; keine importierbaren Shell-/Code-Nodes | Geplant |
 | M12 — Packaging | Windows-Installer und portable Ausgabe, Dateizuordnung, signaturgeprüfte GitHub-Updates, Crash-/Offline-/Performance-/Accessibility-Tests | Beide Distributionen auf Windows geprüft; portable Version aktualisiert sich nicht selbst | In Arbeit ab 0.20.0: Installer/Portable und signierter GitHub-Updatekanal; vollständige M12-Abnahme offen |
 
-## Aktuelles Arbeitspaket: lokaler Assistent und Spracherkennung gemeinsam
+## Aktueller Gesamtauftrag: verbleibenden Masterprompt vervollständigen
+
+Auf Nutzerauftrag werden die verbleibenden Anforderungen schrittweise vollständig bearbeitet. [Vollständiger Abgleich](REQUIREMENTS_STATUS.md). Normale technische Entscheidungen werden selbstständig getroffen; echte externe Blocker werden am Ende gesammelt. Jeder Pfad erhält Implementierung und reale Prüfung, bevor weitere UI hinzukommt.
+
+## Vorheriges Arbeitspaket: lokaler Assistent und Spracherkennung gemeinsam
 
 0.24.0 verbindet den ersten tatsächlichen M5-Chat-/Werkzeugpfad mit lokaler Whisper-Transkription für M6/M8. Gemeinsamer vorhandener Downloadmanager, Größen/Prüfsummen, bewusste Modellauswahl und isolierte CPU-Inferenz. [Bedienung und Grenzen](docs/ASSISTANT.md). M5/M6/M8 bleiben teilweise umgesetzt; der gesamte weitere SPEC-Umfang einschließlich KI-Videoerzeugung bleibt erhalten.
 

@@ -156,6 +156,7 @@ pub async fn media_prepare(id:String,asset_id:String,kind:String,resolution:Stri
     let task=MediaTask{id:uuid(),asset_id:asset_id.clone(),name:asset.name.clone(),kind:kind.clone(),status:"running".into(),progress:0.,error:None};*e.media.task.lock().map_err(err)?=Some(task.clone());
     thread::spawn(move||{
         let result=(||{
+            let _admission=crate::resources::shared().acquire(&asset_id,"media",512*1024*1024,false,&e.media.cancel).map_err(|v|if v=="resource_cancelled"{"video_cancelled".into()}else{v})?;
             let source=e.source(&p,&asset_id)?;let(runtime,_runtime)=e.runtime()?;let metadata=probe(&runtime,&source.1)?;if metadata.duration<=0.||metadata.duration>3600.{return Err("video_range".into());}
             if kind=="wave"&&!metadata.audio{return Err("video_no_audio".into());}
             let base=if kind=="proxy"{&paths.proxies}else{&paths.cache};let mut work=Work::new(base,"video-media")?;work.files=vec!["media.log".into(),"wave.pcm".into(),"proxy.mp4".into(),"wave.json".into()];

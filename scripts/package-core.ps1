@@ -36,6 +36,16 @@ Die Website-Anmeldung ist separat; ihre Cookies liegen im eigenen WebView-Profil
 App-Tokens werden nicht in Website-Cookies umgewandelt. Modellseiten lassen sich
 über In Local Studio öffnen an die Modellansicht übergeben.
 
+Neu in 0.25.0: SDXL-Bild-zu-Bild, Inpainting mit pixelgenauem Maskenschutz,
+Stapel mit gleicher/aufsteigender Seed-Folge und bewusst waehlbarer CPU-VAE.
+Referenz und Maske werden pro Auftrag kopiert; Projektformat 4 bettet beide ein.
+PNG-Galeriebild als Referenz uebernehmen; Ebenenmasken als PNG exportieren.
+Gemeinsame Ressourcenwarteschlange, optionale Live-Hardwarewerte, Windows-Akzent
+und Infobereich. Gepruefte Modellverschiebung, bewusste gemeinsame Modellupdates,
+echte lokale Messwerte und bearbeitbare gelernte Praeferenzen.
+Noch keine vollstaendige Umsetzung des Masterprompts; u.a. KI-Video, Musikmodelle,
+Workflows, Vision/Inhaltsindex, 18+-Sperre und weitere Editorfunktionen offen.
+
 Neu in 0.24.0: Lokaler Assistent mit bewusstem Modelldownload, DE/EN-Chat,
 Laden/Entladen, Abbruch und sichtbaren Studio-Werkzeugen. Hardware lesen,
 installierte Modelle und Galerie-Metadaten suchen, Bildauftraege vorbereiten.
@@ -194,7 +204,7 @@ gespeichert erneut prüfen. Hash-Prüfung bedeutet keine Ausführbarkeit.
 
 Noch nicht enthalten: universelle Modell-/Runtime-Verwaltung, weitere Bildadapter,
 vollstaendiger Bildeditor, erweiterte Video-/Audiofunktionen, vollstaendige Galerie/Projekte,
-Assistent und Workflows. Keine Modelle beigepackt. Die abschaltbare Updatepruefung
+vollstaendige Assistentenaktionen und Workflows. Keine Modelle beigepackt. Die abschaltbare Updatepruefung
 verbindet sich beim Start mit GitHub; sie uebertraegt keine Medien oder Prompts.
 Bei einem anderen Programmordner oder PC ist eine erneute Anmeldung erforderlich.
 Die Gesamtanforderungen bleiben im Projekt in SPEC.md und PLAN.md erhalten.

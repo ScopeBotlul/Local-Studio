@@ -82,6 +82,21 @@ fn nvidia_gpus() -> Result<Vec<GpuInfo>, String> {
     Err(last_error)
 }
 
+#[derive(serde::Serialize)]
+#[serde(rename_all="camelCase")]
+pub struct LiveGpu { name:String, utilization:Option<f64>, used_bytes:Option<u64>, total_bytes:Option<u64>, temperature:Option<f64> }
+#[derive(serde::Serialize)]
+#[serde(rename_all="camelCase")]
+pub struct LiveHardware { cpu_percent:f32, used_memory_bytes:u64, total_memory_bytes:u64, gpus:Vec<LiveGpu> }
+fn live_gpus(output:&str)->Vec<LiveGpu>{output.lines().filter_map(|line|{let f:Vec<_>=line.split(',').map(str::trim).collect();if f.len()!=5{return None;}let number=|n:usize|f[n].parse::<f64>().ok().filter(|v|v.is_finite()&&*v>=0.);Some(LiveGpu{name:f[0].into(),utilization:number(1).filter(|v|*v<=100.),used_bytes:number(2).map(|n|(n*1024.*1024.)as u64),total_bytes:number(3).map(|n|(n*1024.*1024.)as u64),temperature:number(4).filter(|v|*v<=150.)})}).collect()}
+#[tauri::command]
+pub async fn hardware_live()->Result<LiveHardware,String>{tauri::async_runtime::spawn_blocking(||{
+    let mut system=System::new();system.refresh_cpu_usage();system.refresh_memory();std::thread::sleep(Duration::from_millis(220));system.refresh_cpu_usage();
+    let path=std::env::var_os("SystemRoot").map(std::path::PathBuf::from).unwrap_or_else(||"C:\\Windows".into()).join("System32/nvidia-smi.exe");
+    let gpus=capture(Command::new(path).args(["--query-gpu=name,utilization.gpu,memory.used,memory.total,temperature.gpu","--format=csv,noheader,nounits"])).map(|s|live_gpus(&s)).unwrap_or_default();
+    LiveHardware{cpu_percent:system.global_cpu_usage(),used_memory_bytes:system.used_memory(),total_memory_bytes:system.total_memory(),gpus}
+}).await.map_err(|e|e.to_string())}
+
 fn parse_nvidia(output: &str) -> Vec<GpuInfo> {
     output
         .lines()
@@ -225,6 +240,7 @@ pub fn discover() -> HardwareInfo {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]fn live_metrics_do_not_fabricate_missing_or_invalid_values(){let g=live_gpus("RTX, 43, 1024, 16384, 61\nUnknown, [N/A], NaN, [N/A], inf\n");assert_eq!(g[0].used_bytes,Some(1024*1024*1024));assert_eq!(g[0].temperature,Some(61.));assert!(g[1].utilization.is_none()&&g[1].used_bytes.is_none()&&g[1].temperature.is_none());}
     #[test]
     fn nvidia_memory_is_mib_and_unknown_is_never_invented() {
         let cards =

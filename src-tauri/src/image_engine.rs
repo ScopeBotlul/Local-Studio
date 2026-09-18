@@ -7,8 +7,10 @@ use sha2::{Digest, Sha256};
 use std::{fs::{self, File, OpenOptions}, io::{Read, Write}, path::{Path, PathBuf}, process::{Command, Stdio}, sync::{Arc, Mutex, atomic::{AtomicBool, Ordering}}, thread::JoinHandle, time::{Duration, Instant}};
 
 mod queue;
+pub(crate) mod reference;
+pub use reference::{ImageReference,image_reference};
 mod cleanup;
-pub use queue::image_resume;
+pub use queue::{image_resume,image_generate_batch,BatchInfo};
 mod workspace;
 pub use workspace::*;
 
@@ -19,6 +21,8 @@ const MAX_IMAGE: u64 = 24 * 1024 * 1024;
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ImageRequest {
+    #[serde(default,skip_serializing_if="is_false")] pub vae_on_cpu:bool,
+    #[serde(default,skip_serializing_if="Option::is_none")] pub reference:Option<ImageReference>,
     pub model_path: String, pub prompt: String, pub negative_prompt: String,
     pub width: u32, pub height: u32, pub steps: u32, pub guidance: f32,
     pub seed: u32, pub sampler: String,
@@ -26,6 +30,8 @@ pub struct ImageRequest {
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ImageJob {
+    #[serde(default)] pub batch:Option<BatchInfo>,
+    #[serde(default)] pub sampling_steps:Option<u32>,
     pub id: String, pub request: ImageRequest, pub status: String, pub phase: String,
     pub step: u32, pub hashed_bytes: u64, pub model_bytes: u64,
     pub model_sha256: Option<String>, pub runtime: String, pub device: String,
@@ -38,7 +44,7 @@ pub struct ImageJob {
     #[serde(default)] pub finished_at: Option<String>,
     #[serde(default)] pub queue_position: Option<usize>,
 }
-#[derive(Serialize)]
+#[derive(Clone,Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ImageProbe {
     pub ready: bool, pub family: Option<String>, pub model_bytes: Option<u64>,
@@ -47,9 +53,11 @@ pub struct ImageProbe {
 }
 struct State { db: Connection, jobs: Vec<ImageJob>, workspace: ImageWorkspace, recovery_available: bool, queue: std::collections::VecDeque<queue::PreparedImage> }
 struct Active { thread: JoinHandle<()> }
-pub struct ImageEngine { state: Mutex<State>, active: Mutex<Option<Active>>, running: Mutex<Option<(String, Arc<AtomicBool>)>>, config: PathBuf, runtime: PathBuf, stopped: AtomicBool }
+pub struct ImageEngine { pub(crate) benchmarks: Arc<crate::benchmarks::Benchmarks>, state: Mutex<State>, active: Mutex<Option<Active>>, running: Mutex<Option<(String, Arc<AtomicBool>)>>, config: PathBuf, runtime: PathBuf, stopped: AtomicBool }
 
+fn is_false(value:&bool)->bool{!*value}
 pub(crate) fn validate(request: &ImageRequest) -> Result<()> {
+    if let Some(reference)=&request.reference {reference::validate(reference,request.width,request.height)?;}
     if request.prompt.trim().is_empty() || request.prompt.len() > 4000 || request.negative_prompt.len() > 4000
         || request.prompt.contains('\0') || request.negative_prompt.contains('\0') { return Err("image_prompt".into()); }
     if ![512, 768, 1024].contains(&request.width) || ![512, 768, 1024].contains(&request.height)
@@ -141,6 +149,12 @@ fn devices(runtime: &Path) -> Result<String> {
 }
 pub(crate) struct ProcessGroup(windows_sys::Win32::Foundation::HANDLE);
 impl ProcessGroup {
+    pub(crate) fn peak_memory(&self) -> Option<u64> {
+        use windows_sys::Win32::System::JobObjects::*;
+        let mut info: JOBOBJECT_EXTENDED_LIMIT_INFORMATION = unsafe { std::mem::zeroed() };
+        let ok=unsafe { QueryInformationJobObject(self.0, JobObjectExtendedLimitInformation, &mut info as *mut _ as *mut _, std::mem::size_of_val(&info) as u32, std::ptr::null_mut()) };
+        (ok!=0 && info.PeakJobMemoryUsed>0).then_some(info.PeakJobMemoryUsed as u64)
+    }
     pub(crate) fn limit_memory(&self, bytes: usize) -> Result<()> {
         use windows_sys::Win32::System::JobObjects::*;
         let mut info: JOBOBJECT_EXTENDED_LIMIT_INFORMATION = unsafe { std::mem::zeroed() };
@@ -165,12 +179,13 @@ impl ProcessGroup {
     }
 }
 impl Drop for ProcessGroup { fn drop(&mut self) { unsafe { windows_sys::Win32::Foundation::CloseHandle(self.0); } } }
-fn sampling_step(line: &str, steps: u32) -> Option<u32> {
+fn sampling_progress(line: &str, steps: u32) -> Option<(u32,u32)> {
     if !line.contains("it/s") && !line.contains("s/it") { return None; }
     let fraction = line.rsplit('|').next()?.split_whitespace().next()?;
     let (step, total) = fraction.split_once('/')?;
     let step: u32 = step.parse().ok()?;
-    (total.parse::<u32>().ok()? == steps && step <= steps).then_some(step)
+    let total=total.parse::<u32>().ok()?;
+    (total>0 && total<=steps && step<=total).then_some((step,total))
 }
 fn png_bytes(path: &Path, width: u32, height: u32) -> Result<Vec<u8>> {
     let file = read_locked(path)?; let size = file.metadata().map_err(|_| "image_output")?.len();
@@ -207,12 +222,12 @@ impl ImageEngine {
             if job.status == "running" {
                 let output = job_directory(job, &outputs).ok().map(|p| p.join("image.png"));
                 if let Some(output) = output.filter(|p| png_bytes(p, job.request.width, job.request.height).is_ok()) {
-                    job.status = "completed".into(); job.phase = "completed".into(); job.output = Some(output.to_string_lossy().into()); job.step = job.request.steps;
+                    job.status = "completed".into(); job.phase = "completed".into(); job.output = Some(output.to_string_lossy().into()); job.step = job.sampling_steps.unwrap_or(job.request.steps);
                 } else { job.status = "interrupted".into(); job.phase = "interrupted".into(); job.error = Some("image_interrupted".into()); }
             }
         }
         for job in &state.jobs { persist(&state, job)?; }
-        Ok(Arc::new(Self { state: Mutex::new(state), active: Mutex::new(None), running: Mutex::new(None), config: outputs, runtime, stopped: AtomicBool::new(false) }))
+        Ok(Arc::new(Self { benchmarks: crate::benchmarks::Benchmarks::new(config)?, state: Mutex::new(state), active: Mutex::new(None), running: Mutex::new(None), config: outputs, runtime, stopped: AtomicBool::new(false) }))
     }
     pub fn list(&self) -> Result<Vec<ImageJob>> {
         let state = self.state.lock().map_err(|_| "image_storage")?; let mut jobs = state.jobs.clone();
@@ -239,8 +254,13 @@ impl ImageEngine {
         Ok(())
     }
     fn execute(&self, job: ImageJob, directory: PathBuf, cancel: Arc<AtomicBool>, _model_pin: File) -> Result<()> {
-        let started = Instant::now();
+        let mut started = Instant::now();
+        let mut peak_memory = None;
         let result = (|| -> Result<String> {
+            self.update(&job.id, true, |j|j.phase="waiting".into())?;
+            let _admission=crate::resources::shared().acquire(&job.id,"image",job.model_bytes.saturating_add(1024*1024*1024),true,&cancel).map_err(|e|if e=="resource_cancelled"{"image_cancelled".to_string()}else{e})?;
+            started = Instant::now();
+            let _directory_pins=crate::gallery::directory_guards(&directory)?;
             let _runtime_locks = runtime_files(&self.runtime)?;
             let mut model = read_locked(Path::new(&job.request.model_path))?;
             if model_parts(Path::new(&job.request.model_path))?.1.len() != 0 { return Err("image_structure".into()); }
@@ -253,11 +273,13 @@ impl ImageEngine {
             let output = directory.join("image.png"); let request = &job.request;
             let backend = job.device.split('\t').next().ok_or("image_gpu")?;
             let mut cmd = command(&self.runtime);
+            let _reference_pins=reference::run_inputs(request,&directory,&mut cmd)?;
             cmd.args(["-m", &request.model_path, "--prompt-file"]).arg(directory.join("prompt.txt"))
                 .arg("--negative-prompt-file").arg(directory.join("negative.txt"))
                 .args(["-W", &request.width.to_string(), "-H", &request.height.to_string(), "--steps", &request.steps.to_string(), "--cfg-scale", &request.guidance.to_string(), "--seed", &request.seed.to_string(), "--sampling-method", &request.sampler, "--scheduler", "karras", "--rng", "cpu", "--backend", backend, "--auto-fit", "off", "--diffusion-fa", "-o"]).arg(&output)
                 .stdout(Stdio::piped()).stderr(Stdio::piped());
             if cancel.load(Ordering::Relaxed) { return Err("image_cancelled".into()); }
+            if request.vae_on_cpu {cmd.arg("--vae-on-cpu");}
             let mut child = cmd.spawn().map_err(|_| "image_runtime_start")?;
             let _group = match ProcessGroup::attach(&child) { Ok(group) => group, Err(error) => { let _ = child.kill(); let _ = child.wait(); return Err(error); } };
             let (sender, receiver) = std::sync::mpsc::sync_channel::<String>(256);
@@ -272,11 +294,12 @@ impl ImageEngine {
             })); }
             drop(sender);
             let mut terminal = None;
+            let mut memory_error=false;
             let status = loop {
-                for line in receiver.try_iter() { let _ = self.update(&job.id, false, |j| {
+                for line in receiver.try_iter() {if line.contains("out of memory")||line.contains("cannot make enough memory available"){memory_error=true;} let _ = self.update(&job.id, false, |j| {
                     if line.contains("generating image:") { j.phase = "sampling".into(); }
                     if line.contains("decoding") && line.contains("latents") { j.phase = "decoding".into(); }
-                    if let Some(step) = sampling_step(&line, request.steps) { j.phase = "sampling".into(); j.step = step; }
+                    if let Some((step,total)) = sampling_progress(&line, request.steps) { j.phase = "sampling".into(); j.step = step; j.sampling_steps=Some(total); }
                     j.log_tail.push_str(&line); j.log_tail.push('\n');
                     if j.log_tail.len() > 64 * 1024 { let mut keep = j.log_tail.len() - 48 * 1024; while !j.log_tail.is_char_boundary(keep) { keep += 1; } j.log_tail.drain(..keep); }
                     j.elapsed_ms = started.elapsed().as_millis() as u64;
@@ -287,16 +310,21 @@ impl ImageEngine {
                 std::thread::sleep(Duration::from_millis(40));
             };
             for reader in readers { let _ = reader.join(); }
+            peak_memory = _group.peak_memory();
             if let Some(error) = terminal { return Err(error.into()); }
             if cancel.load(Ordering::Relaxed) { return Err("image_cancelled".into()); }
-            if !status.success() { return Err("image_execution".into()); }
+            if !status.success() { return Err(if memory_error{"image_memory"}else{"image_execution"}.into()); }
             png_bytes(&output, request.width, request.height)?;
+            reference::compose(request,&directory,&output)?;
             Ok(output.to_string_lossy().into())
         })();
         self.update(&job.id, true, |j| {
             j.elapsed_ms = started.elapsed().as_millis() as u64; j.finished_at = Some(crate::database::now());
-            match result { Ok(output) => { j.status = "completed".into(); j.phase = "completed".into(); j.step = j.request.steps; j.output = Some(output); }, Err(error) => { j.status = if error == "image_cancelled" { "cancelled" } else { "failed" }.into(); j.phase = j.status.clone(); j.error = Some(error); } }
+            match result { Ok(output) => { j.status = "completed".into(); j.phase = "completed".into(); j.step = j.sampling_steps.unwrap_or(j.request.steps); j.output = Some(output); }, Err(error) => { j.status = if error == "image_cancelled" { "cancelled" } else { "failed" }.into(); j.phase = j.status.clone(); j.error = Some(error); } }
         })?;
+        if let Some(measured)=self.list()?.into_iter().find(|j|j.id==job.id&&j.status=="completed") {
+            if let Err(error)=self.benchmarks.image(&measured,peak_memory){let _=self.update(&job.id,true,|j|{j.log_tail.push_str("\n");j.log_tail.push_str(&error);});}
+        }
         if let Ok(jobs) = self.list() { if let Some(job) = jobs.iter().find(|j| j.id == job.id) { if let Ok(json) = serde_json::to_vec_pretty(job) { let _ = fs::write(directory.join("metadata.json"), json); } } }
         Ok(())
     }
@@ -385,9 +413,9 @@ pub async fn image_save(id: String, core: tauri::State<'_, Arc<Core>>, state: ta
 #[cfg(test)]
 mod tests {
     use super::*;
-    pub(super) fn request() -> ImageRequest { ImageRequest { model_path: "model".into(), prompt: "test".into(), negative_prompt: String::new(), width: 512, height: 512, steps: 20, guidance: 5., seed: 42, sampler: "euler".into() } }
+    pub(super) fn request() -> ImageRequest { ImageRequest { vae_on_cpu:false,  reference:None, model_path: "model".into(), prompt: "test".into(), negative_prompt: String::new(), width: 512, height: 512, steps: 20, guidance: 5., seed: 42, sampler: "euler".into() } }
     #[test] fn rejects_invalid_or_unbounded_parameters() { let mut r = request(); assert!(validate(&r).is_ok()); r.width=4096; assert!(validate(&r).is_err()); r.width=512; r.guidance=f32::NAN; assert!(validate(&r).is_err()); r.guidance=5.; r.sampler="--rpc-servers".into(); assert!(validate(&r).is_err()); }
-    #[test] fn progress_uses_denoiser_steps_not_weight_loading() { assert_eq!(sampling_step("|====>| 2/20 - 3.71it/s",20),Some(2)); assert_eq!(sampling_step("|####| 20/20 - 2.00GB/s",20),None); assert_eq!(sampling_step("|====>| 2/40 - 1.2s/it",20),None); }
+    #[test] fn progress_uses_denoiser_steps_not_weight_loading() { assert_eq!(sampling_progress("|====>| 2/20 - 3.71it/s",20),Some((2,20))); assert_eq!(sampling_progress("|####| 20/20 - 2.00GB/s",20),None); assert_eq!(sampling_progress("|====>| 2/40 - 1.2s/it",20),None); assert_eq!(sampling_progress("|====>| 3/5 - 1.2s/it",6),Some((3,5))); }
     #[test] fn missing_runtime_never_claims_ready() { let dir=tempfile::tempdir().unwrap(); assert!(runtime_files(dir.path()).is_err()); }
 }
 

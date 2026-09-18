@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-benchmark-clear"
+description = "Enables the benchmark_clear command without any pre-configured scope."
+commands.allow = ["benchmark_clear"]
+
+[[permission]]
+identifier = "deny-benchmark-clear"
+description = "Denies the benchmark_clear command without any pre-configured scope."
+commands.deny = ["benchmark_clear"]

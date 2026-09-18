@@ -11,7 +11,7 @@ impl ProjectOpens {
   if let Ok(mut q)=self.0.lock(){let value=path.to_string_lossy().into_owned();if q.len()<8&&!q.contains(&value){q.push_back(value);}}
  }
 }
-pub fn second(app:&tauri::AppHandle,args:Vec<String>,cwd:String){if let Some(q)=app.try_state::<Arc<ProjectOpens>>(){q.receive(args,Path::new(&cwd));let _=app.emit_to("main","project-open-requested",());}if let Some(w)=app.get_webview_window("main"){let _=w.unminimize();let _=w.show();let _=w.set_focus();}}
+pub fn second(app:&tauri::AppHandle,args:Vec<String>,cwd:String){if let Some(q)=app.try_state::<Arc<ProjectOpens>>(){q.receive(args,Path::new(&cwd));let _=app.emit_to("main","project-open-requested",());}crate::desktop_features::restore(app);}
 #[tauri::command]
 pub fn project_take_open(state:tauri::State<'_,Arc<ProjectOpens>>)->Result<Option<String>,String>{Ok(state.0.lock().map_err(|_|"project_storage")?.front().cloned())}
 #[cfg(test)]mod tests{use super::*;#[test]fn accepts_only_one_local_project_and_bounds_queue(){let q=ProjectOpens::new();for args in [vec!["app","--worker"],vec!["app","x.png"],vec!["app","x.localstudio","y.localstudio"]]{q.receive(args.into_iter().map(String::from).collect(),Path::new("D:/local"));}assert!(q.0.lock().unwrap().is_empty());q.receive(vec!["app".into(),"test.localstudio".into()],Path::new("D:/local"));assert_eq!(q.0.lock().unwrap().len(),1);}}

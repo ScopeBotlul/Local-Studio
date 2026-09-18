@@ -5,6 +5,8 @@ use sha2::{Digest, Sha256};
 use std::{collections::HashMap, fs::{self, File, OpenOptions}, io::{Read, Write}, path::{Path, PathBuf}, sync::{Arc, Mutex}, time::{Duration, Instant}};
 use tokio::sync::watch;
 use url::Url;
+mod updates;
+pub use updates::*;
 
 type Result<T> = std::result::Result<T, String>;
 #[derive(Clone, Serialize, Deserialize)]
@@ -22,7 +24,7 @@ pub struct Download {
 #[serde(rename_all = "camelCase")]
 pub struct Plan { pub id: String, pub download: Download, pub additional_bytes: u64, pub available_bytes: u64 }
 struct State { db: Connection, jobs: Vec<Download>, plans: HashMap<String, (Instant, Plan)>, active: Option<(String, watch::Sender<bool>)>, stopped: bool }
-pub struct Downloads { state: Mutex<State>, auth: Arc<HfAuth> }
+pub struct Downloads { state: Mutex<State>, auth: Arc<HfAuth>, updates: Mutex<UpdateStatus> }
 
 fn save(db: &Connection, job: &Download) -> Result<()> {
     db.execute("INSERT INTO downloads(id,json) VALUES(?1,?2) ON CONFLICT(id) DO UPDATE SET json=excluded.json", params![job.id, serde_json::to_string(job).map_err(|_| "download_storage")?]).map_err(|_| "download_storage")?; Ok(())
@@ -117,7 +119,8 @@ impl Downloads {
             if ["queued","downloading","verifying","installing","pausing","cancelling"].contains(&job.status.as_str()) { job.status = "paused".into(); job.error = Some("download_recovered".into()); }
             job.bytes_per_second = 0; save(&db, job)?;
         }
-        Ok(Arc::new(Self { state: Mutex::new(State { db, jobs, plans: HashMap::new(), active: None, stopped: false }), auth }))
+        let updates = Self::load_updates(&db)?;
+        Ok(Arc::new(Self { state: Mutex::new(State { db, jobs, plans: HashMap::new(), active: None, stopped: false }), auth, updates: Mutex::new(updates) }))
     }
     pub fn list(&self) -> Result<Vec<Download>> { Ok(self.state.lock().map_err(|_| "internal")?.jobs.clone()) }
     pub fn plan(&self, repo: String, revision: String, files: Vec<String>, paths: crate::types::StoragePaths) -> Result<Plan> {
@@ -150,7 +153,7 @@ impl Downloads {
             total_bytes: total, downloaded_bytes: 0, bytes_per_second: 0, error: None, created_at: crate::database::now(), verify_only: false,
         }};
         let mut state = self.state.lock().map_err(|_| "internal")?; state.plans.retain(|_,(at,_)|at.elapsed()<Duration::from_secs(600));
-        if state.plans.len()>=16 { state.plans.clear(); }
+        if state.plans.len()>=64 { return Err("download_plan_limit".into()); }
         state.plans.insert(id,(Instant::now(),plan.clone())); Ok(plan)
     }
     pub fn start(self: &Arc<Self>, plan_id: &str) -> Result<Download> {

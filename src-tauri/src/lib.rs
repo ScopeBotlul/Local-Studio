@@ -1,3 +1,10 @@
+mod benchmarks;
+use benchmarks::*;
+mod desktop_features;
+use desktop_features::{background_hide,desktop_accent};
+use hardware::hardware_live;
+mod resources;
+use resources::resource_status;
 mod ai;
 use ai::*;
 mod updater;
@@ -50,10 +57,11 @@ async fn bootstrap(state: State<'_, Arc<Core>>) -> Result<AppSnapshot, String> {
 #[tauri::command]
 async fn save_settings(
     settings: Settings,
+    app: tauri::AppHandle,
     state: State<'_, Arc<Core>>,
 ) -> Result<Settings, String> {
     let core = state.inner().clone();
-    tauri::async_runtime::spawn_blocking(move || core.save_settings(settings))
+    tauri::async_runtime::spawn_blocking(move || {let saved=core.save_settings(settings)?;resources::configure(saved.parallel_generation);desktop_features::refresh(&app,saved.language=="de")?;Ok(saved)})
         .await
         .map_err(|e| e.to_string())?
 }
@@ -153,16 +161,19 @@ pub fn run() {
             app.manage(Arc::new(Maintenance::new()));
             app.manage(GalleryCatalog::new(&config_dir)?);
             app.manage(Arc::new(GalleryWatch::new()));
+            app.manage(Benchmarks::new(&config_dir)?);
             app.manage(ImageEngine::new(&config_dir, runtime_dir)?);
             app.manage(ModelLibrary::new(&config_dir)?);
             app.manage(Downloads::new(&config_dir, auth.clone())?);
             app.manage(auth);
             app.manage(hf_browser::HfBrowser::new(&config_dir));
+            resources::configure(core.current_settings()?.parallel_generation);
             core.start_scheduler();
             app.manage(core);
+            desktop_features::install(app)?;
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![ai_catalog,ai_models,ai_import,ai_download_plan,ai_adopt_download,assistant_status,assistant_load,assistant_unload,assistant_send,assistant_cancel,assistant_clear,transcription_start,transcription_jobs,transcription_cancel,video_frame,media_prepare,media_status,media_cancel,media_info,caption_read,caption_write,project_creative_save,canvas_preview,canvas_export,video_probe,video_start,video_jobs,video_cancel,project_editor_preview,project_editor_save,project_editor_export,project_add_edit,update_status,update_check,update_download,update_cancel,update_arm,update_disarm,update_open_download, app_menu_update, editor_preview, editor_export, project_ack_open, gallery_watch, gallery_video_thumbnail_store, gallery_lineage, gallery_create_variant, gallery_set_primary, project_recent, project_forget_recent, project_take_open, project_history, project_checkpoint, project_restore_point, project_rename, project_restore_media, project_add_gallery, project_add_image, storage_cleanup_preview, storage_cleanup_apply, storage_cleanup_auto, project_snapshot, project_new, project_open, project_save, project_update, project_add, project_remove, project_close, project_recover, project_relink, project_export_gallery, gallery_compare, gallery_file_action, gallery_trash_list, gallery_trash_action, gallery_trash_detail, gallery_annotate_batch, gallery_thumbnail, gallery_thumbnail_clear, gallery_annotate, gallery_list, gallery_detail, gallery_import, gallery_create_folder, gallery_open_folder, image_workspace, image_workspace_save, image_recover, image_discard, image_resume, image_probe, image_jobs, image_generate, image_cancel, image_output, image_save, model_library_list, model_scan_start, model_scan_full, model_scan_quick, model_scan_cancel, model_library_recheck, model_library_forget, download_list, download_plan, download_start, download_action, hf_browser_mount, hf_browser_layout, hf_browser_hide, hf_browser_state, hf_browser_action, hf_status, hf_start_login, hf_cancel_login, hf_connect_token, hf_logout, hf_verify, hf_search, hf_model_detail, hf_model_size, hf_open_page, bootstrap, save_settings, get_hardware, list_jobs, enqueue_hash_job, cancel_job, dismiss_recovery, get_logs, mark_clean_exit])
+        .invoke_handler(tauri::generate_handler![background_hide,desktop_accent,hardware_live,resource_status,ai_catalog,ai_models,ai_import,ai_download_plan,ai_adopt_download,assistant_status,assistant_load,assistant_unload,assistant_send,assistant_cancel,assistant_clear,transcription_start,transcription_jobs,transcription_cancel,video_frame,media_prepare,media_status,media_cancel,media_info,caption_read,caption_write,project_creative_save,canvas_preview,canvas_export,canvas_export_mask,video_probe,video_start,video_jobs,video_cancel,project_editor_preview,project_editor_save,project_editor_export,project_add_edit,update_status,update_check,update_download,update_cancel,update_arm,update_disarm,update_open_download, app_menu_update, editor_preview, editor_export, project_ack_open, gallery_watch, gallery_video_thumbnail_store, gallery_lineage, gallery_create_variant, gallery_set_primary, project_recent, project_forget_recent, project_take_open, project_history, project_checkpoint, project_restore_point, project_rename, project_restore_media, project_add_gallery, project_add_image, storage_cleanup_preview, storage_cleanup_apply, storage_cleanup_auto, project_snapshot, project_new, project_open, project_save, project_update, project_add, project_remove, project_close, project_recover, project_relink, project_export_gallery, gallery_compare, gallery_file_action, gallery_trash_list, gallery_trash_action, gallery_trash_detail, gallery_annotate_batch, gallery_thumbnail, gallery_thumbnail_clear, gallery_annotate, gallery_list, gallery_detail, gallery_import, gallery_create_folder, gallery_open_folder, image_workspace, image_workspace_save, image_recover, image_discard, image_resume, image_probe, image_jobs, image_generate, image_cancel, image_output, image_save, image_generate_batch, image_reference, preferences_list, preference_save, preference_forget, benchmark_list, benchmark_clear, model_updates_status, model_updates_check, model_updates_prepare, model_move_plan, model_move_start, model_move_status, model_move_cancel, model_library_list, model_scan_start, model_scan_full, model_scan_quick, model_scan_cancel, model_library_recheck, model_library_forget, download_list, download_plan, download_start, download_action, hf_browser_mount, hf_browser_layout, hf_browser_hide, hf_browser_state, hf_browser_action, hf_status, hf_start_login, hf_cancel_login, hf_connect_token, hf_logout, hf_verify, hf_search, hf_model_detail, hf_model_size, hf_open_page, bootstrap, save_settings, get_hardware, list_jobs, enqueue_hash_job, cancel_job, dismiss_recovery, get_logs, mark_clean_exit])
         .build(context)
         .expect("Local Studio could not initialize. Check that the local configuration folder is writable and no other instance is using it.");
     app.run(|handle, event| {

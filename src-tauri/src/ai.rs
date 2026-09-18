@@ -33,6 +33,16 @@ impl AiEngine{
   Ok(Arc::new(Self{db:Mutex::new(db),runtime,chat:Mutex::new(chat),endpoint:Mutex::new(None),load_busy:AtomicBool::new(false),chat_busy:AtomicBool::new(false),load_cancel:AtomicBool::new(false),chat_cancel:AtomicBool::new(false),speech:Mutex::new(speech),speech_busy:AtomicBool::new(false),speech_cancel:AtomicBool::new(false),stopped:AtomicBool::new(false)}))
  }
  pub fn stop(&self){self.stopped.store(true,Ordering::SeqCst);self.load_cancel.store(true,Ordering::SeqCst);self.chat_cancel.store(true,Ordering::SeqCst);self.speech_cancel.store(true,Ordering::SeqCst);}
+ pub(crate) fn relocate(&self,mappings:&[(String,String,u64,String,String)])->Result<()> {
+  fn key(path:&str)->String{path.trim_start_matches("\\\\?\\").replace('/',"\\").to_lowercase()}
+  let mut models=self.models()?;
+  let mut db=self.db.lock().map_err(err)?;let tx=db.transaction().map_err(err)?;
+  for model in &mut models {if let Some((_,destination,bytes,sha,binding))=mappings.iter().find(|m|key(&m.0)==key(&model.path)) {
+   if model.bytes!=*bytes||model.sha256!=*sha{return Err("move_ai_changed".into());}
+   model.path=destination.clone();model.binding=binding.clone();
+   tx.execute("UPDATE ai_models SET json=?1 WHERE id=?2",rusqlite::params![serde_json::to_string(model).map_err(err)?,model.id]).map_err(err)?;
+  }}tx.commit().map_err(err)?;Ok(())
+ }
  fn models(&self)->Result<Vec<AiModel>>{let db=self.db.lock().map_err(err)?;let mut q=db.prepare("SELECT json FROM ai_models ORDER BY rowid").map_err(err)?;let rows=q.query_map([],|r|r.get::<_,String>(0)).map_err(err)?;rows.map(|s|serde_json::from_str(&s.map_err(err)?).map_err(err)).collect()}
  fn model(&self,id:&str,kind:&str)->Result<(AiModel,Vec<File>)>{
   let m=self.models()?.into_iter().find(|m|m.id==id&&m.kind==kind).ok_or("ai_model_missing")?;let path=Path::new(&m.path);let mut pins=gallery::directory_guards(path.parent().ok_or("ai_model_changed")?)?;let mut file=gallery::lock_file(path)?;

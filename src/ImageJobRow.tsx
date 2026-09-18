@@ -4,6 +4,7 @@ import { fileName, formatDate } from './helpers';
 import type { Language } from './types';
 export const imagePhases: Record<string, [string, string]> = {
   queued: ['Wartet', 'Queued'], paused: ['Pausiert', 'Paused'],
+  waiting: ['Wartet auf Ressourcen', 'Waiting for resources'],
   hashing: ['Modelldatei prüfen', 'Verifying model file'], loading: ['Modell laden', 'Loading model'], sampling: ['Bild generieren', 'Generating image'], decoding: ['Bild dekodieren', 'Decoding image'],
   completed: ['Fertig · Modell entladen', 'Completed · model unloaded'], failed: ['Fehlgeschlagen', 'Failed'], cancelled: ['Abgebrochen', 'Cancelled'], interrupted: ['Unterbrochen', 'Interrupted'],
 };
@@ -13,8 +14,9 @@ export default function ImageJobRow({ job, language, onOpen, onCancel, onResume,
     <div className={`job-icon status-${job.status}`}><Image size={19} /></div>
     <div className="job-content"><div className="job-heading"><strong title={job.request.modelPath}>{fileName(job.request.modelPath)}</strong><span className={`status status-${job.status}`}>{imagePhases[job.phase]?.[de ? 0 : 1] ?? job.phase}</span></div>
       <div className="job-meta">Image · {formatDate(job.createdAt, language)} · {job.request.width} × {job.request.height} · {(job.elapsedMs / 1000).toFixed(1)} s</div>
+      {job.batch&&<p className="hub-hint">{de?'Stapel':'Batch'} · {job.batch.index} / {job.batch.count} · Seed {job.request.seed}</p>}
       {job.status === 'queued' && <p className="hub-hint">{de ? `Warteschlange · Position ${job.queuePosition ?? '…'}` : `Queue · position ${job.queuePosition ?? '…'}`}</p>}
-      {running && <div className="progress-line"><progress aria-label="Image job progress" max={job.phase === 'hashing' ? job.modelBytes : job.request.steps} value={job.phase === 'hashing' ? job.hashedBytes : job.phase === 'sampling' ? job.step : undefined} />{job.phase === 'sampling' && <small>{job.step} / {job.request.steps}</small>}</div>}
+      {running && <div className="progress-line"><progress aria-label="Image job progress" max={job.phase === 'hashing' ? job.modelBytes : (job.samplingSteps??job.request.steps)} value={job.phase === 'hashing' ? job.hashedBytes : job.phase === 'sampling' ? job.step : undefined} />{job.phase === 'sampling' && <small>{job.step} / {job.samplingSteps??job.request.steps}</small>}</div>}
       {job.error && <p className="job-error">{imageError(job.error, de)}</p>}
       {job.discarded && <p className="hub-hint">{de ? 'Ergebnis verworfen' : 'Result discarded'}</p>}
       <button className="text-button" onClick={onOpen}>{de ? 'Im Studio öffnen' : 'Open in Studio'}</button>

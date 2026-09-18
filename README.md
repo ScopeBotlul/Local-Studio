@@ -1,5 +1,7 @@
 # Local Studio
 
+Version 0.25.0 ergänzt **Bild-zu-Bild, maskiertes Inpainting, Bildstapel, Ressourcensteuerung, sichere Modellverschiebung, Modellupdates und lokale Messwerte/Präferenzen**. Dazu kommen Windows-Infobereich, optionale Hardwareanzeige und Systemakzent. [Bedienung](docs/IMAGE_REFERENCES.md), [Änderungen und Grenzen](docs/RELEASE_0.25.0.md). Der gesamte Masterprompt ist weiterhin in Arbeit; [vollständiger Anforderungsabgleich](REQUIREMENTS_STATUS.md).
+
 Version 0.24.0 ergänzt **lokalen DE/EN-Chat mit echten Studio-Werkzeugen und automatische Untertitel aus Ton/Video**. Qwen und Whisper laufen in eigenen CPU-Prozessen; Modelle werden ausdrücklich ausgewählt und heruntergeladen. [Einrichtung, Bedienung und Grenzen](docs/ASSISTANT.md).
 
 Version 0.23.0 ergänzt **Vorschau am Abspielkopf, Audio-Wellenformen, Proxies, Maus-Schnitt und Bildgriffe** für die gemeinsamen Bild-/Videoprojekte. Echte PNG/JPEG-, MP4- und WebM-Ausgaben; Originale bleiben erhalten. [Bedienung und Grenzen](docs/CREATIVE_EDITORS.md), [Einzelbildeditor](docs/IMAGE_EDITOR.md), [Projekte](docs/PROJECTS.md).
@@ -51,7 +53,7 @@ einen Token-Anmeldepfad mit Windows-Anmeldespeicher. Ab 0.2.1 ist auch OAuth mit
 Ein erster SDXL-Inferenzpfad ist ab 0.6.0 vorhanden. Vollständige Runtime-/Modellverwaltung und weitere Inferenzadapter bleiben offen.
 Eine Prüfsumme ist kein Nachweis, dass eine Modelldatei sicher oder kompatibel ist.
 
-## Aktuellen Stand 0.24.0 starten
+## Aktuellen Stand 0.25.0 starten
 
 Die lokal gebauten Pakete liegen unter `releases/`: Portable ZIP, EXE und Windows-Installer.
 Build-Dateien und lokale Testberichte sind nicht im Quellcode-Repository enthalten.

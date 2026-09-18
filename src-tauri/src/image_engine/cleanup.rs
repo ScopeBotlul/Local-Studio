@@ -17,6 +17,13 @@ fn eligible(job: &ImageJob, cutoff: i64) -> bool {
     chrono::DateTime::parse_from_rfc3339(job.finished_at.as_deref().unwrap_or(&job.created_at))
         .is_ok_and(|t| t.timestamp() < cutoff)
 }
+fn workspace_uses(workspace: &ImageWorkspace, path: &Path) -> bool {
+    let key = |p: &str| p.trim_start_matches(r"\\?\").replace('/', "\\").to_lowercase();
+    let target = key(&path.to_string_lossy());
+    workspace.request.iter().chain(workspace.models.values()).any(|r| {
+        r.reference.as_ref().is_some_and(|r| r.inputs().iter().any(|(_, input)| key(&input.path) == target))
+    })
+}
 fn duplicate(job: &ImageJob, path: &Path) -> Result<(File, Vec<File>)> {
     let saved = Path::new(job.saved_path.as_ref().ok_or("cleanup_protected")?);
     if fs::canonicalize(saved).ok() == fs::canonicalize(path).ok() {
@@ -65,6 +72,8 @@ fn known(job: &ImageJob, path: &Path) -> bool {
                     && serde_json::to_value(&job.request).is_ok_and(|r| v["request"] == r)
             }),
         Some("image.png") => duplicate(job, path).is_ok(),
+        Some("reference.png") => job.request.reference.as_ref().is_some_and(|r|reference::bytes(r,path).is_ok()),
+        Some("mask.png") => job.request.reference.as_ref().and_then(|r|r.mask.as_ref()).is_some_and(|r|reference::bytes(&r.reference(),path).is_ok()),
         _ => false,
     }
 }
@@ -76,14 +85,14 @@ impl ImageEngine {
             let Ok(directory) = job_directory(job, &self.config) else {
                 continue;
             };
-            for name in ["image.png", "prompt.txt", "negative.txt", "metadata.json"] {
+            for name in ["image.png", "prompt.txt", "negative.txt", "metadata.json", "reference.png", "mask.png"] {
                 let path = directory.join(name);
                 if !path.exists() {
                     continue;
                 }
                 match maintenance::inspect(&path, "image", &job.id) {
                     Ok(file) => {
-                        if eligible(job, cutoff) && known(job, &path) {
+                        if eligible(job, cutoff) && !workspace_uses(&s.workspace, &path) && known(job, &path) {
                             result.files.push(file);
                         } else {
                             result.protected_bytes += file.bytes;
@@ -104,6 +113,7 @@ impl ImageEngine {
             return Ok(false);
         }
         let path = Path::new(&c.path);
+        if workspace_uses(&s.workspace, path) { return Ok(false); }
         let directory = job_directory(&job, &self.config)?;
         if path.parent() != Some(directory.as_path()) {
             return Err("cleanup_path".into());

@@ -41,6 +41,10 @@ const en: typeof de = {
   details: 'Inspect model', back: 'Close details', revision: 'Revision (branch, tag or commit)', loadRevision: 'Load revision', resolved: 'Resolved commit', license: 'License', unknown: 'Not specified', gated: 'Approval required', private: 'Private', public: 'Public', files: 'Files', size: 'Size', card: 'Model card (original text)', cardMissing: 'The model card could not be loaded.', modelPage: 'Open model page', resultCount: 'models loaded', working: 'Loading …', failure: 'The Hugging Face action failed.',
 };
 const errors: Record<string, [string, string]> = {
+  model_update_selection: ['Bitte die Modellupdates erneut prüfen und ein bis 16 verfügbare Updates auswählen.', 'Check model updates again and select one to sixteen available updates.'],
+  model_update_busy: ['Die Modellprüfung läuft noch. Bitte kurz warten.', 'The model check is still running. Please wait.'],
+  model_update_limit: ['Die Prüfung umfasst die ersten 100 installierten Varianten. Weitere Varianten wurden noch nicht geprüft.', 'The check covers the first 100 installed variants. Additional variants have not been checked.'],
+  download_plan_limit: ['Zu viele Downloadvorschauen sind geöffnet. Vorhandene Downloads starten oder die Vorschauen nach zehn Minuten erneut erstellen.', 'Too many download previews are open. Start existing downloads or prepare the previews again after ten minutes.'],
   browser_view: ['Der integrierte Browser konnte nicht gestartet werden.', 'The embedded browser could not be started.'],
   browser_profile: ['Der Website-Sitzungsordner ist nicht verf\u00fcgbar.', 'The website session folder is unavailable.'],
   browser_bounds: ['Die Browseransicht passt gerade nicht ins Fenster. Bitte erneut versuchen.', 'The browser view does not fit in the window. Please try again.'],
