@@ -1,6 +1,6 @@
 # Aktueller Stand 0.26.0: lokale 18+-Sperre
 
-Der zusätzliche Nutzerauftrag zur 18+-Sperre ist implementiert. Der gesamte Masterprompt bleibt weiterhin in Arbeit. Bedienung und Grenzen stehen in [docs/PRIVACY.md](docs/PRIVACY.md); tatsächliche Prüfungen separat in TEST_MATRIX.md. Releasepakete werden nach den nativen Prüfungen erstellt.
+Der zusätzliche Nutzerauftrag zur 18+-Sperre ist implementiert. Der gesamte Masterprompt bleibt weiterhin in Arbeit. Bedienung und Grenzen stehen in [docs/PRIVACY.md](docs/PRIVACY.md); tatsächliche Prüfungen separat in TEST_MATRIX.md. [Version 0.26.0 mit Installer und portabler ZIP](https://github.com/ScopeBotlul/Local-Studio/releases/tag/v0.26.0) ist veröffentlicht und öffentlich verifiziert. Die vorherige 0.25.0 erkennt das signierte Update; die neue Version meldet den Kanal als aktuell. Bei portablen Updates alle vier Runtime-Ordner ersetzen und Local-Studio-Data vollständig behalten.
 
 Standardmäßig ausgeschalteter Modus mit Altersbestätigung, lokaler PIN oder Passwort, gesalzener Ableitung und persistenter Versuchsbremse. Neustartsperre standardmäßig aktiv, optionales Merken, Passwortwechsel und manuelles Sperren/Ausschalten. Keine Klartext-Zugangsdaten. Lokale Modellkennzeichnung und Übernahme eindeutiger HF-Tags bei Downloadplanung; Kennzeichnung bleibt beim App-Modellumzug erhalten.
 
