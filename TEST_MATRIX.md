@@ -9,6 +9,8 @@
 
 - [Installerprüfung](.artifacts/installer-1789704506813/report.json): **17/17 bestanden** am finalen Programmstand. System/Hell/Dunkel, reale isolierte Installation/Reinstall/Uninstall, EXE-/Runtime-Identität, Projektzuordnung, Datenerhalt, portable Zielordner und NSIS-Altausgabe. Persönliche Installation und Dateizuordnung blieben unangetastet.
 
+- **Veröffentlicht und öffentlich geprüft:** [GitHub 0.21.0](https://github.com/ScopeBotlul/Local-Studio/releases/tag/v0.21.0). [Vollständige Downloads](.artifacts/github-release-verification-0.21.0.json): alle fünf Asset-Digests, Ed25519-Signatur sowie heruntergeladene Installer-/ZIP-Größen und SHA-256 stimmen. [Vorherige native Version 0.20.0](.artifacts/native-1789704738770/report.json) erkennt 0.21.0 tatsächlich als verfügbares gültiges Update. [Neue native Version](.artifacts/native-1789704754662/report.json) erkennt denselben öffentlichen Kanal korrekt als aktuell. Die persönliche Installation wurde dafür nicht verändert.
+
 Prüfgrenzen: keine neue Modellinferenz, Zweit-PC-, farbmetrische ICC/HDR-, Langzeit- oder vollständige Accessibility-Abnahme. Stapel sind sequentiell und werden nach Prozessabbruch nicht automatisch fortgesetzt. Projektcontainer transportieren aktive Rezepte, nicht den gesamten lokalen Undo/Redo-Entwurf.
 
 ## Vorherige Verifikation 0.20.0 – Menüleiste und signierte Updates
