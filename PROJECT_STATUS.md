@@ -5,6 +5,8 @@
 - Klassischer lokaler Video-/Audio-Mehrspurschnitt mit Trimmen/Teilen, Geschwindigkeit, Fades, linearen Keyframes, Effekten und manuellen Untertiteln/SRT. Echte FFmpeg-Vorschau sowie MP4/H.264/AAC und WebM/VP9/Opus; begrenzte, abbrechbare isolierte Prozesse und unveränderliche Renderaufträge.
 - Gepinnte separate Video-Runtime mit Integritätsprüfung, Entwickler-Bootstrap und Lizenz-/Quellhinweisen; in Installer und Portable enthalten. Typisierte Hauptfenster-IPC; keine frei übergebenen Filter/Shellbefehle.
 
+[Release 0.22.0 mit Installer und portabler ZIP](https://github.com/ScopeBotlul/Local-Studio/releases/tag/v0.22.0) veröffentlicht und öffentlich verifiziert. Update über Hilfe; portable Programmdateien einschließlich beider Runtime-Ordner ersetzen und Local-Studio-Data behalten.
+
 [Bedienung und Grenzen](docs/CREATIVE_EDITORS.md). Implementierung hier, Nachweise in [TEST_MATRIX.md](TEST_MATRIX.md). Erste 8-Bit-Pfade: kein RAW/HDR-Farbmanagement, keine KI-Videoerzeugung, keine automatische Transkription/Proxies/Tracking. Video-Renderordner werden noch nicht automatisch bereinigt. M4 und M8 sind teilweise umgesetzt, der gesamte weitere SPEC-Umfang bleibt erhalten.
 
 ## Vorheriger Stand 0.21.0: Bildkorrekturen, bearbeitbare Projekte und Stapelverarbeitung
