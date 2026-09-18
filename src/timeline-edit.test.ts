@@ -1,0 +1,12 @@
+import {describe,it,expect} from 'vitest';
+import {defaultPose,newTimeline,uid,type Clip} from './creative-state';
+import {trimClip,moveClips} from './timeline-edit';
+import {resizeLayer,rotateLayer} from './canvas-transform';
+import type {Layer} from './creative-state';
+describe('interactive editing preserves source time and geometry',()=>{
+ const t=newTimeline();const c:Clip={id:uid(),name:'clip',assetId:uid(),trackId:t.tracks[0].id,start:3,sourceIn:10,sourceOut:18,speed:2,fadeIn:1,fadeOut:1,blur:0,brightness:0,contrast:1,saturation:1,keyframes:[defaultPose(),{...defaultPose(),time:4,x:100}]};
+ it('left trim rebases source and interpolated keyframes while keeping the right boundary',()=>{const n=trimClip(c,'in',1);expect(n.start).toBe(4);expect(n.sourceIn).toBe(12);expect(n.sourceOut).toBe(18);expect(n.keyframes[0].x).toBe(25);expect(n.keyframes.at(-1)?.time).toBe(3);expect(trimClip(c,'out',100,20).sourceOut).toBe(20);});
+ it('group movement retains offsets, ignores locks and snaps without moving through zero',()=>{const b={...c,id:uid(),start:9},anchor={...c,id:uid(),start:20};const d={...t,clips:[c,b,anchor]};const moved=moveClips(d,[c.id,b.id],7.05,true,0,50).timeline.clips;expect(moved[0].start).toBe(10);expect(moved[1].start-moved[0].start).toBeCloseTo(6);const clamped=moveClips(d,[c.id,b.id],-20,false,0,50).timeline;expect(clamped.clips[0].start).toBe(0);expect(clamped.clips[1].start).toBe(6);const locked={...d,tracks:d.tracks.map(t=>({...t,locked:true}))};expect(moveClips(locked,[c.id],2,false,0,50).timeline).toBe(locked);});
+ it('resizing a rotated layer keeps its opposite corner stationary',()=>{const l={x:10,y:20,width:100,height:50,rotation:90} as Layer;const n=resizeLayer(l,'se',[0,145],false);expect(n.width).toBeCloseTo(150);expect(n.height).toBeCloseTo(85);const oldAnchor=[85,-5],a=[n.x+n.width/2+n.height/2,n.y+n.height/2-n.width/2];expect(a[0]).toBeCloseTo(oldAnchor[0]);expect(a[1]).toBeCloseTo(oldAnchor[1]);expect(rotateLayer(l,[200,45],true).rotation).toBe(90);});
+ it('extending a clip holds its initial pose until the original animation starts and preserves valid slow-motion source ranges',()=>{const n=trimClip(c,'in',-1);expect(n.keyframes.map(k=>[k.time,k.x])).toEqual([[0,0],[1,0],[5,100]]);const slow={...c,speed:.25};expect(trimClip(slow,'out',-100).sourceOut-slow.sourceIn).toBeCloseTo(.04);expect(trimClip(c,'out',1).keyframes).toEqual(c.keyframes);});
+});

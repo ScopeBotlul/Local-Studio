@@ -35,6 +35,13 @@ Die Website-Anmeldung ist separat; ihre Cookies liegen im eigenen WebView-Profil
 App-Tokens werden nicht in Website-Cookies umgewandelt. Modellseiten lassen sich
 über In Local Studio öffnen an die Modellansicht übergeben.
 
+Neu in 0.23.0: Einzelbildvorschau am Abspielkopf ohne kompletten Timeline-Render.
+Proxies und echte Audio-Wellenformen unter Videoschnitt berechnen. Export nutzt
+Originale. Clipkanten ziehen, Strg-Mehrfachauswahl, gemeinsam bewegen und einrasten.
+Bildeditor: Skalier-/Drehgriffe, Pinselkontur und Projektmedien direkt einfuegen.
+Einstellungen > Speicher: registrierte Render-/Proxy-/Wellenform-Dateien nach
+Aufbewahrungsfrist bereinigen. Aktive Projektcaches und Originale bleiben erhalten.
+
 Neu in 0.22.0: Studio mit Ebenen/Masken und lokalem Video-/Audio-Mehrspurschnitt.
 PNG/JPEG-Kompositionen, MP4/WebM-Export, Keyframes, manuelle Untertitel und SRT.
 Beide Editoren samt Medien in einer Projektdatei speichern (Format 3).

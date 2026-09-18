@@ -1,5 +1,5 @@
 pub mod creative;
-pub use creative::{caption_read,caption_write,project_creative_save,canvas_preview,canvas_export,video_probe,video_start,video_jobs,video_cancel,VideoEngine};
+pub use creative::{video_frame,media_prepare,media_status,media_cancel,media_info,caption_read,caption_write,project_creative_save,canvas_preview,canvas_export,video_probe,video_start,video_jobs,video_cancel,VideoEngine};
 mod editor;
 pub use editor::{project_editor_preview,project_editor_save,project_editor_export,project_add_edit};
 // Local, passive project containers. Archive names never become filesystem paths.

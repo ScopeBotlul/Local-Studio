@@ -3,7 +3,7 @@ use super::*;
 pub mod canvas;
 pub mod video;
 pub use canvas::{canvas_preview,canvas_export};
-pub use video::{caption_read,caption_write,video_probe,video_start,video_jobs,video_cancel,VideoEngine};
+pub use video::{video_frame,media_prepare,media_status,media_cancel,media_info,caption_read,caption_write,video_probe,video_start,video_jobs,video_cancel,VideoEngine};
 
 #[derive(Clone,Serialize,Deserialize,Default)]
 #[serde(rename_all="camelCase",deny_unknown_fields)]

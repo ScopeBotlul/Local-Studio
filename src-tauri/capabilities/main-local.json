@@ -124,7 +124,12 @@
     "allow-video-jobs",
     "allow-video-cancel",
     "allow-caption-read",
-    "allow-caption-write"
+    "allow-caption-write",
+    "allow-video-frame",
+    "allow-media-prepare",
+    "allow-media-status",
+    "allow-media-cancel",
+    "allow-media-info"
   ],
   "webviews": [
     "main"

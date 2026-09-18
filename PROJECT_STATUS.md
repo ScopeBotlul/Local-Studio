@@ -1,4 +1,14 @@
-# Aktueller Stand 0.22.0: Ebenen/Masken und erste Video-Timeline
+# Aktueller Stand 0.23.0: direkter Schnitt und Medienvorbereitung
+
+- Einzelbilder am Abspielkopf aus echten Originalen oder geprüften Proxies, einschließlich Effekten, Keyframes und Untertiteln. Veraltete Anfragen werden abgebrochen; die bisherige gerenderte Ton-/Videowiedergabe bleibt verfügbar.
+- Lokale, abbrechbare Proxy-Erzeugung (automatisch/halb/viertel/eigene Breite) und Audio-Wellenformen aus dekodiertem Ton. Persistente Caches, Status unter Aufträge, Originale für sämtliche Exporte.
+- Mausgriffe an Clipkanten, Strg/Umschalt-Mehrfachauswahl, gemeinsame Bewegung/Duplizieren/Entfernen, Snapping und ein Undo pro Geste. Sperren und Quellzeit-Zuordnung bleiben erhalten.
+- Bildeditor: Skalier-/Drehgriffe, Pinselkontur; beide Editoren übernehmen vorhandene Projektmedien ohne erneute Quellkopie.
+- Bestehende Speicherbereinigung erfasst registrierte Render-, Proxy- und Wellenform-Dateien. Aktive Projektcaches, laufende Aufträge, Originale und Galerieausgaben geschützt; Identität, Größe und SHA-256 vor Löschung geprüft. Hauptfenster-exklusive typisierte IPC und isolierte FFmpeg-Prozesse.
+
+Installer und portable ZIP sind gebaut, nativ geprüft und mit signiertem Update-Manifest für die Veröffentlichung vorbereitet. [Bedienung und Grenzen](docs/CREATIVE_EDITORS.md), Prüfnachweise separat in [TEST_MATRIX.md](TEST_MATRIX.md). Einzelbildvorschau ist keine garantierte Echtzeitwiedergabe; Proxies dienen dieser Vorschau. Keine automatische Transkription, KI-Videoerzeugung, HDR/ICC-Abnahme oder vollständige M4/M8-Abnahme. Unregistrierte Altcaches/Absturzreste werden nicht pauschal gelöscht. Übriger SPEC-Umfang bleibt erhalten.
+
+## Vorheriger Stand 0.22.0: Ebenen/Masken und erste Video-Timeline
 
 - Drei Studio-Bereiche: Bildgenerierung, Ebeneneditor, Videoschnitt. Lokaler gemeinsamer Arbeitsstand mit Undo/Redo, Projektformat 3, Originalschutz und expliziter Recovery.
 - Echte Ebenenkomposition mit Maskenpinsel/Rechteck/Ellipse, Gruppenauswahl, Sperre, freier Transformation, Ausrichtung, Mischmodi und relativen Korrekturen; PNG/JPEG-Export und Vorschau.
