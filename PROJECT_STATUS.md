@@ -5,6 +5,8 @@
 - Lokale Whisper-Transkription des ausgewählten Audio-/Videoclips; Zeiten berücksichtigen Ausschnitt, Clipstart und Geschwindigkeit. Text-/Zeitprüfung, Übernahme als ein Undo-Schritt, SRT und Speicherung im Projekt. Fortschritt/Abbruch und persistente Aufträge.
 - Gemeinsamer vorhandener Downloadmanager mit bewusstem Start, Katalogrevision/Größe/SHA-256, Import eigener Modelle und tatsächlicher Dateiprüfung vor Nutzung. Separate CPU-Prozesse mit Windows-Jobobjekten, Speichergrenzen und Beendigung mit dem Elternprozess. Installer/Portable enthalten jetzt vier gepinnte Runtimes mit Lizenzhinweisen; keine Modellgewichte beigepackt.
 
+[Release 0.24.0 mit Installer und portabler ZIP](https://github.com/ScopeBotlul/Local-Studio/releases/tag/v0.24.0) ist veröffentlicht und öffentlich verifiziert. Die vorherige 0.23.0 erkennt das signierte Update; die neue Version meldet denselben Kanal als aktuell. Portable: alle vier Runtime-Ordner ersetzen und Local-Studio-Data behalten.
+
 [Einrichtung, Bedienung und Grenzen](docs/ASSISTANT.md). Prüfnachweise separat in [TEST_MATRIX.md](TEST_MATRIX.md). M5/M6/M8 bleiben teilweise umgesetzt: kein visueller Inhaltsindex, keine Diarization/KI-Videoerzeugung, keine Online-Modellberatung oder gelernten Präferenzen. Kleine Modelle können falsche Antworten/Transkripte liefern. CPU ist der erste Ausführungspfad; vollständige Ressourcenkoordination und 18+-Schutz bleiben offene SPEC-Anforderungen. Unübernommene Transkript-Korrekturen sind nur im aktuellen UI-Entwurf gespeichert. Der gesamte zukünftige Umfang bleibt erhalten.
 
 ## Vorheriger Stand 0.23.0: direkter Schnitt und Medienvorbereitung
