@@ -1,4 +1,8 @@
-# GitHub-Entwurf 0.27.0: Uploadprüfung (2026-09-19)
+# GitHub-Release 0.27.0: öffentliche Downloads geprüft (2026-09-19)
+
+`node scripts/verify-published-release.mjs` erfolgreich: v0.27.0 ist der neueste öffentliche Release, kein Entwurf und kein Prerelease. Öffentliches Update-Manifest mit bestehendem Ed25519-Schlüssel verifiziert. Installer und portable ZIP vollständig erneut von GitHub heruntergeladen; Größen und SHA256 stimmen mit Manifest und lokalen Paketen überein. Zusätzlich stimmen die GitHub-Digests aller fünf Assets. Nachweis: .artifacts/github-release-verification-0.27.0.json. Tag und Release verweisen auf Quellcode-Commit 9808736affcd7dadf26b60d16899cfb44a4e3c09. Keine Wiederholung der Funktionstests und kein neuer Build. Veröffentlichung vom Nutzer ausdrücklich bestätigt; die RAM-bedingt offenen Generierungs-/Sperrprüfungen sind in den öffentlichen Release-Hinweisen offengelegt und bleiben offen.
+
+# Historischer Stand: GitHub-Entwurf 0.27.0, Uploadprüfung (2026-09-19)
 
 Alle fünf Assets des Release-Entwurfs 391865488 haben den GitHub-Status uploaded. Dateigrößen und von GitHub gelieferte SHA256-Digests wurden mit den lokalen Dateien verglichen und stimmen vollständig überein: Installer, portable ZIP, SHA256SUMS-0.27.0.txt, update.json und update.sig. Nachweis: .artifacts/github-draft-verification-0.27.0.json. Kein erneuter Download der Pakete und keine Wiederholung der Funktionsprüfungen. Die lokale Signatur-/Release-Metadatenprüfung war zuvor erfolgreich. Öffentliche Veröffentlichung und Zuordnung zum neuen Quellcode-Commit stehen noch aus; die unten dokumentierte Generierungs-/Sperrprüflücke bleibt bestehen.
 

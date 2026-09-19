@@ -1,8 +1,8 @@
-# GitHub-Upload 0.27.0 vorbereitet (2026-09-19)
+# GitHub-Release 0.27.0 veröffentlicht (2026-09-19)
 
-Neue Builds werden auf Nutzerwunsch standardmäßig auf GitHub hochgeladen; die Regel steht in AGENTS.md. Release-Entwurf 391865488 enthält Installer, portable ZIP, Prüfsummen und signierte Update-Metadaten. Alle fünf Assets sind vollständig hochgeladen; Größen und GitHub-SHA256 stimmen mit den lokalen Dateien überein. Der Nutzer hat zusätzlich Commit und direkten Push der 54 vorbereiteten Quellcode-/Dokumentationsdateien nach main sowie die Veröffentlichung ausdrücklich bestätigt. Der Release wird dem zugehörigen neuen Quellcode-Commit zugeordnet. Keine neuen Tests oder Builds ausgeführt. Die verbleibende RAM-bedingte Prüflücke ist in docs/RELEASE_0.27.0.md offengelegt.
+Neue Builds werden auf Nutzerwunsch standardmäßig auf GitHub hochgeladen; die Regel steht in AGENTS.md. [Release 0.27.0](https://github.com/ScopeBotlul/Local-Studio/releases/tag/v0.27.0) ist öffentlich und als neuester Release markiert. Er enthält Installer, portable ZIP, Prüfsummen und signierte Update-Metadaten. Alle fünf Assets sind vollständig hochgeladen; Größen und GitHub-SHA256 stimmen mit den lokalen Dateien überein. Der Nutzer hat zusätzlich Commit und direkten Push der 54 vorbereiteten Quellcode-/Dokumentationsdateien nach main sowie die Veröffentlichung ausdrücklich bestätigt. Tag und Release verweisen auf den Quellcode-Commit 9808736affcd7dadf26b60d16899cfb44a4e3c09. Keine neuen Funktionstests oder Builds ausgeführt. Die verbleibende RAM-bedingte Prüflücke ist in docs/RELEASE_0.27.0.md offengelegt.
 
-# Lokaler Build 0.27.0 (2026-09-19)
+# Historischer Stand: lokaler Build 0.27.0 (2026-09-19)
 
 Tests und neuer Build wurden ausdrücklich wieder freigegeben. Windows-EXE, Installer und portable ZIP sind unter `releases/` erstellt; in diesem Auftrag wurde kein GitHub-Release veröffentlicht. Die früheren Hinweise „nicht getestet/gebaut“ darunter beschreiben historische Zwischenstände. Aktuelle Ergebnisse und verbleibende Grenzen stehen oben in TEST_MATRIX.md.
 

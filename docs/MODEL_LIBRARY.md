@@ -1,6 +1,6 @@
-# Modellbibliothek – lokaler Build 0.27.0
+# Modellbibliothek – Version 0.27.0
 
-Im lokalen Build 0.27.0 enthalten. Klassifizierung ist mit Frontend-/Rust-Tests und nativen Bibliotheks-Fixtures geprüft; das ist keine universelle Erkennungs- oder Ausführbarkeitsgarantie. Konkrete Nachweise und der RAM-bedingt offene Generierungstest stehen in TEST_MATRIX.md. In diesem Auftrag wurde kein GitHub-Release veröffentlicht.
+In [Version 0.27.0](https://github.com/ScopeBotlul/Local-Studio/releases/tag/v0.27.0) enthalten. Klassifizierung ist mit Frontend-/Rust-Tests und nativen Bibliotheks-Fixtures geprüft; das ist keine universelle Erkennungs- oder Ausführbarkeitsgarantie. Konkrete Nachweise und der RAM-bedingt offene Generierungstest stehen in TEST_MATRIX.md.
 
 Die Standardsicht zeigt Modelle nach Einsatzzweck: Bild, Video, Sprache sowie Audio/Musik. LoRAs und ControlNet stehen unter Erweiterungen; Encoder, VAEs und Vorschau-Autoencoder unter Technische Komponenten. Unklare Dateien bleiben in einem eigenen Bereich erreichbar. Die Dateien werden nicht gelöscht, verschoben oder automatisch heruntergeladen.
 
