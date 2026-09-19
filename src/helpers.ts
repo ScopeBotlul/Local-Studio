@@ -53,3 +53,8 @@ export function errorMessage(error: unknown): string {
 export function initialLanguage(): Language {
   return navigator.language.toLowerCase().startsWith('de') ? 'de' : 'en';
 }
+/** Remove Windows' internal extended-path prefix for display only. */
+export function displayPath(path: string): string {
+  if (path.startsWith('\\\\?\\UNC\\')) return '\\\\' + path.slice(8);
+  return path.startsWith('\\\\?\\') ? path.slice(4) : path;
+}

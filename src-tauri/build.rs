@@ -20,6 +20,7 @@ fn main() {
             "image_recover",
             "image_discard",
             "image_resume",
+            "image_model_catalog",
             "image_probe",
             "image_jobs",
             "image_generate",

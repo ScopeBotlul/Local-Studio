@@ -28,7 +28,7 @@ export async function checkCreative25(ctx){
  const imported=await invoke('gallery_import',{folder:'',sources:[source]});assert.equal(imported.imported.length,1);
  await page.getByRole('tab',{name:'Image generation',exact:true}).click();await page.getByLabel('Image prompt',{exact:true}).fill('Keep my existing prompt');
  await page.getByRole('button',{name:'Gallery',exact:true}).first().click();await page.locator('[data-gallery-path]').filter({hasText:'Gallery reference.png'}).click();
- await page.getByRole('button',{name:'Use as image reference',exact:true}).click();await page.getByRole('img',{name:'Reference image',exact:true}).waitFor();
+ await page.getByRole('button',{name:'Use as image reference',exact:true}).click();await page.locator('summary').filter({hasText:'Reference image and inpainting'}).click();await page.getByRole('img',{name:'Reference image',exact:true}).waitFor();
  const request=await until(async()=>(await invoke('image_workspace')).workspace.request?.reference?(await invoke('image_workspace')).workspace.request:null);
  assert.equal(request.prompt,'Keep my existing prompt');assert.equal(request.reference.width,512);assert.equal(request.reference.sha256,createHash('sha256').update(Buffer.from(encoded,'base64')).digest('hex'));assert.equal((await invoke('image_jobs')).length,0);
  record('Gallery reference button adopts the actual PNG dimensions/hash, preserves the current prompt and opens Studio without starting a generation');

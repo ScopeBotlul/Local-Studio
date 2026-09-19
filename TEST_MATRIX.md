@@ -1,3 +1,53 @@
+# GitHub-Entwurf 0.27.0: Uploadprüfung (2026-09-19)
+
+Alle fünf Assets des Release-Entwurfs 391865488 haben den GitHub-Status uploaded. Dateigrößen und von GitHub gelieferte SHA256-Digests wurden mit den lokalen Dateien verglichen und stimmen vollständig überein: Installer, portable ZIP, SHA256SUMS-0.27.0.txt, update.json und update.sig. Nachweis: .artifacts/github-draft-verification-0.27.0.json. Kein erneuter Download der Pakete und keine Wiederholung der Funktionsprüfungen. Die lokale Signatur-/Release-Metadatenprüfung war zuvor erfolgreich. Öffentliche Veröffentlichung und Zuordnung zum neuen Quellcode-Commit stehen noch aus; die unten dokumentierte Generierungs-/Sperrprüflücke bleibt bestehen.
+
+# Prüfstand 0.27.0 – lokaler Build, eingeschränkte Abnahme (2026-09-19)
+
+Der Nutzer hat Tests und einen neuen Build wieder ausdrücklich freigegeben. Die nachfolgenden älteren „nicht getestet“-Einträge sind historische Zwischenstände; maßgeblich sind diese konkreten Ergebnisse. Keine vollständige Produkt- oder Releasefreigabe.
+
+- Frontend: [Build](.artifacts/build27-frontend-final.log) erfolgreich, [37 Tests in 10 Dateien](.artifacts/test27-frontend-final.log) bestanden. Neue Fälle prüfen Modellkategorien, ungeklärte Dateien, Auflösungsgrenzen und Windows-Pfaddarstellung.
+- Rust: [167 bestanden, 0 fehlgeschlagen, 1 bereits zuvor ignoriert](.artifacts/test27-rust-final.log). Zusätzliche Fälle für vollständiges/partielles SDXL, LoRA/Encoder/ControlNet, GGUF-Metadaten und abgeschnittene Header, explizite 18+-Tags/Begleitdateien/Cache sowie manuelle Korrektur und Neustart. Temporärverzeichnis im erlaubten Workspace; Windows-Credential-Test außerhalb der Sandbox mit isoliertem Testeintrag. Anfängliche Sandbox-/Tempfehler sind nicht der finale Teststand.
+- [Desktop-Build](.artifacts/build27-desktop-final.log) erfolgreich. Nicht blockierende Hinweise: Vite-Bundle größer als 500 kB und Rust-Linker-Ausgabe zu erzeugten Bibliotheksdateien.
+- [Native Menüprüfung: 5/5](.artifacts/native-1789777406922/report.json): Dateiaktionen einschließlich echter Projektdateien, native Popup-Tastennavigation, Tastenkürzel, Updateabfrage, Hilfe, Zoom, Bildeditor-Undo/Redo. Gefundenen Fehler mit inerten Fenster-/Menüknöpfen bei modalen Dialogen behoben. Minimieren/Wiederherstellen im Editor sowie Titelhöhe 36 px auch bei Dialogen und 125 % geprüft. DE/EN und Hell/Dunkel.
+- [Native KI-Prüfung: 8/8](.artifacts/native-1789777419835/report.json): echter lokaler CPU-Chat, Werkzeugaufrufe, Modellimport/Sprachmodell-Download, DE/EN-Transkription, Untertitel/SRT, Abbruch, Worker-Lebenszyklus und Neustart.
+- [Native Core-/Windows-Prüfung: 7/7](.artifacts/native-1789777509077/report.json): Hardwarewerte/Akzent, persistente Optionen, verifizierter Modellumzug und Konflikterhalt, Schließen in den Infobereich und Wiederöffnen derselben Instanz.
+- [Native Editor-/Galerieprüfung: 13/13](.artifacts/native-1789777898370/report.json): echte Pixel-/Alpha-/Maskenvergleiche, Ebenen/Mausbedienung, MP4/WebM mit Bild und Ton, Proxy/Wellenform, Abbruch, Projekttransport nach Entfernung der externen Testquellen, Crash-Recovery, Galerie-Referenz und DE/Hell/125 %. Alte Selektoren für Projektfortsetzen und den jetzt einklappbaren Referenzbereich wurden angepasst; frühere abgebrochene Läufe sind keine erfolgreiche Abnahme.
+- [Native Studio-/Bibliotheksprüfung: 5 bestanden, 1 blockiert](.artifacts/native-1789777610466/report.json): Projekt-/Fensteraktionen, Kategorien für Encoder/LoRA/unbekannte Tensoren, Basisfamilie und lokale 18+-Metadaten. Komponenten bleiben aus dem Bildkatalog ausgeschlossen. Automatische Modellvorprüfung und Ablehnung ungültiger Maße per UI und IPC ausgeführt. Pfadpräfix, Canvas-Anordnung, DE/Hell/125 % geprüft. **Reale 640×960-SDXL-Generierung einschließlich Ergebniszoom/Galeriespeicherung nicht bestanden oder bestätigt:** Der Worker wird vor dem Laden mit `resource_memory` abgewiesen.
+- [Finaler nativer Sperrtest](.artifacts/native-1789777687151/report.json): PIN-/Altersbestätigungsstrecke bestanden; danach ebenfalls `resource_memory` in den Job-Metadaten. Deshalb sind die nachfolgenden Generierungs-, Medien-, Projekt-, Chat- und Locked-Close-Fälle dieses nativen Durchlaufs offen. Rust-Sperrtests sind bestanden, ersetzen diesen fehlenden Lauf aber nicht. Benötigt werden für das vorhandene Testmodell ungefähr 8,5 GB freier System-RAM; gemessen waren etwa 4–6 GB. Keine fremden Programme beendet und keine Ressourcenschutzgrenze abgeschwächt.
+- [Finaler Installer: 17/17](.artifacts/installer-1789777528673/report.json): isolierte Installation/Reinstall/Uninstall in System/Hell/Dunkel, finale EXE und alle vier Runtimes hashgleich, Dateizuordnung und Datenerhalt, Portable-/Legacy-Zielschutz. Persönliche Installation nicht geändert.
+- [Paket-Byteprüfung](.artifacts/package-bytes-verification-0.27.0.json) bestanden: portable EXE und die genannten nativen Test-EXEs sind bytegleich zum finalen Build (`bc4d3958800440c59ce075f7c41d6009057fe21e6dc64ad7e81dd57ee3dd1598`). ZIP enthält exakt 80 erlaubte Dateien, alle Runtime-Manifeste stimmen, keine Modelle/Benutzerdaten enthalten, Installer und ZIP stimmen mit SHA256SUMS-0.27.0.txt überein. SPEC.md und prompt unverändert.
+
+Der unveränderte strengere [Releasecheck](.artifacts/package27-release-gate.log) bleibt wegen der fehlenden erfolgreichen nativen Sperr-/Generierungsabnahme **gesperrt**. Die separate Byteprüfung ist ausdrücklich keine Umgehung oder vollständige native Freigabe. Neuer lokaler Installer und portable ZIP sind vorhanden; kein GitHub-Release veröffentlicht. Nach Freigabe ausreichend freien Speichers sind Studio-/Sperrtests und der strenge Releasecheck zu wiederholen.
+
+# Historisch ausstehend: zweckorientierte Modellbibliothek (2026-09-19)
+
+**Keine Tests, Typ-/Compilerchecks, App-Starts oder Builds ausgeführt.** Änderungen nur anhand des Quelltexts durchgesehen.
+
+Nach ausdrücklicher Freigabe: Frontend-/Rust-Tests und Build, Profilserialisierung mit Alt-Datenbanken/Transfers, Rollen-/Kategoriepartition und Suchzähler; vollständige/partielle/umbenannte SDXL-Checkpoints, UNet/CLIP/VAE, LoRA inklusive Basis-Metadaten und Gewichtsindex, ControlNet/IP-Adapter, T5/Textencoder, Sprach-/Video-/Audio-Metadaten, unbekannte Familien und beschädigte Dateien. Struktur vor Dateinamen, klare Kennzeichnung reiner Hinweise. GGUF v2/v3 und sämtliche Metadaten-Typen/Arrays, abgeschnittene/überlange Daten, andere Architekturen, Projektoren und multimodale Modelle; keine Gewichts-/Codeausführung.
+
+Budget-/Cache-Fälle: große Bibliotheken, Folge-Polls, Änderung/Ersetzung/Entfernung von Modell-, Shard- und config.json-Dateien; Hinweise dürfen keinen Job freischalten. Alte und neue Scan-/Recheck-Einträge, fehlende Dateien, Verschieben/Privacy und Dateierhalt. SDXL-UI-Aktion, automatische Vorprüfung und Generierung, eingebettete Komponenten; lose Bestandteile bleiben ausdrücklich nicht ausführbar. DE/EN, Theme/Skalierung, Tastatur und schmale Fenster.
+
+# Ausstehend: Hilfskomponentenfilter in der Bibliothek (2026-09-19)
+
+Keine Tests/Builds ausgeführt. Nach Freigabe: alte/neue Imports, TAESD/TAEF/VAE/CLIP/T5/LoRA und vollständige SDXL-/GGUF-Modelle; bekannte/ungewöhnliche Ordner und Namen, Kategorien/Zähler/Pagination, Kandidaten und ausgeschlossene Altbestände, fehlende Dateien, Recheck, Verschieben und 18+-Zuordnung. Namens-/Ordnerhinweise dienen nur der Gruppierung; Studio-Zulassung bleibt strukturell geprüft.
+
+# Ausstehend: Canvas-Bildstudio und Modellwahl (2026-09-19)
+
+**Keine Tests, Compiler-/Typprüfungen, Builds, App-Starts oder Pakete ausgeführt.** Nur Codebearbeitung und Quelltextdurchsicht. Die unten aufgeführten früheren Testergebnisse decken diese Änderungen nicht ab.
+
+Nach ausdrücklicher Freigabe: bestehende Frontend-/Rust-Tests und Build; neue IPC-Berechtigung; vollständige/fehlende/ersetzte SDXL-Dateien gegenüber TAESD/VAE/LoRA/CLIP/Wan/FLUX; Cache-Invaliderung und sicherer Start trotz veralteter UI-Auskunft; Auswahl desselben Modells, Pfade mit/ohne Windows-Präfix, schneller Modellwechsel und Restaurieren; Haupt-/Nebenansicht bei laufender Generierung.
+
+Canvas: tatsächliche Generierung, Zoom/Einpassen/Pan, schmale/hochskalierte Fenster, DE/EN, Hell/Dunkel, Tastatur, Abbruch/Fehler, Wechsel zwischen Ausgaben, kein altes Bild nach Auswahl/Verwerfen/Sperren, Galerie-/Projektübernahme und Herkunft. Auflösung: 768×1152, 1344×768, individuelle 640×960, Grenzen 256/2048 und Pixelobergrenze; ungültige/gebrochene/überlaufende Werte per UI und direkter IPC, passende/unpassende Referenzen/Masken und Projekt-Roundtrip.
+
+18+: explizite positive/negative Tags, fehlende/falsche/übergroße Metadaten, Civitai-Modellcontainer, Trainingscaption enthält nur zufällig NSFW (kein Label), neue/ersetzte Begleitdatei, lokale Identitäten/Umbenennen/Kopien, manuelle Korrektur/Neustart, Zugriff gesperrt über UI und IPC, bisherige geschützte Jobs/Projekte und vorhandene HF-Tags. Kein universeller Inhaltsdetektor implementiert. Bestehende Testannahmen zu manuellem Probe-Klick und Dimensionen nach Freigabe aktualisieren.
+
+# Ungeprüfte Änderungen vom 19.09.2026
+
+Auf ausdrückliche Nutzeranweisung **keine Tests, kein TypeScript-/Rust-Check, kein Frontend-/Desktop-Build und kein neues Paket ausgeführt/erzeugt**. Nur Quellcode und vorhandene lokale API-Definitionen gelesen. Die nachfolgenden 0.26.0-Nachweise gelten für den veröffentlichten alten Build, nicht für die neue Titel-/Menüleiste.
+
+Nach erneuter Freigabe zu prüfen: Build und bestehende Tests; Start/Fehleransicht mit Fensterknöpfen; Verschieben/Doppelklick/Maximieren/Minimieren/Schließen einschließlich bestehender Exit- und Tray-Pfade; native Popupmenüs und Tastatur; zentrierter Titel bei langen Namen, gespeichert/ungespeichert/geschlossen und 18+-Sperre; System/Hell/Dunkel, DE/EN, Windows-DPI und App-Zoom; Projektmedien/Drop/Editor/Recovery und Rückkehr; eingebetteter HF-Browser; gespeicherte Projektaktionen und Updates. Bisherige native Menü- und Projektpanel-Testselektoren müssen für die neue Anordnung angepasst werden, bevor sie erneut ausgeführt werden.
+
 # Prüfstand 0.26.0
 
 Frontend-Build erfolgreich, **31 Frontend-Tests bestanden**. Rust: **161 bestanden, 0 fehlgeschlagen, 1 bestehender Test ignoriert** ([Protokoll](.artifacts/privacy26-rust-final.log)). Neue Unit-Tests prüfen Alters-/Geheimnisvalidierung, gesalzenen Speicher, persistente Versuchsbremse, Neustartsperre, Passwortwechsel, explizites Merken sowie Dateiumbenennung, Ersatzdateien und alternative Pfadschreibweisen. Keine vollständige Produktabnahme des Masterprompts.

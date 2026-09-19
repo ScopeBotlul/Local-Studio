@@ -1,5 +1,22 @@
 use super::*;
 
+// Library grouping, not execution approval. Keep components accessible for future
+// pipelines; do not mistake a tensor container for a standalone generator.
+pub(super) fn component_location(path: &Path) -> bool {
+    let name = path.file_stem().unwrap_or_default().to_string_lossy().to_lowercase();
+    let tiny_autoencoder = ["taesd", "taesdxl", "taesd3", "taef1", "taef2", "taesana"]
+        .iter().any(|prefix| name == format!("{prefix}_encoder") || name == format!("{prefix}_decoder"));
+    let known_component = tiny_autoencoder || matches!(name.as_str(), "ae" | "clip_l" | "clip_g" | "t5xxl")
+        || name.ends_with("_vae") || name.ends_with("-vae") || name.starts_with("t5xxl_") || name.starts_with("umt5_");
+    let parts: Vec<_> = path.components().filter_map(|part| match part {
+        Component::Normal(value) => Some(value.to_string_lossy().to_lowercase()), _ => None,
+    }).collect();
+    // Restrict folder hints to established model layouts, not arbitrary ancestors.
+    let in_component_folder = parts.windows(2).any(|pair| pair[0] == "models" && matches!(pair[1].as_str(),
+        "vae" | "vae_approx" | "text_encoders" | "clip" | "loras" | "lora" | "embeddings" | "controlnet" | "clip_vision" | "ipadapter"));
+    known_component || in_component_folder
+}
+
 // These are application/dependency/test locations, not a size-based model heuristic.
 // A deliberately selected folder can still inspect its contents.
 pub(super) fn excluded_location(path: &Path) -> Option<&'static str> {
@@ -38,6 +55,7 @@ fn has_weight_names(path: &Path) -> Option<bool> {
 }
 
 pub(super) fn classify_discovery(entry: &mut LocalModel, mode: ScanMode) {
+    if component_location(Path::new(&entry.path)) { entry.kind = "component".into(); }
     entry.scan_mode = Some(mode);
     if mode != ScanMode::Folder {
         if let Some(reason) = excluded_location(Path::new(&entry.path)) {

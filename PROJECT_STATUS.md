@@ -1,3 +1,55 @@
+# GitHub-Upload 0.27.0 vorbereitet (2026-09-19)
+
+Neue Builds werden auf Nutzerwunsch standardmäßig auf GitHub hochgeladen; die Regel steht in AGENTS.md. Release-Entwurf 391865488 enthält Installer, portable ZIP, Prüfsummen und signierte Update-Metadaten. Alle fünf Assets sind vollständig hochgeladen; Größen und GitHub-SHA256 stimmen mit den lokalen Dateien überein. Der Nutzer hat zusätzlich Commit und direkten Push der 54 vorbereiteten Quellcode-/Dokumentationsdateien nach main sowie die Veröffentlichung ausdrücklich bestätigt. Der Release wird dem zugehörigen neuen Quellcode-Commit zugeordnet. Keine neuen Tests oder Builds ausgeführt. Die verbleibende RAM-bedingte Prüflücke ist in docs/RELEASE_0.27.0.md offengelegt.
+
+# Lokaler Build 0.27.0 (2026-09-19)
+
+Tests und neuer Build wurden ausdrücklich wieder freigegeben. Windows-EXE, Installer und portable ZIP sind unter `releases/` erstellt; in diesem Auftrag wurde kein GitHub-Release veröffentlicht. Die früheren Hinweise „nicht getestet/gebaut“ darunter beschreiben historische Zwischenstände. Aktuelle Ergebnisse und verbleibende Grenzen stehen oben in TEST_MATRIX.md.
+
+Enthalten sind die gemeinsame Titel-/Menüleiste, der separate Projektbereich unter Ansicht, das Canvas-Bildstudio mit eigenen Auflösungen, automatische Modellvorprüfung und lokale 18+-Metadaten sowie die Bibliothek mit getrennten Modellen, Erweiterungen, technischen Komponenten und unbekannten Funden.
+
+Bei der Abnahme behoben: ein JSX-Syntaxfehler in der Studio-Tastaturnavigation sowie durch native HTML-Dialoge blockierte Menü-/Fensterknöpfe. Die unveränderte Chrome-DOM wird während modaler Dialoge in den aktiven Dialog versetzt; Titelhöhe und Menükoordinaten bleiben auch bei 125 % UI-Skalierung erhalten. Die Menüs verwenden weiterhin native Windows-Popups und die bestehenden Aktionen. Die Testautomation wurde auf Popup-Tastennavigation, Datei-Menü-Wiederherstellung und einklappbare Referenzeinstellungen angepasst.
+
+**Eingeschränkte Abnahme:** Die echte SDXL-Generierung und damit der vollständige native Sperrtest sind auf diesem Rechner aktuell durch `resource_memory` blockiert. Der Ressourcenwächter wurde nicht gelockert. Der lokale Build ist vorhanden, aber eine vollständige Freigabe der Generierungs-/Sperrstrecke wird nicht behauptet. Installer-/ZIP-Byteprüfung und native Funktionsabnahme werden getrennt dokumentiert.
+
+# Historischer Arbeitsstand: Bibliothek nach Einsatzzweck (2026-09-19)
+
+Quellcode umgesetzt, **nicht getestet oder gebaut**. Die Nutzersperre für Tests, Checks, App-Start und Build gilt weiter.
+
+- Bibliotheksnavigation: Alle Modelle, Bild, Video, Sprache, Audio & Musik, Erweiterungen, Technische Komponenten, Nicht eindeutig erkannt, ausgeblendete Funde. Standardsicht enthält keine erkannten technischen Komponenten oder Erweiterungen. Suche nach Name/Familie/Format mit passenden Zählern und Pagination; Wartung/Updates/Benchmarks einklappbar.
+- Neues optionales typisiertes Profil in bestehenden lokalen Modelleinträgen, rückwärtskompatibel beim Lesen. Rolle, Zweck, Familie, Basisfamilie für deklarierte LoRAs, Verpackung, Erkennungsgrund, Unterstützungsstatus und SDXL-Bestandteile. Alte Einträge werden beim Lesen beschrieben, kein Neuscan nötig.
+- Passive Safetensors-Strukturerkennung (u. a. SDXL, LoRA, ControlNet, VAE, CLIP, T5, Transformer); begrenzte config.json-/modelspec-Metadaten und GGUF-Architekturmetadaten. Dateinamen/übliche Modellordner nur als ausdrücklich vorläufige Hinweise. GGUF wird nicht pauschal als Sprachmodell behandelt. Unbekannte Architekturen bleiben sichtbar.
+- Begrenzter Profilcache, abhängig von Pfad, Status, erfassten Dateigrößen/-zeiten und config.json; 64-MiB-Lesebudget pro Snapshot, größere Bibliotheken werden schrittweise beschrieben. Kein Modellcode und keine Downloads. Die Profile sind Hinweise und ersetzen niemals die separaten Integritäts-/Runtime-/Zulassungsprüfungen.
+- Studio-Aktion nur bei strukturell geprüftem vollständigem SDXL-Checkpoint. SDXL-UNet/CLIP-L/CLIP-G/VAE werden als eingebettet zugeordnet und vom bestehenden Worker verwendet. Fehlende eingebettete Teile werden konkret aufgelistet. Lose externe Komponenten werden weiterhin **nicht** zu einer vermeintlich ausführbaren Pipeline verbunden; dafür fehlt der passende Adapter. FLUX/Wan/Z-Image und Erweiterungen bleiben als nicht unterstützt bzw. bei reinen Hinweisen als ungeklärt sichtbar. LLM-GGUF verweist auf den separaten Assistentenimport, ohne Ausführbarkeit zu behaupten.
+
+Beschreibung und Grenzen: docs/MODEL_LIBRARY.md. Frühere Einträge darunter dokumentieren Zwischenstände.
+
+# Noch nicht veröffentlicht: Hilfskomponenten in der Modellbibliothek (2026-09-19)
+
+Quellcodeänderung, nicht getestet/gebaut: Standardfilter „Modelle“ blendet erkannte Hilfskomponenten aus; eigener Filter „Hilfskomponenten · Encoder, VAE, LoRA“. Komponenten bleiben verwaltbar, haben aber keinen direkten Bildstudio-Startknopf. Bestehende LoRA-Strukturerkennung ergänzt um bekannte TAESD/TAEF-Dateinamen, VAE/T5-Namen und etablierte models-Unterordner (VAE, Textencoder, LoRA, ControlNet etc.). Gruppierung greift auch bei alten Bibliothekseinträgen ohne Neuscan. Keine vollständige semantische Architekturerkennung; unbekannte Komponenten können noch als Modelle erscheinen. Dateien bleiben erhalten.
+
+# Noch nicht veröffentlicht: Bildstudio mit Canvas (2026-09-19)
+
+Quellcode umgesetzt, **noch nicht getestet oder gebaut**. Nutzeranweisung gegen Tests/Builds bleibt bestehen; veröffentlichte Version weiterhin 0.26.0.
+
+- Bildstudio: seitliche Modell-/Prompt-/Formatsteuerung, große Canvas-Ergebnisansicht mit Einpassen/Zoom/100 %/Ziehen, echter Auftragsfortschritt und horizontaler Verlauf. Technische Informationen, Referenz/Inpainting und erweiterte Parameter einklappbar. Vorhandene Speicher-/Projekt-/Abbruch-/Wiederherstellungsaktionen erhalten. Studio-Navigation mit Symbolen und Pfeiltasten/Home/End; Theme und schmale Fenster berücksichtigt, noch nicht visuell geprüft.
+- Neuer typisierter, nur lokal für main erlaubter IPC `image_model_catalog`: vollständige SDXL-Tensorstruktur erforderlich, nicht nur Dateiendung. Komponenten/LoRAs/andere Familien bleiben im allgemeinen Bestand. Dateibindungsabhängiger, begrenzter Kompatibilitätscache ist nur eine Auswahlhilfe, keine Sicherheitsfreigabe.
+- Modellwahl löst Vorprüfung automatisch aus; positive/negative UI-Auskunft bleibt bis zu 60 Sekunden im Speicher. Manueller Recheck in Details; Queue-Zulassung und Integritäts-/Runtimeprüfungen bleiben unverändert verbindlich. Windows-Pfadpräfix nur für die Darstellung entfernt; interne Dateireferenzen erhalten.
+- Eigene SDXL-Abmessungen: 256–2048 je Seite, Vielfache von 64, höchstens 2.097.152 Pixel. Zahlenfelder, echte Formatvorlagen und Seitenwechsel; identische Grenzen im Backend, auch PNG-Referenzen/Masken. Mehr Speicherbedarf möglich, keine automatische Qualitätsreduktion und keine Zusage für andere Adapter.
+- Lokale automatische 18+-Zuordnung anhand expliziter Safetensors-Metadaten und begrenzter JSON-/Civitai-Begleitdateien. Keine Onlineabfrage, kein Gewichtscode, keine Ableitung aus Prompts/Trainingscaptions oder pauschal aus Modellnamen. Fehlende Angaben sind unbekannt, keine SFW-Garantie. Manuelle Korrektur nur entsperrt, gespeichert mit Dateiidentität; bekannte geschützte Modelle bleiben geschützt. Vorhandene HF-Downloadtags bleiben berücksichtigt.
+
+Weitere Abnahme und konkrete offene Prüffälle: TEST_MATRIX.md. Frühere ungetestete Titel-/Menüleistenänderungen bleiben enthalten.
+
+# Unveröffentlichter Arbeitsstand: gemeinsame Titel-/Menüleiste
+
+Nutzeranweisung vom 19.09.2026: **keine Tests und keinen Build bis zur erneuten ausdrücklichen Aufforderung**. Deshalb nur Quellcode geändert; keine neue Version, kein Installer, kein Paket und keine Veröffentlichung erstellt. Der zuletzt geprüfte und veröffentlichte Stand bleibt 0.26.0.
+
+Implementiert, noch nicht ausgeführt/verifiziert: rahmenlose Windows-Hauptansicht mit gemeinsamer Titel-/Menüleiste, App-Logo links, Datei/Bearbeiten/Ansicht/Hilfe daneben, zentriertem „Projektname – Local Studio“ beziehungsweise „Local Studio“ und Fensterknöpfen rechts. Native Popupmenüs verwenden dieselben vorhandenen Aktionen; Windows-/Taskleisten-Titel, Sprach-/Themewechsel, Stern für ungespeicherte Änderungen, Tastaturzugriff und Ziehen/Doppelklick sind angeschlossen. Gesperrte Projekte geben ihren Namen nicht im Titel aus.
+
+Die dauerhaft sichtbare Projektleiste entfällt. Erstellen/Öffnen/Speichern bleiben im Datei-Menü. Projektmedien, Umbenennen, Modellzuordnung und Wiederherstellung sind bedarfsweise über **Ansicht → Projektmedien und Details** erreichbar. Der bisherige Arbeitsbereich bleibt erhalten und ist über „Zurück zum Arbeitsbereich“ wieder sichtbar. Fehlermeldungen und Recovery-Hinweise bleiben auch bei geschlossener Detailansicht erreichbar. Eingebetteter HF-Browser wird während der Detailansicht ausgeblendet.
+
+Ausstehende Verifikation steht oben in TEST_MATRIX.md. Gesamter SPEC-Umfang bleibt erhalten.
+
 # Aktueller Stand 0.26.0: lokale 18+-Sperre
 
 Der zusätzliche Nutzerauftrag zur 18+-Sperre ist implementiert. Der gesamte Masterprompt bleibt weiterhin in Arbeit. Bedienung und Grenzen stehen in [docs/PRIVACY.md](docs/PRIVACY.md); tatsächliche Prüfungen separat in TEST_MATRIX.md. [Version 0.26.0 mit Installer und portabler ZIP](https://github.com/ScopeBotlul/Local-Studio/releases/tag/v0.26.0) ist veröffentlicht und öffentlich verifiziert. Die vorherige 0.25.0 erkennt das signierte Update; die neue Version meldet den Kanal als aktuell. Bei portablen Updates alle vier Runtime-Ordner ersetzen und Local-Studio-Data vollständig behalten.

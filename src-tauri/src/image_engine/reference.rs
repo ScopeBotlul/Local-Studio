@@ -255,8 +255,7 @@ pub async fn image_reference(path: String, mask: Option<bool>) -> Result<Referen
         let (width, height) = (info.width, info.height);
         if info.animation_control.is_some()
             || info.bit_depth != png::BitDepth::Eight
-            || ![512, 768, 1024].contains(&width)
-            || ![512, 768, 1024].contains(&height)
+            || !valid_dimensions(width, height)
         {
             return Err("image_reference_parameters".into());
         }

@@ -1,11 +1,12 @@
 import {checkPrivacy26} from './check-privacy26.mjs';
+import {checkStudio27} from './check-studio27.mjs';
 import {checkCore25} from './check-core25.mjs';
 import {checkReference25} from './check-reference25.mjs';
 import {checkUpdatesBench25} from './check-updates-bench25.mjs';
 import {checkCreative25} from './check-creative25.mjs';
 import {checkAi24} from './check-ai24.mjs';
 import {checkMenuUpdates} from './check-menu-updates.mjs';
-const suites={privacy:checkPrivacy26,core:checkCore25,references:checkReference25,models:checkUpdatesBench25,editors:checkCreative25,ai:checkAi24,menu:checkMenuUpdates};
+const suites={studio27:checkStudio27,privacy:checkPrivacy26,core:checkCore25,references:checkReference25,models:checkUpdatesBench25,editors:checkCreative25,ai:checkAi24,menu:checkMenuUpdates};
 const suite=suites[process.argv[2]];
 if(!suite)throw Error('Usage: node scripts/native-25.mjs core|references|models|editors|ai|menu');
 // Runs the real Windows executable with an isolated database and WebView2 profile.
@@ -34,8 +35,9 @@ if (process.env.LOCAL_STUDIO_TEST_LIBRARY) {
   await fs.copyFile(process.env.LOCAL_STUDIO_TEST_LIBRARY, path.join(config, 'model-library.sqlite3'));
 }
 
-const report = { startedAt: new Date().toISOString(), executable: exe, checks: [], artifacts: artifactRoot };
+const report = { startedAt: new Date().toISOString(), executable: exe, checks: [], blocked: [], artifacts: artifactRoot };
 const record = (name, detail = '') => { report.checks.push({ name, passed: true, detail }); console.log(`PASS ${name}${detail ? `: ${detail}` : ''}`); };
+const defer = (name,reason) => {report.blocked.push({name,reason});console.log(`BLOCKED ${name}: ${reason}`);};
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 let app;
 let browser;
@@ -109,14 +111,15 @@ async function waitJob(id, statuses, timeout = 15000) {
 try {
  await launch();const snapshot=await invoke('bootstrap');report.version=snapshot.version;
  await invoke('save_settings',{settings:{...snapshot.settings,setupComplete:true,language:'en',theme:'dark',autoUpdateCheck:false}});await page.reload();await page.getByRole('button',{name:'Gallery',exact:true}).first().waitFor();
- await suite({getPage:()=>page,invoke,stop,launch,artifactRoot,record,pid:()=>app.pid});
- assert.deepEqual(errors,[]);record('No uncaught frontend runtime errors');report.passed=true;
+ await suite({getPage:()=>page,invoke,stop,launch,artifactRoot,record,defer,pid:()=>app.pid});
+ assert.deepEqual(errors,[]);record('No uncaught frontend runtime errors');report.passed=report.blocked.length===0;if(!report.passed)process.exitCode=2;
 } catch (error) {
   report.passed = false;
   report.error = String(error.stack || error);
   console.error(report.error);
   if (page && !page.isClosed()) {
     report.visibleText = await page.locator('body').innerText().catch(() => 'unavailable');
+    report.menuEvents = await page.evaluate(()=>window.menuEvents).catch(()=>undefined);
     
   }
   process.exitCode = 1;

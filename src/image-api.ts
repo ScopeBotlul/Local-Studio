@@ -5,6 +5,8 @@ export interface ImageReference {mask?:ImageMask|null;path:string;sha256:string;
 export interface ImageRequest { vaeOnCpu?:boolean; reference?:ImageReference|null; modelPath: string; prompt: string; negativePrompt: string; width: number; height: number; steps: number; guidance: number; seed: number; sampler: string; }
 export interface ImageJob {restricted?:boolean;locked?:boolean; batch?:{id:string;index:number;count:number}|null; samplingSteps?:number|null; id: string; request: ImageRequest; status: string; phase: string; step: number; hashedBytes: number; modelBytes: number; modelSha256: string | null; runtime: string; device: string; createdAt: string; elapsedMs: number; error: string | null; output: string | null; savedPath: string | null; logTail: string; discarded: boolean; startedAt: string | null; finishedAt: string | null; queuePosition: number | null; }
 export interface ImageProbe { ready: boolean; family: string | null; modelBytes: number | null; missing: string[]; runtime: string; device: string | null; vramBytes: number | null; modelLicense: string; runtimeLicense: string; }
+export interface ImageModel {id:string;name:string;path:string;totalBytes:number;restricted:boolean}
+export const validImageDimensions=(width:number,height:number)=>[width,height].every(n=>Number.isInteger(n)&&n>=256&&n<=2048&&n%64===0)&&width*height<=2097152;
 export interface ImageWorkspace { request: ImageRequest | null; models: Record<string, ImageRequest>; }
 export interface WorkspaceSnapshot {locked?:boolean; workspace: ImageWorkspace; recoveryAvailable: boolean; unsaved: number; }
 export const activeImage = (job: ImageJob) => job.status === 'running' || job.status === 'queued';
@@ -29,7 +31,8 @@ const errors: Record<string, [string, string]> = {
   resource_memory:['Nicht genug freier RAM. Andere Modelle entladen und erneut versuchen.','Not enough available RAM. Unload other models and try again.'],
   resource_timeout:['Zu lange auf Ressourcen gewartet. Den Auftrag bei Bedarf erneut einreihen.','Resource wait timed out. Queue the job again if needed.'],
   image_batch: ['Stapelgröße 1 bis 20 wählen. Bei aufsteigenden Seeds darf der letzte Seed 4294967295 nicht überschreiten.', 'Choose a batch size from 1 to 20. With increasing seeds, the last seed must not exceed 4294967295.'],
-  image_reference_parameters: ['Referenz: PNG in 8 Bit, Breite und Höhe jeweils 512, 768 oder 1024 Pixel. Ausgabegröße muss übereinstimmen; Stärke 0,05 bis 1.', 'Reference: 8-bit PNG with width and height of 512, 768 or 1024 pixels. Output dimensions must match; strength must be 0.05 to 1.'],
+  image_dimensions: ['Breite/Höhe: 256–2048 Pixel in 64er-Schritten; maximal 2.097.152 Pixel insgesamt.', 'Width/height: 256–2048 pixels in steps of 64; at most 2,097,152 total pixels.'],
+  image_reference_parameters: ['Referenz: PNG in 8 Bit, 256–2048 Pixel in 64er-Schritten, insgesamt maximal 2.097.152 Pixel. Ausgabegröße muss übereinstimmen; Stärke 0,05 bis 1.', 'Reference: 8-bit PNG with dimensions of 256–2048 in steps of 64, at most 2,097,152 total pixels. Output dimensions must match; strength must be 0.05 to 1.'],
   image_reference_changed: ['Das Referenzbild wurde verändert. Bitte erneut auswählen.', 'The reference image changed. Select it again.'],
   image_closing: ['Die Anwendung wird gerade beendet.', 'The application is closing.'],
   image_unsaved: ['Ein Bild wurde während des Beendens fertig. Bitte erneut speichern oder verwerfen.', 'An image completed while closing. Please choose save or discard again.'],

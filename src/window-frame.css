@@ -1,0 +1,28 @@
+.window-frame{height:100vh;display:flex;flex-direction:column;overflow:hidden}
+.window-chrome-slot{height:36px;flex:none}
+.window-chrome-host{height:36px}
+.window-chrome-modal{position:fixed;inset:0 0 auto;height:36px;width:100vw;zoom:calc(1 / var(--ui-scale));z-index:1000;color:var(--text);font-family:var(--font-sans,inherit)}
+.window-titlebar{height:36px;flex:none;position:relative;display:flex;align-items:stretch;background:var(--sidebar);border-bottom:1px solid var(--border);user-select:none;font-size:12px}
+.window-left{position:relative;z-index:2;display:flex;align-items:center;max-width:38%;background:var(--sidebar)}
+.window-logo{width:42px;display:flex;align-items:center;justify-content:center;flex:none}
+.window-logo .logo{width:21px;height:23px;border-radius:6px;gap:2px}
+.window-logo .logo>span{width:2px;height:11px}.window-logo .logo>span:nth-child(2){height:15px}.window-logo .logo>span:nth-child(3){height:8px}
+.window-menu-host,.window-menubar{display:flex;align-items:stretch;height:100%}
+.window-menubar button{border:0;background:transparent;border-radius:4px;margin:4px 0;padding:0 9px;font-size:12px;white-space:nowrap}
+.window-menubar button:hover,.window-menubar button[aria-expanded=true]{background:var(--panel-raised)}
+.window-menubar button:focus-visible,.window-controls button:focus-visible{outline-offset:-3px}
+.window-drag{position:absolute;inset:0;z-index:0}
+.window-title{position:absolute;left:38%;right:38%;align-self:center;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none;color:var(--text);font-size:12px}
+.window-inactive .window-title{color:var(--muted)}
+.window-controls{margin-left:auto;display:flex;position:relative;z-index:2;background:var(--sidebar)}
+.window-controls button{width:46px;height:35px;border:0;border-radius:0;background:transparent;display:grid;place-items:center}
+.window-controls button:hover{background:var(--panel-raised)}
+.window-controls .window-close:hover{background:#c42b1c;color:#fff}
+.window-titlebar button:active{transform:none}
+.window-content{flex:1;min-height:0;position:relative}
+.window-content .app-shell{height:calc((100vh - 36px) / var(--ui-scale))}
+.window-content .connection-screen{min-height:0;height:100%}
+.window-error{position:fixed;right:16px;top:44px;z-index:200;background:var(--panel);border:1px solid var(--danger);border-radius:8px;padding:12px;max-width:70vw;overflow-wrap:anywhere;display:flex;gap:12px}
+.window-error button{background:none;border:0}
+.project-panel.project-details-page{margin:12px 0 24px}
+.project-details-heading{display:flex;justify-content:space-between;align-items:center;gap:16px}

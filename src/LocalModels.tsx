@@ -7,12 +7,14 @@ import DownloadsPage from './DownloadsPage';
 import ModelTransfer from './ModelTransfer';
 import ModelUpdates from './ModelUpdates';
 import Benchmarks from './Benchmarks';
-import { formatBytes, formatDate, formatGigabytes } from './helpers';
+import { displayPath, formatBytes, formatDate, formatGigabytes } from './helpers';
 import type { Language } from './types';
 import './local-models.css';
+import {ModelClassification,modelCategories,categoryLabel,inModelCategory,type ModelCategory,type ModelProfile} from './ModelClassification';
 
 interface LocalFile { path: string; size: number | null; modified: number | null; }
 export interface LocalModel {
+  profile?:ModelProfile|null;
   id: string; name: string; path: string; sourceRoot: string; format: string; kind: string;
   discovery: 'model' | 'candidate' | 'excluded'; discoveryReason: string;
   family: string | null; totalBytes: number; status: string; completeness: string; files: LocalFile[]; checkedAt: string;
@@ -48,9 +50,10 @@ export default function LocalModels({ language, showImage }: { language: Languag
   const alive = useRef(true); const generation = useRef(0);
   const [moving, setMoving] = useState(false), [moveModel, setMoveModel] = useState<LocalModel | null>(null);
   const running = snapshot?.scan.status === 'running' || moving;
-  const [category, setCategory] = useState<'model' | 'candidate' | 'excluded'>('model');
+  const [category, setCategory] = useState<ModelCategory>('models');
+  const [query,setQuery]=useState('');
   const [page, setPage] = useState(0);
-  const filtered = snapshot?.entries.filter(entry => entry.discovery === category) ?? [];
+  const filtered = snapshot?.entries.filter(entry => inModelCategory(entry,category)&&(!query.trim()||[entry.name,entry.profile?.family??'',entry.format].join(' ').toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()))) ?? [];
   const pages = Math.max(1, Math.ceil(filtered.length / 50));
   const currentPage = Math.min(page, pages - 1);
   const visible = filtered.slice(currentPage * 50, (currentPage + 1) * 50);
@@ -75,8 +78,7 @@ export default function LocalModels({ language, showImage }: { language: Languag
     if (typeof selected === 'string' && alive.current) setPath(selected);
   }
   return <div className="local-model-library">
-    <Benchmarks language={language} />
-    <ModelUpdates language={language} />
+    <details className="model-maintenance"><summary>{de?'Wartung, Modellupdates und Benchmarks':'Maintenance, model updates and benchmarks'}</summary><Benchmarks language={language} /><ModelUpdates language={language} /></details>
     <ModelTransfer language={language} model={moveModel} dismiss={() => setMoveModel(null)} onBusy={setMoving} />
     <section className="panel local-import" aria-label={de ? 'Modelle vom PC einbinden' : 'Import models from PC'}>
       <h2>{de ? 'Modelle vom PC einbinden' : 'Import models from PC'}</h2>
@@ -103,27 +105,26 @@ export default function LocalModels({ language, showImage }: { language: Languag
       </div>}
     </section>
     <div className="section-heading"><h2>{de ? 'Modelldateien auf diesem PC' : 'Model files on this PC'}</h2><button className="text-button" disabled={busy} onClick={() => void act(refresh)}><RefreshCw size={14} />{de ? 'Liste aktualisieren' : 'Refresh list'}</button></div>
-    <label className="field-label" htmlFor="local-model-category">{de ? 'Treffer anzeigen' : 'Show findings'}</label>
-    <select id="local-model-category" value={category} onChange={e => { setCategory(e.target.value as typeof category); setPage(0); }}>
-      <option value="model">{de ? 'Erkannte Modellformate' : 'Identified model formats'} ({snapshot?.entries.filter(e => e.discovery === 'model').length ?? 0})</option>
-      <option value="candidate">{de ? 'Unbestätigte Kandidaten' : 'Unconfirmed candidates'} ({snapshot?.entries.filter(e => e.discovery === 'candidate').length ?? 0})</option>
-      <option value="excluded">{de ? 'Ausgeblendete alte Treffer' : 'Hidden legacy findings'} ({snapshot?.entries.filter(e => e.discovery === 'excluded').length ?? 0})</option>
-    </select>
-    <p className="hub-hint">{de ? 'Programm-, Bibliotheks- und Testordner werden bei Schnell- und Vollsuche übersprungen. Unbestätigte Kandidaten stehen separat. Bei Bedarf einen konkreten Modellordner gezielt durchsuchen. Erkannte Formate bestätigen noch keine Ausführbarkeit.' : 'Quick and full scans skip application, dependency and test folders. Unconfirmed candidates are listed separately. Scan a specific model folder when needed. Identified formats do not confirm execution support.'}</p>
+    <nav className="model-categories" aria-label={de?'Modellbereiche':'Model categories'}>{modelCategories.map(group=><button type="button" key={group} aria-pressed={category===group} onClick={()=>{setCategory(group);setPage(0);}}><span>{categoryLabel(group,de)}</span><small>{snapshot?.entries.filter(entry=>inModelCategory(entry,group)).length??0}</small></button>)}</nav>
+    <div className="model-library-search"><label className="field-label" htmlFor="model-library-query">{de?'In diesem Bereich suchen':'Search this category'}</label><input type="search" id="model-library-query" value={query} placeholder={de?'Name, Familie oder Dateiformat …':'Name, family or file format …'} onChange={e=>{setQuery(e.target.value);setPage(0);}}/><span>{filtered.length} {de?'Einträge':'entries'}</span></div>
+    <p className="hub-hint">{de?'Modelle sind nach Einsatzzweck geordnet. LoRAs und ControlNet findest du unter Erweiterungen, Encoder und VAEs unter Technische Komponenten. Nicht eindeutig erkannte Dateien bleiben separat sichtbar.':'Models are grouped by purpose. LoRAs and ControlNet are under Extensions; encoders and VAEs are under Technical components. Unidentified files remain visible separately.'}</p>
     {category === 'excluded' && <p className="hub-hint">{de ? 'Treffer aus früheren Versionen bleiben hier zur Kontrolle erhalten. Originaldateien werden nicht verändert.' : 'Findings from previous versions are retained here for review. Original files are not modified.'}</p>}
     {filtered.length === 0 && (snapshot?.entries.length ?? 0) > 0 && <p className="hub-hint">{de ? 'Keine Treffer in dieser Kategorie.' : 'No findings in this category.'}</p>}
     {snapshot?.entries.length === 0 && <p className="hub-hint">{de ? 'Noch keine externen Modelldateien eingebunden. Wähle oben ihren Ordner.' : 'No external model files imported yet. Choose their folder above.'}</p>}
     <div className="local-model-entries">{visible.map(entry => <article className="panel local-model-entry" key={entry.id} data-model-id={entry.id}>
       <div className="section-heading"><div><h3>{entry.name}</h3><p className="model-size">{de ? 'Vorhandene Dateien' : 'Present files'}: <strong>{formatGigabytes(entry.totalBytes, language)}</strong> ({formatBytes(entry.totalBytes, language)})</p></div><span className="pill" data-testid="local-model-status">{text(entry.status)}</span></div>
-      <div className="hub-tags"><span>{formatNames[entry.format] ?? entry.format}</span><span>{entry.kind === 'component' ? (de ? 'Zusatzkomponente' : 'Component') : (de ? 'Modellkandidat' : 'Model candidate')}</span>{entry.family && <span>{de ? 'Familie laut config.json' : 'Family from config.json'}: {entry.family}</span>}</div>
-      <p className="download-path">{entry.path}</p>
-      <p className="hub-hint">{de ? (entry.completeness === 'index' ? 'Prüfumfang: Dateien aus dem Gewichtsindex. Weitere Runtime-Dateien können fehlen.' : entry.completeness === 'container' ? 'Prüfumfang: Safetensors-Header und Bytebereiche. Keine Prüfung auf ein vollständiges Basismodell.' : 'Vollständigkeit unbekannt. Format-/Dateiname ist kein Nachweis eines vollständigen Modells.') : (entry.completeness === 'index' ? 'Scope: files listed in the weight index. Other runtime files may be missing.' : entry.completeness === 'container' ? 'Scope: Safetensors header and byte ranges. A complete base model has not been verified.' : 'Completeness unknown. The format or file name does not prove a complete model.')}</p>
-      <p className="hub-hint">{de ? 'Dateierkennung bestätigt keine Ausführbarkeit. SDXL-Checkpoints im Studio separat prüfen. Quelle: lokaler PC. Lizenz nicht geprüft.' : 'Detection does not confirm execution. Check SDXL checkpoints separately in Studio. Source: local PC. License not verified.'}</p>
+      <div className="hub-tags"><span>{formatNames[entry.format]??entry.format}</span></div>
+      <ModelClassification model={entry} de={de}/>
+      <details className="model-file-details"><summary>{de?'Dateien und Erkennung':'Files and identification'}</summary>
+      <p className="download-path">{displayPath(entry.path)}</p>
+      <p className="hub-hint">{de ? (entry.completeness === 'index' ? 'Prüfumfang: Dateien aus dem Gewichtsindex. Weitere Runtime-Dateien können fehlen.' : entry.completeness === 'container' ? 'Geprüft: Safetensors-Header und Bytebereiche. Die Familien- und Bestandteilerkennung steht oben; Ausführbarkeit wird getrennt geprüft.' : 'Vollständigkeit unbekannt. Format-/Dateiname ist kein Nachweis eines vollständigen Modells.') : (entry.completeness === 'index' ? 'Scope: files listed in the weight index. Other runtime files may be missing.' : entry.completeness === 'container' ? 'Inspected: Safetensors header and byte ranges. Family and component identification is shown above; execution readiness is checked separately.' : 'Completeness unknown. The format or file name does not prove a complete model.')}</p>
+      <p className="hub-hint">{de ? 'Dateierkennung bestätigt keine Ausführbarkeit. SDXL-Checkpoints werden bei Auswahl im Studio automatisch geprüft. Quelle: lokaler PC. Lizenz nicht geprüft.' : 'Detection does not confirm execution. SDXL checkpoints are checked automatically when selected in Studio. Source: local PC. License not verified.'}</p>
       <p className="hub-hint">{text(entry.discoveryReason)}</p>
       <small>{de ? 'Zuletzt geprüft' : 'Last inspected'}: {formatDate(entry.checkedAt, language)}</small>
-      <div className="hub-actions">{entry.format === 'safetensors' && entry.discovery === 'model' && <button className="button primary" onClick={() => showImage(entry.path)}>{de ? 'Im Studio prüfen' : 'Check in Studio'}</button>}<button className="button secondary" disabled={busy || running} onClick={() => void act(() => invoke('model_library_recheck', { id: entry.id }))}><RefreshCw size={14} />{de ? 'Erneut prüfen' : 'Recheck'}</button><button className="text-button" disabled={busy || running} title={de ? 'Entfernt nur den Listeneintrag; die Dateien bleiben erhalten.' : 'Removes only the list entry; files are kept.'} onClick={() => void act(() => invoke('model_library_forget', { id: entry.id }))}>{de ? 'Aus Liste entfernen' : 'Remove from list'}</button></div>
+      </details>
+      <div className="hub-actions">{entry.format === 'safetensors' && entry.profile?.support === 'preflight' && entry.status === 'checked' && <button className="button primary" onClick={() => showImage(entry.path)}>{de ? 'Im Studio prüfen' : 'Check in Studio'}</button>}<button className="button secondary" disabled={busy || running} onClick={() => void act(() => invoke('model_library_recheck', { id: entry.id }))}><RefreshCw size={14} />{de ? 'Erneut prüfen' : 'Recheck'}</button><button className="text-button" disabled={busy || running} title={de ? 'Entfernt nur den Listeneintrag; die Dateien bleiben erhalten.' : 'Removes only the list entry; files are kept.'} onClick={() => void act(() => invoke('model_library_forget', { id: entry.id }))}>{de ? 'Aus Liste entfernen' : 'Remove from list'}</button></div>
       {entry.discovery === 'model' && <button className="button secondary" disabled={busy || running || !['checked', 'recognized'].includes(entry.status)} onClick={() => setMoveModel(entry)}>{de ? 'Dateien verschieben' : 'Move files'}</button>}
-      {entry.discovery==='model'&&<ModelPrivacy path={entry.path} de={de}/>}<details><summary>{de ? 'Erfasste Dateien' : 'Recorded files'} ({entry.files.length})</summary><ul className="download-file-list">{entry.files.map(file => <li key={file.path}><span className="download-path">{file.path}</span><span>{formatGigabytes(file.size, language)}</span></li>)}</ul></details>
+      {entry.discovery==='model'&&<ModelPrivacy path={entry.path} de={de}/>}<details><summary>{de ? 'Erfasste Dateien' : 'Recorded files'} ({entry.files.length})</summary><ul className="download-file-list">{entry.files.map(file => <li key={file.path}><span className="download-path">{displayPath(file.path)}</span><span>{formatGigabytes(file.size, language)}</span></li>)}</ul></details>
     </article>)}</div>
     {pages > 1 && <div className="hub-actions"><button className="button secondary" disabled={currentPage === 0} onClick={() => setPage(currentPage - 1)}>{de ? 'Zurück' : 'Previous'}</button><span>{de ? 'Seite' : 'Page'} {currentPage + 1} / {pages}</span><button className="button secondary" disabled={currentPage + 1 >= pages} onClick={() => setPage(currentPage + 1)}>{de ? 'Weiter' : 'Next'}</button></div>}
     <h2 className="local-download-heading">{de ? 'Über Local Studio heruntergeladen' : 'Downloaded through Local Studio'}</h2>

@@ -7,6 +7,9 @@ use std::{collections::{BTreeSet, HashSet}, fs::{self, File}, io::{Read}, path::
 #[path = "model_discovery.rs"]
 mod discovery;
 use discovery::{classify_discovery, excluded_location, migrate_discovery};
+#[path = "model_profile.rs"]
+mod profile;
+pub use profile::ModelProfile;
 #[path = "model_transfers.rs"]
 mod transfers;
 pub use transfers::*;
@@ -82,6 +85,7 @@ pub enum Discovery { Model, #[default] Candidate, Excluded }
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LocalModel {
+    #[serde(default, skip_serializing_if = "Option::is_none")] pub profile: Option<ModelProfile>,
     pub id: String, pub name: String, pub path: String, pub source_root: String,
     pub format: String, pub kind: String, pub family: Option<String>, pub total_bytes: u64,
     #[serde(default)] pub discovery: Discovery,
@@ -244,7 +248,7 @@ fn inspect_limited(path: &Path, root: &str, cancel: Option<&AtomicBool>) -> Loca
     let mut budget = 64 * 1024 * 1024u64;
     let source = path.to_string_lossy().to_string();
     let format = classify(path).unwrap_or("unknown").to_string();
-    let mut entry = LocalModel { id: format!("{:x}", Sha256::digest(source.to_lowercase().as_bytes())), name: path.file_name().unwrap_or_default().to_string_lossy().into(), path: source, source_root: root.into(), format: format.clone(), discovery: Discovery::Candidate, discovery_reason: String::new(), scan_mode: None, kind: "candidate".into(), family: family(path), total_bytes: 0, status: "unverified".into(), completeness: "unknown".into(), files: vec![stamp(path)], checked_at: crate::database::now() };
+    let mut entry = LocalModel { profile: None, id: format!("{:x}", Sha256::digest(source.to_lowercase().as_bytes())), name: path.file_name().unwrap_or_default().to_string_lossy().into(), path: source, source_root: root.into(), format: format.clone(), discovery: Discovery::Candidate, discovery_reason: String::new(), scan_mode: None, kind: "candidate".into(), family: family(path), total_bytes: 0, status: "unverified".into(), completeness: "unknown".into(), files: vec![stamp(path)], checked_at: crate::database::now() };
     if entry.files[0].size.is_none() { entry.status = "missing".into(); return entry; }
     if format.ends_with("-index") {
         let result = (|| -> Result<()> {
@@ -420,8 +424,11 @@ impl ModelLibrary {
             let entries = rows.map(|r| serde_json::from_str::<LocalModel>(&r.map_err(|_| "local_storage")?).map_err(|_| "local_storage".to_string())).collect::<Result<Vec<_>>>()?;
             (entries, state.scan.clone())
         };
+        let mut profile_budget = 64 * 1024 * 1024;
         for entry in &mut entries {
             if entry.discovery == Discovery::Excluded { continue; }
+            // Also group legacy imports without requiring another disk scan.
+            if discovery::component_location(Path::new(&entry.path)) { entry.kind = "component".into(); }
             let current_files: Vec<_> = entry.files.iter().map(|f| stamp(Path::new(&f.path))).collect();
             for (old, current) in entry.files.iter().zip(&current_files) {
                 if current.size.is_none() && old.size.is_some() { entry.status = if Path::new(&old.path).ancestors().last().is_some_and(|p| p.exists()) { "missing" } else { "unavailable" }.into(); break; }
@@ -429,6 +436,7 @@ impl ModelLibrary {
             }
             entry.total_bytes = current_files.iter().filter_map(|f| f.size).fold(0, u64::saturating_add);
             entry.files = current_files;
+            entry.profile = Some(profile::describe(entry, &mut profile_budget));
         }
         Ok(Snapshot { entries, scan })
     }

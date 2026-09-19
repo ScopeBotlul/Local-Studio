@@ -1,5 +1,11 @@
 use super::*;
 fn setup()->(tempfile::TempDir,Arc<Privacy>){let dir=tempfile::tempdir().unwrap();let p=Privacy::new(dir.path()).unwrap();(dir,p)}
+#[test]fn automatic_model_label_and_authenticated_override_survive_restart(){
+ let(t,p)=setup();let path=t.path().join("model.safetensors");std::fs::write(&path,b"test weights").unwrap();std::fs::write(path.with_extension("json"),br#"{"nsfw":true}"#).unwrap();
+ assert!(p.model(&path));assert_eq!(p.set_model(&path,false).unwrap_err(),"privacy_locked");
+ p.setup("pin".into(),Zeroizing::new("123456".into()),true).unwrap();p.set_model(&path,false).unwrap();assert!(!p.model(&path));drop(p);
+ let p=Privacy::new(t.path()).unwrap();assert!(p.status().unwrap().locked);assert!(!p.model(&path));
+}
 #[test]fn credentials_are_salted_rate_limited_and_restart_locked(){
  let(t,p)=setup();assert!(p.status().unwrap().locked);assert!(!p.status().unwrap().enabled);
  assert_eq!(p.setup("pin".into(),Zeroizing::new("123456".into()),false).unwrap_err(),"privacy_age");

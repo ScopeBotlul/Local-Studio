@@ -48,6 +48,7 @@
     "allow-hf-browser-hide",
     "allow-hf-browser-state",
     "allow-hf-browser-action",
+    "allow-image-model-catalog",
     "allow-image-probe",
     "allow-image-jobs",
     "allow-image-generate",
@@ -169,7 +170,12 @@
     "allow-privacy-lock",
     "allow-privacy-options",
     "allow-privacy-model-set",
-    "allow-privacy-model-status"
+    "allow-privacy-model-status",
+    "core:window:allow-minimize",
+    "core:window:allow-toggle-maximize",
+    "core:window:allow-is-maximized",
+    "core:window:allow-is-focused",
+    "core:window:allow-start-dragging"
   ],
   "webviews": [
     "main"

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import {checkCreative22} from './check-creative22.mjs';
+import {popupMenu} from './popup-menu.mjs';
 const pause=ms=>new Promise(r=>setTimeout(r,ms));async function until(fn,timeout=60000){const end=Date.now()+timeout;while(Date.now()<end){if(await fn())return;await pause(100);}throw Error('Creative23 timeout');}
 export async function checkCreative23(ctx){
  await checkCreative22(ctx);const {invoke,artifactRoot,record}=ctx;let page=ctx.getPage();const state=()=>invoke('project_snapshot');
@@ -29,7 +30,7 @@ export async function checkCreative23(ctx){
  assert.deepEqual(pixels(output),pixels(baseline.output),'Export pixels are identical before and after producing a smaller proxy');
  await assert.rejects(invoke('video_frame',{id:p.id,timeline:p.creative.video,time:-1,proxies:true}));
  await assert.rejects(invoke('media_prepare',{id:p.id,assetId:img.id,kind:'proxy',resolution:'half',width:960}));
- await ctx.stop(false);await ctx.launch();page=ctx.getPage();await page.getByRole('button',{name:'Resume project',exact:true}).click();await until(async()=>!(await state()).recovery);
+ await ctx.stop(false);await ctx.launch();page=ctx.getPage();await popupMenu(page,ctx.pid(),'File','Resume project');await until(async()=>!(await state()).recovery);
  info=await invoke('media_info',{id:p.id});assert.equal(info.find(a=>a.assetId===vid.id).proxies[0].id,proxy.id);assert.deepEqual(info.find(a=>a.assetId===audio.id).waveform,wave);
  const restored=await invoke('video_frame',{id:p.id,timeline:p.creative.video,time:.25,proxies:true});assert.deepEqual(restored.proxyAssets,[vid.id]);
  await page.getByRole('button',{name:'Studio',exact:true}).first().click();await page.getByRole('tab',{name:'Video editor',exact:true}).click();

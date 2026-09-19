@@ -16,3 +16,19 @@
 .local-model-entry summary { cursor: pointer; }
 .local-model-library .download-path { overflow-wrap: anywhere; }
 .local-download-heading { margin: 30px 0 16px; }
+.model-categories { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 20px; }
+.model-categories button { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--panel); color: var(--muted); font-size: 12px; }
+.model-categories button[aria-pressed=true] { color: var(--text); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 9%, var(--panel)); }
+.model-categories small { background: var(--field); border-radius: 5px; padding: 2px 6px; }
+.model-library-search { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+.model-library-search input { flex: 1 1 250px; }
+.model-library-search > span { color: var(--muted); font-size: 12px; }
+.model-classification { padding: 10px 0; }
+.model-support { font-size: 13px; font-weight: 550; margin: 12px 0 8px; }
+.model-support.supported { color: var(--accent); }
+.model-requirements { margin-top: 12px; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--field); }
+.model-requirements ul { list-style: none; padding: 0; margin-bottom: 0; }
+.model-requirements li { display: flex; justify-content: space-between; gap: 15px; padding: 7px 0; flex-wrap: wrap; }
+.model-file-details { border-top: 1px solid var(--border); padding-top: 12px; margin-top: 10px; }
+.model-maintenance { margin-bottom: 20px; color: var(--muted); font-size: 12px; }
+.model-maintenance > summary { cursor: pointer; padding: 10px 0; }

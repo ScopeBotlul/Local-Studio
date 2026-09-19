@@ -7,6 +7,8 @@ use sha2::{Digest, Sha256};
 use std::{fs::{self, File, OpenOptions}, io::{Read, Write}, path::{Path, PathBuf}, process::{Command, Stdio}, sync::{Arc, Mutex, atomic::{AtomicBool, Ordering}}, thread::JoinHandle, time::{Duration, Instant}};
 
 mod queue;
+mod catalog;
+pub use catalog::image_model_catalog;
 pub(crate) mod reference;
 pub use reference::{ImageReference,image_reference};
 mod cleanup;
@@ -58,12 +60,18 @@ struct Active { thread: JoinHandle<()> }
 pub struct ImageEngine { pub(crate) benchmarks: Arc<crate::benchmarks::Benchmarks>, state: Mutex<State>, active: Mutex<Option<Active>>, running: Mutex<Option<(String, Arc<AtomicBool>)>>, config: PathBuf, runtime: PathBuf, stopped: AtomicBool }
 
 fn is_false(value:&bool)->bool{!*value}
+// SDXL adapter limits, not a promise that every GPU has enough memory.
+pub(crate) fn valid_dimensions(width: u32, height: u32) -> bool {
+    (256..=2048).contains(&width) && (256..=2048).contains(&height)
+        && width % 64 == 0 && height % 64 == 0
+        && u64::from(width) * u64::from(height) <= 2_097_152
+}
 pub(crate) fn validate(request: &ImageRequest) -> Result<()> {
     if let Some(reference)=&request.reference {reference::validate(reference,request.width,request.height)?;}
     if request.prompt.trim().is_empty() || request.prompt.len() > 4000 || request.negative_prompt.len() > 4000
         || request.prompt.contains('\0') || request.negative_prompt.contains('\0') { return Err("image_prompt".into()); }
-    if ![512, 768, 1024].contains(&request.width) || ![512, 768, 1024].contains(&request.height)
-        || !(1..=60).contains(&request.steps) || !request.guidance.is_finite() || !(1.0..=20.0).contains(&request.guidance)
+    if !valid_dimensions(request.width, request.height) { return Err("image_dimensions".into()); }
+    if !(1..=60).contains(&request.steps) || !request.guidance.is_finite() || !(1.0..=20.0).contains(&request.guidance)
         || !["euler", "dpm++2m"].contains(&request.sampler.as_str()) { return Err("image_parameters".into()); }
     Ok(())
 }
@@ -424,6 +432,10 @@ pub async fn image_save(id: String, core: tauri::State<'_, Arc<Core>>, state: ta
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test] fn custom_dimensions_obey_grid_area_and_integer_limits() {
+        for (w,h) in [(640,960),(768,1152),(1344,768),(2048,1024)] {assert!(valid_dimensions(w,h));}
+        for (w,h) in [(2048,2048),(4096,512),(0,512),(641,960),(u32::MAX,u32::MAX)] {assert!(!valid_dimensions(w,h));}
+    }
     pub(super) fn request() -> ImageRequest { ImageRequest { vae_on_cpu:false,  reference:None, model_path: "model".into(), prompt: "test".into(), negative_prompt: String::new(), width: 512, height: 512, steps: 20, guidance: 5., seed: 42, sampler: "euler".into() } }
     #[test] fn rejects_invalid_or_unbounded_parameters() { let mut r = request(); assert!(validate(&r).is_ok()); r.width=4096; assert!(validate(&r).is_err()); r.width=512; r.guidance=f32::NAN; assert!(validate(&r).is_err()); r.guidance=5.; r.sampler="--rpc-servers".into(); assert!(validate(&r).is_err()); }
     #[test] fn progress_uses_denoiser_steps_not_weight_loading() { assert_eq!(sampling_progress("|====>| 2/20 - 3.71it/s",20),Some((2,20))); assert_eq!(sampling_progress("|####| 20/20 - 2.00GB/s",20),None); assert_eq!(sampling_progress("|====>| 2/40 - 1.2s/it",20),None); assert_eq!(sampling_progress("|====>| 3/5 - 1.2s/it",6),Some((3,5))); }

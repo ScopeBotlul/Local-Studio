@@ -5,6 +5,8 @@ use serde::{Deserialize, Serialize};
 use std::{num::NonZeroU32, path::Path, sync::{Arc, Mutex, OnceLock}, time::Instant};
 use tauri::{Emitter, Manager};
 use zeroize::Zeroizing;
+mod detection;
+
 type Result<T> = std::result::Result<T, String>;
 const ITERATIONS: u32 = 600_000;
 static SHARED: OnceLock<Arc<Privacy>> = OnceLock::new();
@@ -23,7 +25,7 @@ fn file_id(path:&Path)->Option<String> { let f=crate::model_library::safe_file(p
 impl Privacy {
     pub fn new(config:&Path)->Result<Arc<Self>> {
         let db=Connection::open(config.join("privacy.sqlite3")).map_err(err)?;
-        db.execute_batch("PRAGMA journal_mode=WAL; CREATE TABLE IF NOT EXISTS privacy_config(id INTEGER PRIMARY KEY CHECK(id=1),json TEXT NOT NULL); CREATE TABLE IF NOT EXISTS protected_models(path TEXT PRIMARY KEY,identity TEXT); CREATE TABLE IF NOT EXISTS protected_media(identity TEXT PRIMARY KEY); CREATE TABLE IF NOT EXISTS protected_paths(path TEXT PRIMARY KEY);").map_err(err)?;
+        db.execute_batch("PRAGMA journal_mode=WAL; CREATE TABLE IF NOT EXISTS privacy_config(id INTEGER PRIMARY KEY CHECK(id=1),json TEXT NOT NULL); CREATE TABLE IF NOT EXISTS protected_models(path TEXT PRIMARY KEY,identity TEXT); CREATE TABLE IF NOT EXISTS model_classification_overrides(path TEXT PRIMARY KEY,identity TEXT,restricted INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS protected_media(identity TEXT PRIMARY KEY); CREATE TABLE IF NOT EXISTS protected_paths(path TEXT PRIMARY KEY);").map_err(err)?;
         let raw:Option<String>=db.query_row("SELECT json FROM privacy_config WHERE id=1",[],|r|r.get(0)).optional().map_err(err)?;
         let config:Option<Config>=raw.map(|s|serde_json::from_str(&s).map_err(err)).transpose()?;
         if config.as_ref().is_some_and(|c|c.salt.len()!=32||c.hash.len()!=32||c.iterations!=ITERATIONS||!["pin","password"].contains(&c.kind.as_str())){return Err("privacy_storage".into());}
@@ -71,12 +73,23 @@ impl Privacy {
     }
     pub fn model(&self,path:&Path)->bool {
         let id=file_id(path);let Ok(s)=self.0.lock()else{return true;};
-        s.db.query_row("SELECT EXISTS(SELECT 1 FROM protected_models WHERE path=?1 OR (?2 IS NOT NULL AND identity=?2))",params![key(path),id],|r|r.get(0)).unwrap_or(true)
+        let manual = s.db.query_row("SELECT restricted FROM model_classification_overrides WHERE (path=?1 AND identity=?2) OR (?2 IS NOT NULL AND identity=?2) LIMIT 1",params![key(path),id],|r|r.get::<_,bool>(0)).optional();
+        match manual { Ok(Some(value)) => return value, Err(_) => return true, _ => {} }
+        let registered = s.db.query_row("SELECT EXISTS(SELECT 1 FROM protected_models WHERE path=?1 OR (?2 IS NOT NULL AND identity=?2))",params![key(path),id],|r|r.get::<_,bool>(0)).unwrap_or(true);
+        if registered { return true; }
+        drop(s);
+        if detection::detect(path) {
+            if let Ok(s)=self.0.lock() { let _=s.db.execute("INSERT OR IGNORE INTO protected_models VALUES(?1,?2)",params![key(path),id]); }
+            return true;
+        }
+        false
     }
     pub fn set_model(&self,path:&Path,restricted:bool)->Result<()> {
         let id=file_id(path).ok_or("privacy_model")?;
         if !path.extension().and_then(|s|s.to_str()).is_some_and(|s|["safetensors","gguf","onnx","bin","pt","ckpt"].contains(&s.to_ascii_lowercase().as_str())){return Err("privacy_model".into());}
         let mut s=self.0.lock().map_err(err)?;if Self::locked_state(&s){return Err("privacy_locked".into());}
+        s.db.execute("DELETE FROM model_classification_overrides WHERE identity=?1",[&id]).map_err(err)?;
+        s.db.execute("INSERT OR REPLACE INTO model_classification_overrides VALUES(?1,?2,?3)",params![key(path),id,restricted]).map_err(err)?;
         if restricted{s.db.execute("INSERT OR REPLACE INTO protected_models VALUES(?1,?2)",params![key(path),id]).map_err(err)?;}else{s.db.execute("DELETE FROM protected_models WHERE path=?1 OR identity=?2",params![key(path),id]).map_err(err)?;}s.epoch+=1;Ok(())
     }
     pub fn mark_path(&self,path:&Path)->Result<()> { let s=self.0.lock().map_err(err)?;s.db.execute("INSERT OR IGNORE INTO protected_paths VALUES(?1)",[key(path)]).map_err(err)?;Ok(()) }

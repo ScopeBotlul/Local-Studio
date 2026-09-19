@@ -36,6 +36,15 @@ Die Website-Anmeldung ist separat; ihre Cookies liegen im eigenen WebView-Profil
 App-Tokens werden nicht in Website-Cookies umgewandelt. Modellseiten lassen sich
 über In Local Studio öffnen an die Modellansicht übergeben.
 
+Neu in 0.27.0: gemeinsame Titel-/Menueleiste mit zentriertem Projektnamen.
+Projektverwaltung ueber Datei; Details und Medien ueber Ansicht.
+Bildstudio mit Canvas, Zoom/Pan, seitlichen Eingaben und eigener Aufloesung.
+SDXL-Modellwahl strukturell gefiltert, Vorpruefung automatisch.
+Bibliothek nach Einsatzzweck, Erweiterungen und technischen Komponenten.
+Lokale 18+-Metadaten werden erkannt; unmarkierte Inhalte bleiben unbekannt.
+Eigene SDXL-Groessen: 256-2048 je Seite in 64er-Schritten, maximal 2.097.152 Pixel.
+Lose Encoder/VAEs und andere Modellfamilien sind noch nicht ausfuehrbar.
+
 Neu in 0.26.0: lokale 18+-Sperre mit Altersbestaetigung, PIN oder Passwort,
 Neustartsperre und Modellkennzeichnung. Geschuetzte Prompts, Galerie-Metadaten,
 Projekte und Chatverlaeufe. Laufende Bilder werden beim Sperren weiter berechnet.
