@@ -1,4 +1,8 @@
-# Build 0.28.0 erstellt, Veröffentlichung vorbereitet (2026-09-19)
+# Version 0.28.0 veröffentlicht (2026-09-19)
+
+Nach ausdrücklicher Nutzerbestätigung Quellstand f1e850a66d1a5ba110f25e3329a0760167be6840 nach main gepusht und Release v0.28.0 öffentlich als Latest freigegeben. Der Tag verweist auf diesen Quellstand. Installer, Portable, Prüfsummen und signierte Update-Metadaten sind verfügbar: https://github.com/ScopeBotlul/Local-Studio/releases/tag/v0.28.0. Die App kann damit 0.28.0 über den bestehenden Updatekanal finden. Die frühere Freigabeblockade ist erledigt; Prüflücken bei großer Bildgenerierung bleiben wie in den Release-Hinweisen offengelegt.
+
+# Historisch: Build 0.28.0 erstellt, Veröffentlichung vorbereitet (2026-09-19)
 
 Auf Nutzerauftrag neue Windows-EXE, Installer und portable ZIP erzeugt. Enthalten sind Update-Popup, Startseiten-Projekte, Projektformularlayout, Prompt/Negativ-Prompt, eigene Größen bis vier Megapixel und HF-Bereichsfilter. Alle fünf Versionsdateien sind auf 0.28.0 gesetzt. Native gezielte UI-Abnahme und Paketprüfung erfolgreich; Update-Metadaten mit dem bestehenden Schlüssel signiert. Details und offene Grenzen in TEST_MATRIX.md und docs/RELEASE_0.28.0.md. Keine Wiederholung unveränderter Gesamtregressionen. Der Upload erfolgt zunächst als GitHub-Entwurf: Die automatische Freigabeprüfung hat Commit und direkten Push des Quellstands nach main blockiert, weil sie die bisherige Zustimmung nur für 0.27.0 anerkennt. Für diese Quellcode-Veröffentlichung steht eine zusätzliche ausdrückliche Freigabe aus. Bis dahin wird der Release nicht öffentlich einem unpassenden alten Quellstand zugeordnet. Ältere Hinweise auf noch nicht veröffentlichte Änderungen darunter sind historische Zwischenstände.
 

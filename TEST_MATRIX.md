@@ -1,4 +1,8 @@
-# GitHub-Entwurf 0.28.0: Upload vollständig geprüft (2026-09-19)
+# Öffentlicher Updatekanal 0.28.0 geprüft (2026-09-19)
+
+`node scripts/verify-published-release.mjs` erfolgreich: neuester öffentlicher Release ist v0.28.0, kein Entwurf/Prerelease. Ed25519-Signatur des öffentlichen Manifests gültig. Installer und portable ZIP vollständig öffentlich heruntergeladen; Größen und SHA256 stimmen mit Manifest und lokalen Paketen überein. Alle fünf GitHub-Asset-Digests stimmen ebenfalls. Nachweis: .artifacts/github-release-verification-0.28.0.json. Release-Tag zeigt auf f1e850a66d1a5ba110f25e3329a0760167be6840. Keine erneuten Funktionstests oder Builds nötig.
+
+# Historisch: GitHub-Entwurf 0.28.0, Upload vollständig geprüft (2026-09-19)
 
 Release-Entwurf 391874618 enthält alle fünf Dateien vollständig (Status uploaded). Größen und GitHub-SHA256 stimmen mit den lokalen Artefakten überein. Nachweis: .artifacts/github-draft-verification-0.28.0.json. Noch kein öffentlicher Release und keine öffentliche Downloadprüfung; Commit/Push des zugehörigen Quellstands wartet nach automatischer Freigabeablehnung auf ausdrückliche Nutzerzustimmung. Lokaler Installer und Portable sind fertig verfügbar.
 
