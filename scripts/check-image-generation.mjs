@@ -73,7 +73,7 @@ export async function checkImageGeneration(page, artifactRoot, invoke, record) {
   probe = await invoke('image_probe', { path: incomplete }); assert.equal(probe.ready, false);
   assert.deepEqual(probe.missing, ['SDXL UNet', 'CLIP-L', 'CLIP-G', 'VAE encoder', 'VAE decoder']);
   await assert.rejects(invoke('image_generate', { request: { ...request, modelPath: incomplete } }), /image_not_ready/);
-  await assert.rejects(invoke('image_generate', { request: { ...request, width: 4096 } }), /image_parameters/);
+  await assert.rejects(invoke('image_generate', { request: { ...request, width: 4160 } }), /image_dimensions/);
   await assert.rejects(invoke('image_generate', { request: { ...request, sampler: '--rpc-servers' } }), /image_parameters/);
   record('Preflight names missing SDXL components; incomplete model and invalid generation parameters cannot execute');
 

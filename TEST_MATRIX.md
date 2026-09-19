@@ -1,3 +1,44 @@
+# GitHub-Entwurf 0.28.0: Upload vollständig geprüft (2026-09-19)
+
+Release-Entwurf 391874618 enthält alle fünf Dateien vollständig (Status uploaded). Größen und GitHub-SHA256 stimmen mit den lokalen Artefakten überein. Nachweis: .artifacts/github-draft-verification-0.28.0.json. Noch kein öffentlicher Release und keine öffentliche Downloadprüfung; Commit/Push des zugehörigen Quellstands wartet nach automatischer Freigabeablehnung auf ausdrückliche Nutzerzustimmung. Lokaler Installer und Portable sind fertig verfügbar.
+
+# Build 0.28.0: gezielte Abnahme (2026-09-19)
+
+- Windows-Release-Build und Inno-Installer erfolgreich: .artifacts/build28-desktop.log. Frontend-/TypeScript-Build enthalten; bestehende Bundle-Größen-/Linkerhinweise unverändert.
+- Native Prüfung der finalen EXE: **5/5 bestanden**, .artifacts/native-1789781414805/report.json. Projekt erstellen und gespeicherte Projektdatei über die Startseite wieder öffnen, Dialogfeld unter Beschriftung, explizite Größenkorrektur und 4-MP-Felder, Prompt/Negativ-Prompt, Bereichsfilter mit richtigen Aufgaben und keine unbehandelten Frontendfehler. Vorlauf scheiterte nur am Testselektor für das Aufgabenfeld; Selektor korrigiert, Produktcode unverändert. Test-EXE und finale Release-EXE SHA256 identisch: f9094e9a89f131334d515e9d2e7364a9134c60b1fd3ce951cc7810634e2e264f.
+- Update-Dialog: **5/5 Browserfälle bestanden**, .artifacts/update-popup-browser.json. Abbrechen ohne Download, genau ein Download und Installation nur bei ready, Abbrechen vor verspätetem ready, Integritätsfehler, englischer Portable-Dialog und Escape. Simulierte Update-IPC-Antworten, kein echter Installerstart. Der zuvor unvollständige Vite-Devserver-Test ist durch eine direkt gebündelte isolierte Browserfixture ersetzt; kein Produktfix erforderlich.
+- Vorhandene gezielte Nachweise für unveränderte Logik wiederverwendet: 8 Startupdate-, 7 Größen/Klassifizierungs- und 4 HF-Frontendfälle sowie 5 Bildengine- und 2 HF-Rustfälle, siehe Abschnitte darunter. Keine erneute KI-/Editor-/Installer-Gesamtsuite.
+- Paket-Byteprüfung erfolgreich: .artifacts/package-bytes-verification-0.28.0.json. ZIP exakt 80 erlaubte Dateien, vier Runtime-Manifeste und Programmdatei stimmen, keine Modelle oder Nutzerdaten. Installer 83.199.041 Bytes, ZIP 128.281.481 Bytes. Installer-SHA256 c945184ec37ad6a3d3594442369b5ac40833357d6b22256a4a1cf435ad4d9ad5; ZIP-SHA256 d66de4a3b2145db8053112b3ec7b2ba343926e13768187bfa36a12168fe538f4.
+- Signatur-/Releaseprüfung erfolgreich: node scripts/verify-release.mjs bestätigt bestehenden Ed25519-Schlüssel, Versionen, URLs, Größen und Hashes. Keine Authenticode-Signatur.
+- Reale 4-MP-Generierung und vollständige native Generierungs-/18+-Sperrstrecke bleiben offen; keine vollständige Produktabnahme behauptet. Release-Hinweise legen dies offen. Öffentliche Veröffentlichung/Downloadprüfung folgt separat.
+
+# Modell-Suchfilter: gezielte Prüfung (2026-09-19)
+
+- Frontend-Build einschließlich TypeScript erfolgreich (.artifacts/hub-filters-build.log); erfasst auch die vorherige Projektformular-Layoutänderung. Bestehender Hinweis zur Bundle-Größe unverändert.
+- `npm.cmd test -- src/hub-filters.test.ts`: 4 Tests bestanden (.artifacts/hub-filters-unit.log). Wechsel auf passende Aufgaben, Erhalt einer passenden Unteraufgabe, getrennte Sprach-/Chat-Kategorien, eindeutige Aufgaben und Hinweise ohne falsche Ausführbarkeitsbehauptung.
+- `cargo test --offline --manifest-path src-tauri/Cargo.toml hub::tests::search_task`: 2 Tests bestanden (.artifacts/hub-filters-rust.log). Alle 20 UI-Aufgaben werden als pipeline_tag an den festen HF-Endpunkt übertragen; Suchtext und Cursor bleiben korrekt kodiert. Unbekannte/injizierte Aufgaben werden abgelehnt.
+- Neue Aufgaben mit der offiziellen Hugging-Face-Aufgabenübersicht abgeglichen. Kein neuer nativer UI-/Live-Suchdurchlauf und keine Inferenzprüfung. Keine Desktop-Pakete oder Veröffentlichung erzeugt; GitHub-Version bleibt 0.27.0.
+
+# Neues-Projekt-Formular: Layoutänderung (2026-09-19)
+
+Screenshot und Quellcode abgeglichen: Inline-Label ohne Formularlayout war die Ursache für das schmale Feld neben der Beschriftung. JSX-Klassen und gezielte CSS-Regeln für Dialog und Startseitenformular angepasst. Keine zusätzlichen automatischen Tests, keine native Sichtprüfung und kein Build für diese kleine Layoutänderung. Die folgenden Build-Nachweise liegen davor.
+
+# Startseiten-Projekte und eigene Größen: gezielte Prüfung (2026-09-19)
+
+- Frontend-Build einschließlich TypeScript erfolgreich (.artifacts/home-dimensions-build.log). Erfasst den neuen Projektbereich, aktuelle Update-Popup-Änderungen, Prompt-Beschriftung und Größenfelder. Unveränderter Hinweis zur Bundle-Größe.
+- `npm.cmd test -- src/model-classification.test.ts`: 7 Tests bestanden (.artifacts/home-dimensions-unit.log). Größenraster, vier Megapixel, Seitenmaximum, konkrete Sperrgründe und passende explizite Größenalternativen geprüft; bestehende Modellklassifizierung und Pfaddarstellung in derselben kleinen Testdatei ebenfalls bestanden.
+- `cargo test --offline --manifest-path src-tauri/Cargo.toml image_engine::tests`: 5 Tests bestanden (.artifacts/home-dimensions-rust.log). Neue 4-MP-Grenze und weiterhin unzulässige Maße, Parameterprüfung, vorhandene Runtime-/Fortschrittsprüfungen. Ein tatsächlich kodiertes 2048 × 2048-RGBA-PNG wird durch die unveränderte begrenzte Ausgabeprüfung akzeptiert; falsche erwartete Abmessungen werden abgelehnt.
+- Keine erneute native UI-Abnahme der Startseite, keine echte 4-MP-Inferenz, keine Inferenz-/Installer-Gesamtregression. Der neue Projektbereich verwendet die bestehenden Controller-/Dateidialogpfade; deren frühere Prüfung ersetzt keine neue native UI-Abnahme.
+- Kein neuer Desktop-Build, kein Installer oder Release. Der verfügbare GitHub-Build bleibt 0.27.0.
+
+# Gezielte Änderungen nach 0.27.0 (2026-09-19)
+
+- Update-Popup: `npm.cmd test -- src/startup-update.test.ts` bestanden, 8 Fälle. Verzögerte einmalige Prüfung, neue/aktuelle/fehlerhafte Version, bestehender Dialog, Deaktivieren vor dem Start und während der Anfrage sowie Netzwerkfehler. Nachweis: .artifacts/update-popup-unit-tests.log.
+- Update-Popup: `npm.cmd run build` einschließlich TypeScript erfolgreich. Nachweis: .artifacts/update-popup-frontend-build.log. Unveränderter Hinweis zur Bundle-Größe. Keine Rust-Änderung, keine erneuten Rust-/Inferenz-/Installerprüfungen.
+- Isolierter Edge-Dialogtest mit simuliertem Update-IPC nicht erfolgreich abgeschlossen: erster Lauf scheiterte beim Warten auf die Fortschrittsanzeige, ein weiterer beim Laden der Testseite. Der letzte Versuch mit kontrollierter Browser-Uhr wurde bei der nächsten Nutzeranweisung beendet. Kein behaupteter UI-/Installationsnachweis; scripts/check-update-dialog.mjs bleibt ein noch zu bestätigender gezielter Test.
+- Anschließende Studio-Kleinänderung (Prompt-Beschriftung, Negativ-Prompt standardmäßig offen): Quellcode angepasst; dafür keine zusätzlichen Tests oder Builds ausgeführt. Der oben genannte Frontend-Build liegt vor dieser Kleinänderung.
+- Keine neue Desktop-EXE, kein Installer und kein GitHub-Release für diese Änderungen. Veröffentlichter Build bleibt 0.27.0.
+
 # GitHub-Release 0.27.0: öffentliche Downloads geprüft (2026-09-19)
 
 `node scripts/verify-published-release.mjs` erfolgreich: v0.27.0 ist der neueste öffentliche Release, kein Entwurf und kein Prerelease. Öffentliches Update-Manifest mit bestehendem Ed25519-Schlüssel verifiziert. Installer und portable ZIP vollständig erneut von GitHub heruntergeladen; Größen und SHA256 stimmen mit Manifest und lokalen Paketen überein. Zusätzlich stimmen die GitHub-Digests aller fünf Assets. Nachweis: .artifacts/github-release-verification-0.27.0.json. Tag und Release verweisen auf Quellcode-Commit 9808736affcd7dadf26b60d16899cfb44a4e3c09. Keine Wiederholung der Funktionstests und kein neuer Build. Veröffentlichung vom Nutzer ausdrücklich bestätigt; die RAM-bedingt offenen Generierungs-/Sperrprüfungen sind in den öffentlichen Release-Hinweisen offengelegt und bleiben offen.

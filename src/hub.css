@@ -14,6 +14,11 @@
 .hub-filters { display: flex; flex-wrap: wrap; gap: 18px; margin: 20px 0; }
 .hub-filters label, .hub-revision label { display: flex; flex-direction: column; gap: 8px; color: var(--muted); font-size: 12px; }
 .hub-filters select { min-width: 210px; }
+.hub-category-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+.hub-category-filters button { border: 1px solid var(--border); background: var(--field); color: var(--muted); border-radius: 8px; padding: 9px 14px; font: inherit; font-size: 12px; cursor: pointer; }
+.hub-category-filters button[aria-pressed='true'] { border-color: var(--accent); color: var(--text); background: color-mix(in srgb, var(--accent) 16%, var(--panel)); }
+.hub-category-filters button:disabled { cursor: default; opacity: .6; }
+.hub-filter-support { margin: 0 0 12px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 12px; color: var(--muted); }
 .hub-check { display: flex; align-items: center; gap: 9px; font-size: 12px; color: var(--muted); }.hub-check input { accent-color: var(--accent); }
 .hub-empty { text-align: center; padding: 45px 25px; color: var(--muted); }.hub-empty p { margin: 16px 0 0; }
 .hub-results { display: grid; gap: 11px; }.hub-model { display: flex; align-items: center; gap: 18px; padding: 21px; }

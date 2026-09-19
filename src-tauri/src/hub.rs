@@ -146,6 +146,18 @@ fn search_url(query: &SearchQuery) -> HubResult<Url> {
         "image-text-to-text",
         "text-to-audio",
         "automatic-speech-recognition",
+        "image-text-to-image",
+        "mask-generation",
+        "image-text-to-video",
+        "video-to-video",
+        "audio-to-audio",
+        "text-to-speech",
+        "image-to-text",
+        "video-text-to-text",
+        "image-segmentation",
+        "depth-estimation",
+        "object-detection",
+        "audio-classification",
     ]
     .contains(&query.task.as_str())
     {
@@ -392,6 +404,22 @@ pub fn open_page(page: &str, repo: Option<&str>) -> HubResult<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn search_task_filters_are_sent_to_hugging_face_with_pagination() {
+        for task in ["text-to-image", "image-to-image", "image-text-to-image", "mask-generation", "text-to-video", "image-to-video", "image-text-to-video", "video-to-video", "text-to-audio", "audio-to-audio", "automatic-speech-recognition", "text-to-speech", "text-generation", "image-text-to-text", "image-to-text", "video-text-to-text", "image-segmentation", "depth-estimation", "object-detection", "audio-classification"] {
+            let url=search_url(&SearchQuery{search:"model & test".into(),task:task.into(),sort:"downloads".into(),cursor:Some("next+page".into())}).unwrap();
+            assert_eq!(url.host_str(),Some("huggingface.co"));
+            assert!(url.query_pairs().any(|(key,value)|key=="pipeline_tag"&&value==task));
+            assert!(url.query_pairs().any(|(key,value)|key=="cursor"&&value=="next+page"));
+            assert!(url.query_pairs().any(|(key,value)|key=="search"&&value=="model & test"));
+        }
+    }
+    #[test]
+    fn search_task_filters_reject_unknown_or_injected_tags() {
+        for task in ["video", "arbitrary-code", "text-to-image&token=secret", "https://example.com"] {
+            assert_eq!(search_url(&SearchQuery{search:String::new(),task:task.into(),sort:"downloads".into(),cursor:None}).unwrap_err(),"invalid_query");
+        }
+    }
     fn response_server(
         status: &str,
         extra: &str,

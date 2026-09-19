@@ -18,7 +18,7 @@ const de = {
   image: 'Bild erzeugen', imageEdit: 'Bild bearbeiten', video: 'Video aus Text', imageVideo: 'Video aus Bild', chat: 'Text / Chat', vision: 'Bild und Text', audio: 'Audio aus Text', speech: 'Spracherkennung',
   executableOnly: 'Nur mit Local Studio ausführbare Modelle anzeigen', noRuntime: 'Noch kein Modelladapter integriert. Deshalb ist derzeit kein Modell als ausführbar eingestuft.',
   emptyStart: 'Starte eine Suche. Öffentliche Modelle kannst du ohne Konto ansehen.', empty: 'Keine passenden Modelle gefunden.', more: 'Weitere Modelle laden',
-  unsupported: 'Ausführung in Local Studio derzeit nicht unterstützt.', downloadPlanned: 'Dateien gezielt auswählen, Download prüfen und lokal speichern.',
+  unsupported: 'Aufgabenfilter beruhen auf Hugging-Face-Metadaten und bestätigen keine lokale Ausführbarkeit.', downloadPlanned: 'Dateien gezielt auswählen, Download prüfen und lokal speichern.',
   details: 'Modell prüfen', back: 'Details schließen', revision: 'Revision (Branch, Tag oder Commit)', loadRevision: 'Revision laden', resolved: 'Aufgelöster Commit',
   license: 'Lizenz', unknown: 'Nicht angegeben', gated: 'Freigabe erforderlich', private: 'Privat', public: 'Öffentlich', files: 'Dateien', size: 'Größe', card: 'Model Card (Originaltext)',
   cardMissing: 'Die Model Card konnte nicht geladen werden.', modelPage: 'Modellseite öffnen', resultCount: 'Modelle geladen', working: 'Wird geladen …',
@@ -37,7 +37,7 @@ const en: typeof de = {
   models: 'Models', modelsIntro: 'Search the Hugging Face catalog and inspect models, revisions and files.', search: 'Search models', searchLabel: 'Model name or repository ID', task: 'Task', sort: 'Sort by', allTasks: 'All tasks',
   downloads: 'Downloads', likes: 'Likes', recent: 'Recently updated', trending: 'Trending', image: 'Text to image', imageEdit: 'Image to image', video: 'Text to video', imageVideo: 'Image to video', chat: 'Text / chat', vision: 'Image and text', audio: 'Text to audio', speech: 'Speech recognition',
   executableOnly: 'Only show models executable in Local Studio', noRuntime: 'No model adapter is integrated yet. No models are currently classified as executable.',
-  emptyStart: 'Start a search. You can browse public models without an account.', empty: 'No matching models found.', more: 'Load more models', unsupported: 'Execution in Local Studio is not currently supported.', downloadPlanned: 'Select files, review the download and store them locally.',
+  emptyStart: 'Start a search. You can browse public models without an account.', empty: 'No matching models found.', more: 'Load more models', unsupported: 'Task filters use Hugging Face metadata and do not confirm local compatibility.', downloadPlanned: 'Select files, review the download and store them locally.',
   details: 'Inspect model', back: 'Close details', revision: 'Revision (branch, tag or commit)', loadRevision: 'Load revision', resolved: 'Resolved commit', license: 'License', unknown: 'Not specified', gated: 'Approval required', private: 'Private', public: 'Public', files: 'Files', size: 'Size', card: 'Model card (original text)', cardMissing: 'The model card could not be loaded.', modelPage: 'Open model page', resultCount: 'models loaded', working: 'Loading …', failure: 'The Hugging Face action failed.',
 };
 const errors: Record<string, [string, string]> = {

@@ -1,5 +1,7 @@
 # Projekte ab 0.21.0
 
+Quellstand nach 0.27.0: Die Startseite bietet eine Projektübersicht mit dem aktuellen Arbeitsprojekt und bis zu zwölf zuletzt geöffneten Projektdateien. Neues Projekt fragt den Namen ab, Durchsuchen öffnet den vorhandenen Dateidialog für .localstudio-Dateien, Ausgewähltes Projekt öffnen öffnet die markierte Zeile beziehungsweise setzt das aktive Projekt fort. Nicht verfügbare Dateien sind gekennzeichnet. Neue Arbeitsprojekte werden weiterhin über Datei → Speichern als Projektdatei abgelegt. Diese Übersicht durchsucht keine Laufwerke automatisch und ist noch nicht im veröffentlichten Build 0.27.0 enthalten.
+
 Die Projektleiste steht über dem Arbeitsbereich. Ohne Projekt bleiben Studio und Galerie verwendbar. Es kann genau ein Projekt aktiv sein.
 
 1. Projektleiste aufklappen, Namen eingeben und **Projekt anlegen** wählen. Die aktuellen Bild-Studio-Eingaben werden übernommen.

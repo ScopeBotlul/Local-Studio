@@ -1,3 +1,31 @@
+# Build 0.28.0 erstellt, Veröffentlichung vorbereitet (2026-09-19)
+
+Auf Nutzerauftrag neue Windows-EXE, Installer und portable ZIP erzeugt. Enthalten sind Update-Popup, Startseiten-Projekte, Projektformularlayout, Prompt/Negativ-Prompt, eigene Größen bis vier Megapixel und HF-Bereichsfilter. Alle fünf Versionsdateien sind auf 0.28.0 gesetzt. Native gezielte UI-Abnahme und Paketprüfung erfolgreich; Update-Metadaten mit dem bestehenden Schlüssel signiert. Details und offene Grenzen in TEST_MATRIX.md und docs/RELEASE_0.28.0.md. Keine Wiederholung unveränderter Gesamtregressionen. Der Upload erfolgt zunächst als GitHub-Entwurf: Die automatische Freigabeprüfung hat Commit und direkten Push des Quellstands nach main blockiert, weil sie die bisherige Zustimmung nur für 0.27.0 anerkennt. Für diese Quellcode-Veröffentlichung steht eine zusätzliche ausdrückliche Freigabe aus. Bis dahin wird der Release nicht öffentlich einem unpassenden alten Quellstand zugeordnet. Ältere Hinweise auf noch nicht veröffentlichte Änderungen darunter sind historische Zwischenstände.
+
+# Modell-Suchfilter nach Bereich – Quellcode nach 0.27.0 (2026-09-19)
+
+Die Hugging-Face-Modellsuche zeigt sichtbare Bereiche Alle, Bild, Video, Audio & Musik, Sprache, Text & Chat und Analyse. Ein Bereich wählt eine passende Standardaufgabe; im Aufgabenfeld sind die zugehörigen Unteraufgaben auswählbar (insgesamt 20 offizielle Pipeline-Tags). Suchen startet wie bisher über Modelle suchen; Name, Aufgabe und Sortierung werden serverseitig kombiniert. Filterwechsel leeren alte Ergebnisse und Cursor, Weitere Modelle lädt mit denselben Filtern nach. Beschriftungen sind auf Deutsch und Englisch verfügbar; die Treffer zeigen verständliche Aufgabennamen.
+
+Die Rust-Whitelist wurde um die entsprechenden Aufgaben erweitert; unbekannte Aufgaben bleiben unzulässig. Hinweise unterscheiden aktuelle SDXL-/GGUF-/Whisper-Pfade von derzeit nur such-/herunterladbaren Aufgaben. Der alte Platzhalterfilter Nur ausführbare Modelle, der immer alle Treffer verbarg und fälschlich fehlende Adapter behauptete, ist durch einen funktionierenden Verweis auf die lokale Modellbibliothek ersetzt. Klassische Editorfunktionen ohne KI-Modell erhalten keine erfundenen Hub-Tags. Die lokale Bibliothek behält ihre bestehenden Bereichsfilter. Kein neuer Desktop-Build oder Release.
+
+# Neues-Projekt-Formular: Layout korrigiert (2026-09-19)
+
+Der Dialog aus Datei → Neues Projekt verwendete ein unformatiertes Inline-Label mit dem Eingabefeld direkt daneben. Beschriftung und Eingabe stehen jetzt untereinander mit festem Abstand; das Feld nutzt die verfügbare Breite. Dialogtext und Aktionsbuttons haben getrennte Abstände. Das Formular auf der Startseite nutzt dieselbe Feldformatierung. Reine Layoutänderung; bestehende Projektaktionen bleiben erhalten. Kein neuer Build oder Release.
+
+# Startseiten-Projekte und eigene Bildgrößen – Quellcode nach 0.27.0 (2026-09-19)
+
+Startseite mit aktuellem Projekt und den bis zu zwölf zuletzt geöffneten Projektdateien. Auswahl per Radiozeile/Tastatur, Neues Projekt mit Namen, Durchsuchen im bestehenden Windows-Dateidialog und Ausgewähltes Projekt öffnen. Erfolgreiche Aktionen führen ins Studio; abgebrochene/fehlgeschlagene Aktionen bleiben auf der Startseite. Bestehende Projektcontroller erhalten Speicher-/Verwerfbestätigungen, Recovery- und Sperrregeln. Fehlende Dateien sind gekennzeichnet; ein noch ungespeichertes aktives Projekt bleibt erreichbar. Keine automatische Laufwerkssuche.
+
+Eigene SDXL-Größen: Obergrenze auf 4.194.304 Gesamtpixel und 4096 Pixel je Seite erhöht; Mindestgröße 256 und 64er-Raster bleiben bestehen. Frontend, Rust-Zulassung und Referenzhinweise sind konsistent. Ungültige Größen erklären jetzt konkret Bereich, Raster oder Pixelbudget. Ein expliziter Übernehmen-Button bietet passende Maße an, beispielsweise 1920 × 1088 statt 1920 × 1080; keine stillschweigende Änderung der Ausgabegröße. Zusätzlich steht der Sperrgrund beim Generieren-Button. Über zwei Megapixel warnt die Oberfläche vor höherem VRAM-/Zeitbedarf und möglichem Speicherabbruch. Die bestehende RAM-Zulassung sowie die begrenzte PNG-Dekodierung bleiben erhalten. Das ist keine hardwareübergreifende Zusage für große Generierungen. Kein neuer Desktop-Build oder Release.
+
+# Studio-Beschriftung – Quellcode nach 0.27.0 (2026-09-19)
+
+Das Eingabefeld heißt auf Deutsch und Englisch Prompt statt Deine Bildidee/Your image idea. Der Negativ-Prompt ist beim Öffnen des Studios standardmäßig ausgeklappt und bleibt manuell einklappbar. Kein neuer Desktop-Build oder Release.
+
+# Update-Popup beim Start – Quellcode nach 0.27.0 (2026-09-19)
+
+Bei aktivierter automatischer Updatesuche öffnet ein neues signiertes Release nach der bestehenden Startverzögerung den Updatedialog statt eines kurzlebigen Hinweises. Andere modale Dialoge werden abgewartet; manuelles Öffnen der Updatesuche beendet eine noch ausstehende automatische Benachrichtigung. Die installierte Ausgabe bietet Abbrechen und Update installieren. Ein Klick lädt das Paket herunter und ruft ausschließlich nach dem Backend-Status ready den bestehenden sicheren Beenden-/Installationsablauf auf. Abbrechen/Escape verhindert diesen Übergang auch bei einer verspäteten Downloadantwort. Portable bleibt beim GitHub-ZIP-Download. Kein neuer Desktop-Build oder Release für diese Änderung; veröffentlichte Version weiterhin 0.27.0. Gezielte Prüfnachweise stehen separat in TEST_MATRIX.md.
+
 # GitHub-Release 0.27.0 veröffentlicht (2026-09-19)
 
 Neue Builds werden auf Nutzerwunsch standardmäßig auf GitHub hochgeladen; die Regel steht in AGENTS.md. [Release 0.27.0](https://github.com/ScopeBotlul/Local-Studio/releases/tag/v0.27.0) ist öffentlich und als neuester Release markiert. Er enthält Installer, portable ZIP, Prüfsummen und signierte Update-Metadaten. Alle fünf Assets sind vollständig hochgeladen; Größen und GitHub-SHA256 stimmen mit den lokalen Dateien überein. Der Nutzer hat zusätzlich Commit und direkten Push der 54 vorbereiteten Quellcode-/Dokumentationsdateien nach main sowie die Veröffentlichung ausdrücklich bestätigt. Tag und Release verweisen auf den Quellcode-Commit 9808736affcd7dadf26b60d16899cfb44a4e3c09. Keine neuen Funktionstests oder Builds ausgeführt. Die verbleibende RAM-bedingte Prüflücke ist in docs/RELEASE_0.27.0.md offengelegt.

@@ -2,7 +2,7 @@ import {describe,it,expect} from 'vitest';
 import {inModelCategory,modelCategory,modelSupport,type ModelProfile} from './ModelClassification';
 import type {LocalModel} from './LocalModels';
 import {displayPath} from './helpers';
-import {validImageDimensions} from './image-api';
+import {validImageDimensions,imageDimensionIssue,suggestImageDimensions} from './image-api';
 const model=(profile:Partial<ModelProfile>,extra:Partial<LocalModel>={}):LocalModel=>({id:'fixture',name:'fixture',path:'D:\\models\\file.safetensors',sourceRoot:'D:\\models',format:'safetensors',kind:'candidate',discovery:'model',discoveryReason:'',family:null,totalBytes:10,status:'checked',completeness:'container',files:[],checkedAt:'',profile:{purpose:'unknown',role:'unknown',family:null,packaging:'unknown',evidence:'unknown',support:'unknown',requirements:[],...profile},...extra});
 describe('model library categories',()=>{
  it('keeps extensions, components and unknown files out of main models',()=>{for(const role of ['component','extension','unknown'] as const){const m=model({role,purpose:'image'});expect(inModelCategory(m,'models')).toBe(false);expect(modelCategory(m)).toBe(role);}});
@@ -10,7 +10,13 @@ describe('model library categories',()=>{
  it('does not describe unavailable models as ready',()=>{expect(modelSupport(model({support:'preflight'},{status:'missing'}),true)).toBe('Dateien nicht verfügbar');});
 });
 describe('custom image dimensions and path display',()=>{
- it('accepts useful portrait and landscape sizes with matching area limit',()=>{for(const [w,h]of [[640,960],[768,1152],[1344,768],[2048,1024]])expect(validImageDimensions(w,h)).toBe(true);});
- it('rejects excessive, fractional, empty or misaligned dimensions',()=>{for(const [w,h]of [[2048,2048],[4096,512],[0,512],[641,960],[512.5,512],[NaN,512]])expect(validImageDimensions(w,h)).toBe(false);});
+ it('accepts custom sizes up to four megapixels',()=>{for(const [w,h]of [[640,960],[768,1152],[1344,768],[2048,1024],[2048,2048],[4096,1024],[1920,1088]])expect(validImageDimensions(w,h)).toBe(true);});
+ it('rejects excessive, fractional, empty or misaligned dimensions',()=>{for(const [w,h]of [[2048,2112],[4096,4096],[4160,512],[0,512],[641,960],[512.5,512],[NaN,512],[1920,1080]])expect(validImageDimensions(w,h)).toBe(false);});
+ it('explains the actual restriction and proposes explicit valid alternatives',()=>{
+  expect(imageDimensionIssue(1920,1080)).toBe('step');expect(imageDimensionIssue(4096,4096)).toBe('area');expect(imageDimensionIssue(0,512)).toBe('range');
+  expect(suggestImageDimensions(1920,1080)).toEqual({width:1920,height:1088});expect(suggestImageDimensions(4096,4096)).toEqual({width:2048,height:2048});
+  expect(suggestImageDimensions(0,512)).toBeNull();expect(suggestImageDimensions(NaN,512)).toBeNull();
+  for(const [w,h]of [[100,300],[1980,1400],[4096,1088],[8192,4096],[3000,3000]]){const size=suggestImageDimensions(w,h)!;expect(validImageDimensions(size.width,size.height)).toBe(true);}
+ });
  it('removes only Windows extended-path display prefixes',()=>{expect(displayPath('\\\\?\\D:\\models\\a')).toBe('D:\\models\\a');expect(displayPath('\\\\?\\UNC\\server\\share')).toBe('\\\\server\\share');expect(displayPath('D:\\models\\a')).toBe('D:\\models\\a');});
 });

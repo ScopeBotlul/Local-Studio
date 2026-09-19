@@ -4,6 +4,7 @@ import HfBrowserPanel from './HfBrowserPanel';
 import { useEffect, useRef, useState } from 'react';
 import { ArrowRight, Box, CheckCircle2, ExternalLink, LoaderCircle, Search, ShieldCheck, UserRound, X } from 'lucide-react';
 import { hubApi } from './hub-api';
+import {hubCategories,hubCategoryLabels,tasksForCategory,taskForCategory,hubTaskLabel,hubTaskSupport,type HubCategory} from './hub-filters';
 import { hubError, hubText } from './hub-i18n';
 import type { HfAuthStatus, HfModel, HfModelDetail, HfQuery } from './hub-types';
 import { formatGigabytes, totalFileBytes } from './helpers';
@@ -21,7 +22,7 @@ export default function HubPage({ language, mode, showModels, initialRepo, showD
   const [models, setModels] = useState<HfModel[] | null>(null);
   const [sizes, setSizes] = useState<Record<string, number | null>>({});
   const [cursor, setCursor] = useState<string | null>(null);
-  const [onlyExecutable, setOnlyExecutable] = useState(false);
+  const [category,setCategory]=useState<HubCategory>('all');
   const [detail, setDetail] = useState<HfModelDetail | null>(null);
   const [revision, setRevision] = useState('main');
   // Keep search responsive; fetch at most three metadata responses at a time.
@@ -73,7 +74,6 @@ export default function HubPage({ language, mode, showModels, initialRepo, showD
     setQuery(previous => ({ ...previous, [key]: value, cursor: null })); setModels(null); setCursor(null); setDetail(null);
   }
   async function search(more = false) {
-    if (onlyExecutable) return;
     await run(async () => {
       const results = await hubApi.search({ ...query, cursor: more ? cursor : null });
       if (!alive.current) return;
@@ -116,9 +116,11 @@ export default function HubPage({ language, mode, showModels, initialRepo, showD
       <section className="panel hub-website"><h2>{t.models}</h2><p>{t.emptyStart}</p><button className="button primary" onClick={() => showModels()}><Search size={16} />{t.search}<ArrowRight size={16} /></button><hr /><p>{t.websiteHint}</p><button className="button secondary" disabled={busy} onClick={() => setWebsite(true)}>{t.website}<ExternalLink size={15} /></button></section>
     </> : localModels ? <LocalModels language={language} showImage={showImage} /> : <>
       <form className="panel hub-search" onSubmit={event => { event.preventDefault(); void search(); }}>
-        <label className="field-label" htmlFor="hf-query">{t.searchLabel}</label><div className="hub-search-input"><input id="hf-query" value={query.search} maxLength={200} disabled={busy} onChange={event => editQuery('search', event.target.value)} placeholder="Qwen, FLUX, Whisper …" /><button className="button primary" disabled={busy || onlyExecutable}>{busy ? working : <Search size={16} />}{t.search}</button></div>
-        <div className="hub-filters"><label>{t.task}<select value={query.task} disabled={busy} onChange={event => editQuery('task', event.target.value)}>{[['', t.allTasks], ['text-to-image', t.image], ['image-to-image', t.imageEdit], ['text-to-video', t.video], ['image-to-video', t.imageVideo], ['text-generation', t.chat], ['image-text-to-text', t.vision], ['text-to-audio', t.audio], ['automatic-speech-recognition', t.speech]].map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><label>{t.sort}<select value={query.sort} disabled={busy} onChange={event => editQuery('sort', event.target.value)}>{[['downloads', t.downloads], ['likes', t.likes], ['lastModified', t.recent], ['trendingScore', t.trending]].map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label></div>
-        <label className="hub-check"><input type="checkbox" checked={onlyExecutable} disabled={busy} onChange={event => { setOnlyExecutable(event.target.checked); setModels(null); setSizes({}); setDetail(null); setCursor(null); }} />{t.executableOnly}</label>
+        <div className="hub-category-filters" role="group" aria-label={language==='de'?'Modellbereich':'Model category'}>{hubCategories.map(value=><button type="button" key={value} disabled={busy} aria-pressed={category===value} onClick={()=>{setCategory(value);editQuery('task',taskForCategory(value,query.task));}}>{hubCategoryLabels[value][language==='de'?0:1]}</button>)}</div>
+        <label className="field-label" htmlFor="hf-query">{t.searchLabel}</label><div className="hub-search-input"><input id="hf-query" value={query.search} maxLength={200} disabled={busy} onChange={event => editQuery('search', event.target.value)} placeholder="Qwen, SDXL, Wan, Whisper …" /><button className="button primary" disabled={busy}>{busy ? working : <Search size={16} />}{t.search}</button></div>
+        <div className="hub-filters"><label>{t.task}<select value={query.task} disabled={busy} onChange={event => editQuery('task', event.target.value)}>{category==='all'&&<option value="">{t.allTasks}</option>}{tasksForCategory(category).map(task=><option key={task.id} value={task.id}>{task.label[language==='de'?0:1]}</option>)}</select></label><label>{t.sort}<select value={query.sort} disabled={busy} onChange={event => editQuery('sort', event.target.value)}>{[['downloads', t.downloads], ['likes', t.likes], ['lastModified', t.recent], ['trendingScore', t.trending]].map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label></div>
+        <p className="hub-filter-support" role="status">{hubTaskSupport(query.task,language==='de')}</p>
+        <button type="button" className="text-button" disabled={busy} onClick={()=>setLocalModels(true)}>{language==='de'?'Lokal gespeicherte Modelle prüfen':'Check locally stored models'}<ArrowRight size={14}/></button>
       </form>
       <p className="hub-hint">{t.unsupported} {t.downloadPlanned}</p>
       {detail ? <section className="panel hub-detail" aria-label={t.details}>
@@ -129,8 +131,8 @@ export default function HubPage({ language, mode, showModels, initialRepo, showD
         <p className="hub-commit">{t.resolved}: <code>{detail.revision}</code></p><button className="text-button" disabled={busy} onClick={() => open('model', detail.model.id)}>{t.modelPage}<ExternalLink size={14} /></button>
         <DownloadSelection key={`${detail.model.id}@${detail.revision}`} detail={detail} language={language} onQueued={showDownloads} />
         <details className="hub-card"><summary>{t.card}</summary>{detail.card === null ? <p>{t.cardMissing} {hubError(detail.cardError, language)}</p> : <pre tabIndex={0}>{detail.card}</pre>}</details>
-      </section> : onlyExecutable ? <div className="panel hub-empty"><Box size={28} /><p>{t.noRuntime}</p></div> : models === null ? <div className="panel hub-empty"><Search size={28} /><p>{busy ? t.working : t.emptyStart}</p></div> : <>
-        <div className="hub-results" aria-live="polite">{models.length === 0 ? <p>{t.empty}</p> : models.map(model => <article className="panel hub-model" key={model.id}><div className="hub-model-icon"><Box size={21} /></div><div className="hub-model-content"><h2>{model.id}</h2><p className="model-size" data-testid="model-size" title={t.repoSizeHint}>{t.repoSize}: <strong>{sizes[`${model.id}@${model.revision}`] === undefined ? t.working : formatGigabytes(sizes[`${model.id}@${model.revision}`], language)}</strong></p><div className="hub-model-meta">{model.restricted&&<span>18+</span>}{model.task && <span>{model.task}</span>}<span>{t.license}: {model.license ?? t.unknown}</span>{model.gated && <span>{t.gated}</span>}{model.private && <span>{t.private}</span>}</div><small>{new Intl.NumberFormat(language).format(model.downloads)} {t.downloads} · {new Intl.NumberFormat(language).format(model.likes)} {t.likes}</small></div><button className="button secondary" disabled={busy} onClick={() => void inspect(model.id)}>{t.details}<ArrowRight size={14} /></button></article>)}</div>
+      </section> : models === null ? <div className="panel hub-empty"><Search size={28} /><p>{busy ? t.working : t.emptyStart}</p></div> : <>
+        <div className="hub-results" aria-live="polite">{models.length === 0 ? <p>{t.empty}</p> : models.map(model => <article className="panel hub-model" key={model.id}><div className="hub-model-icon"><Box size={21} /></div><div className="hub-model-content"><h2>{model.id}</h2><p className="model-size" data-testid="model-size" title={t.repoSizeHint}>{t.repoSize}: <strong>{sizes[`${model.id}@${model.revision}`] === undefined ? t.working : formatGigabytes(sizes[`${model.id}@${model.revision}`], language)}</strong></p><div className="hub-model-meta">{model.restricted&&<span>18+</span>}{model.task && <span>{hubTaskLabel(model.task,language==='de')}</span>}<span>{t.license}: {model.license ?? t.unknown}</span>{model.gated && <span>{t.gated}</span>}{model.private && <span>{t.private}</span>}</div><small>{new Intl.NumberFormat(language).format(model.downloads)} {t.downloads} · {new Intl.NumberFormat(language).format(model.likes)} {t.likes}</small></div><button className="button secondary" disabled={busy} onClick={() => void inspect(model.id)}>{t.details}<ArrowRight size={14} /></button></article>)}</div>
         <div className="hub-pagination"><span>{models.length} {t.resultCount}</span>{cursor && <button className="button secondary" disabled={busy} onClick={() => void search(true)}>{busy ? working : null}{t.more}</button>}</div>
       </>}
     </>}

@@ -1,0 +1,20 @@
+.home-projects { padding: 22px; margin-bottom: 23px; }
+.home-projects .section-heading { align-items: flex-start; }
+.home-projects .section-heading > svg { color: var(--accent); flex-shrink: 0; }
+.home-projects h2 { margin-bottom: 6px; }
+.home-projects .hub-hint { margin: 0; }
+.home-project-actions { display: flex; gap: 9px; flex-wrap: wrap; }
+.home-project-list { display: grid; gap: 7px; max-height: 310px; overflow: auto; margin: 17px 0; }
+.home-project-row { display: flex; align-items: center; gap: 12px; padding: 13px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; min-width: 0; }
+.home-project-row:hover, .home-project-row:focus-within { background: var(--surface); border-color: var(--accent); }
+.home-project-row.selected { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--panel)); }
+.home-project-row.unavailable { opacity: .65; cursor: default; }
+.home-project-row > input { flex-shrink: 0; accent-color: var(--accent); }
+.home-project-copy { display: grid; gap: 5px; min-width: 0; }
+.home-project-copy strong { display: flex; gap: 9px; align-items: center; flex-wrap: wrap; overflow-wrap: anywhere; }
+.home-project-copy strong small { color: var(--accent); font-weight: 400; }
+.home-project-copy > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; color: var(--muted); }
+.home-project-empty { color: var(--muted); padding: 18px 0; margin: 0; }
+.home-project-footer { display: flex; justify-content: flex-end; }
+.home-project-create { display: grid; gap: 12px; padding: 16px 0; margin-top: 12px; border-top: 1px solid var(--border); }
+@media(max-width: 600px) { .home-projects { padding: 16px; } .home-project-footer > button { width: 100%; } }

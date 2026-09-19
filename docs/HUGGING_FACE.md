@@ -1,5 +1,7 @@
 # Hugging Face integration, 0.4.0
 
+Current source after 0.27.0: model search has visible Image, Video, Audio & music, Speech, Text & chat and Analysis categories. Selecting a category selects a valid default task; the Task dropdown offers its related subtasks. Click Search models to submit the selected task, search text and sort order. All resets the task restriction. The 20 allowed task identifiers follow the [official Hub task taxonomy](https://huggingface.co/tasks). Classification is based on publisher metadata, not proof that a model runs in Local Studio. The UI distinguishes existing SDXL/GGUF/Whisper execution paths from search/download-only tasks. Existing local library filters remain available. Not yet included in the published 0.27.0 desktop packages.
+
 This is the first implemented part of M1. It does not complete the model manager or add inference.
 
 ## Implemented
@@ -7,7 +9,7 @@ This is the first implemented part of M1. It does not complete the model manager
 - Native Rust HTTPS API client, explicit search, task and sort filters, cursor pagination.
 - Model details resolve a branch/tag/commit to a specific commit and show repository metadata, license, gated/private status, filenames, known sizes and LFS SHA-256 values. Unknown sizes remain unknown.
 - Model cards are fetched from that exact revision and rendered as escaped plain text. No model-provided HTML, remote image, script or executable code runs in the app.
-- The executable-model filter correctly returns no models while no inference adapters exist. No automatic variant selection or inference occurs. Explicit file downloads are available from 0.4.0; see DOWNLOADS.md.
+- The former placeholder executable-model filter has been replaced by a link to the actual local model library. No automatic variant selection or inference occurs. Explicit file downloads are available from 0.4.0; see DOWNLOADS.md.
 - Advanced personal-token sign-in validates the token with the official `whoami-v2` endpoint before storing it. One account per app profile; sign-out deletes the credential. A saved account can be explicitly checked online.
 - Credentials and account metadata use Windows Credential Manager (`keyring`, Windows native backend), keyed by the canonical configuration path. No plaintext fallback, database token, localStorage token, token logging or token read IPC command. Moving a portable profile to another path/PC requires signing in again; updating program files in the same folder keeps the profile identity.
 - OAuth authorization-code implementation uses a public client, S256 PKCE, unpredictable state, a temporary IPv4 loopback listener on an OS-assigned port and, from 0.3.1, the isolated integrated browser requested by the user. Host, path, method and single state/code values are checked. Unrelated callbacks are rejected; cancellation, timeout and generation checks stop late responses from restoring a signed-out account. A refresh token, if issued, stays in the same Windows credential and is used before expiry.

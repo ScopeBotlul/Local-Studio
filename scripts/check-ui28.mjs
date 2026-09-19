@@ -1,0 +1,52 @@
+import assert from 'node:assert/strict';
+import path from 'node:path';
+import {promises as fs} from 'node:fs';
+export async function checkUi28({getPage,invoke,artifactRoot,record}){
+ const page=getPage();
+ assert.equal((await invoke('bootstrap')).version,'0.28.0');
+ const projects=page.getByRole('region',{name:'Projects',exact:true});
+ await projects.getByRole('button',{name:'New project',exact:true}).click();
+ await projects.getByLabel('Project name',{exact:true}).fill('Build 28 UI');
+ await projects.getByRole('button',{name:'Create project',exact:true}).click();
+ await page.getByRole('heading',{name:'Image studio',exact:true}).waitFor();
+ assert.equal((await invoke('project_snapshot')).name,'Build 28 UI');
+ const projectPath=path.join(artifactRoot,'Build 28 UI.localstudio');
+ await invoke('project_save',{path:projectPath});
+ await invoke('project_close',{confirmed:true});
+ await page.reload();
+ await page.getByRole('button',{name:'Home',exact:true}).first().click();
+ await page.getByRole('region',{name:'Projects',exact:true}).getByRole('button',{name:'Open selected project',exact:true}).click();
+ await page.getByRole('heading',{name:'Image studio',exact:true}).waitFor();
+ assert((await invoke('project_snapshot')).path.endsWith(projectPath));
+ record('Home project create and recent-project open use real local project files');
+ await page.keyboard.press('Control+n');
+ const dialog=page.getByRole('dialog',{name:'New project',exact:true});
+ await dialog.waitFor();
+ assert(await dialog.getByLabel('Project name',{exact:true}).evaluate(input=>{
+  const label=input.closest('label'),range=document.createRange();range.selectNodeContents(label.firstChild);
+  const text=range.getBoundingClientRect(),box=input.getBoundingClientRect();return box.top>text.bottom&&box.width>label.getBoundingClientRect().width-2;
+ }));
+ await dialog.getByRole('button',{name:'Cancel',exact:true}).click();
+ record('New-project dialog places full-width name input below its label');
+ await page.getByRole('button',{name:'Custom size',exact:true}).click();
+ await page.getByLabel('Image width',{exact:true}).fill('1920');
+ await page.getByLabel('Image height',{exact:true}).fill('1080');
+ await page.getByRole('button',{name:'1920 × 1088 apply',exact:true}).click();
+ assert.equal(await page.getByLabel('Image height',{exact:true}).inputValue(),'1088');
+ await page.getByLabel('Image width',{exact:true}).fill('2048');
+ await page.getByLabel('Image height',{exact:true}).fill('2048');
+ assert.equal(await page.getByLabel('Image height',{exact:true}).getAttribute('aria-invalid'),'false');
+ assert.equal(await page.getByLabel('Negative prompt',{exact:true}).evaluate(el=>el.closest('details').open),true);
+ assert.equal((await page.getByLabel('Image prompt',{exact:true}).locator('..').innerText()).trim(),'Prompt');
+ record('Custom resolution correction and 4 MP inputs, Prompt label and open negative prompt');
+ await page.getByRole('button',{name:'Models',exact:true}).first().click();
+ await page.getByRole('group',{name:'Model category',exact:true}).getByRole('button',{name:'Video',exact:true}).click();
+ assert.equal(await page.locator('.hub-filters select').first().inputValue(),'text-to-video');
+ await page.locator('.hub-filters select').first().selectOption('video-to-video');
+ assert((await page.locator('.hub-filter-support').innerText()).includes('not integrated yet'));
+ await page.getByRole('group',{name:'Model category',exact:true}).getByRole('button',{name:'Speech',exact:true}).click();
+ assert.equal(await page.locator('.hub-filters select').first().inputValue(),'automatic-speech-recognition');
+ record('Model categories select real task identifiers and show execution limits without network searches');
+ const session=await page.context().newCDPSession(page);
+ try{const screenshot=await session.send('Page.captureScreenshot',{format:'png',fromSurface:true});await fs.writeFile(path.join(artifactRoot,'ui28-filters.png'),Buffer.from(screenshot.data,'base64'));}finally{await session.detach();}
+}

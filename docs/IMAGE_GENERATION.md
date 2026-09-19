@@ -1,5 +1,7 @@
 # Lokale Bildgenerierung
 
+Quellstand nach 0.27.0: Eigene Größen erlauben 256–4096 Pixel je Seite in 64er-Schritten, insgesamt höchstens 4.194.304 Pixel (z. B. 2048 × 2048 oder 4096 × 1024). Ungültige Eingaben erklären den gesperrten Generieren-Button und bieten eine ausdrücklich zu übernehmende passende Größe an. 1920 × 1080 passt nicht ins Raster; 1920 × 1088 passt. Die Grenze ist eine App-/Adaptergrenze und keine universelle SDXL-Modellgrenze. Mehr Pixel erhöhen Speicherbedarf und Rechenaufwand; fehlender VRAM lässt sich nicht durch längeres Warten ausgleichen. Viele SDXL-Modelle erzielen ihre besten Ergebnisse ungefähr bei 1024 × 1024 ([Hugging-Face-Dokumentation](https://huggingface.co/docs/diffusers/main/using-diffusers/sdxl)). Die neuen größeren Grenzen sind noch nicht in einem Desktop-Release enthalten; reale Generierung in diesen Größen ist noch nicht erneut abgenommen.
+
 Ab 0.25.0: [Bild-zu-Bild, Referenzen, Inpainting, Stapel, CPU-VAE und Messwerte](IMAGE_REFERENCES.md). Die folgenden Schritte beschreiben den grundlegenden SDXL-Pfad.
 
 1. **Modelle → Lokal gespeichert → Schnellsuche** findet typische Modellablagen. Alternativ den gewünschten Ordner durchsuchen.

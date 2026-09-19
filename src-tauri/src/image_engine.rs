@@ -62,9 +62,9 @@ pub struct ImageEngine { pub(crate) benchmarks: Arc<crate::benchmarks::Benchmark
 fn is_false(value:&bool)->bool{!*value}
 // SDXL adapter limits, not a promise that every GPU has enough memory.
 pub(crate) fn valid_dimensions(width: u32, height: u32) -> bool {
-    (256..=2048).contains(&width) && (256..=2048).contains(&height)
+    (256..=4096).contains(&width) && (256..=4096).contains(&height)
         && width % 64 == 0 && height % 64 == 0
-        && u64::from(width) * u64::from(height) <= 2_097_152
+        && u64::from(width) * u64::from(height) <= 4_194_304
 }
 pub(crate) fn validate(request: &ImageRequest) -> Result<()> {
     if let Some(reference)=&request.reference {reference::validate(reference,request.width,request.height)?;}
@@ -433,11 +433,25 @@ pub async fn image_save(id: String, core: tauri::State<'_, Arc<Core>>, state: ta
 mod tests {
     use super::*;
     #[test] fn custom_dimensions_obey_grid_area_and_integer_limits() {
-        for (w,h) in [(640,960),(768,1152),(1344,768),(2048,1024)] {assert!(valid_dimensions(w,h));}
-        for (w,h) in [(2048,2048),(4096,512),(0,512),(641,960),(u32::MAX,u32::MAX)] {assert!(!valid_dimensions(w,h));}
+        for (w,h) in [(640,960),(768,1152),(1344,768),(2048,1024),(2048,2048),(4096,1024),(1920,1088)] {assert!(valid_dimensions(w,h));}
+        for (w,h) in [(2048,2112),(4096,4096),(4160,512),(0,512),(641,960),(1920,1080),(u32::MAX,u32::MAX)] {assert!(!valid_dimensions(w,h));}
+    }
+    #[test] fn four_megapixel_rgba_output_fits_decode_budget() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("large.png");
+        let mut data = Vec::new();
+        {
+            let mut encoder = png::Encoder::new(&mut data, 2048, 2048);
+            encoder.set_color(png::ColorType::Rgba);
+            encoder.set_depth(png::BitDepth::Eight);
+            encoder.write_header().unwrap().write_image_data(&vec![128; 2048 * 2048 * 4]).unwrap();
+        }
+        fs::write(&path, &data).unwrap();
+        assert_eq!(png_bytes(&path, 2048, 2048).unwrap(), data);
+        assert!(png_bytes(&path, 2048, 1024).is_err());
     }
     pub(super) fn request() -> ImageRequest { ImageRequest { vae_on_cpu:false,  reference:None, model_path: "model".into(), prompt: "test".into(), negative_prompt: String::new(), width: 512, height: 512, steps: 20, guidance: 5., seed: 42, sampler: "euler".into() } }
-    #[test] fn rejects_invalid_or_unbounded_parameters() { let mut r = request(); assert!(validate(&r).is_ok()); r.width=4096; assert!(validate(&r).is_err()); r.width=512; r.guidance=f32::NAN; assert!(validate(&r).is_err()); r.guidance=5.; r.sampler="--rpc-servers".into(); assert!(validate(&r).is_err()); }
+    #[test] fn rejects_invalid_or_unbounded_parameters() { let mut r = request(); assert!(validate(&r).is_ok()); r.width=4160; assert!(validate(&r).is_err()); r.width=512; r.guidance=f32::NAN; assert!(validate(&r).is_err()); r.guidance=5.; r.sampler="--rpc-servers".into(); assert!(validate(&r).is_err()); }
     #[test] fn progress_uses_denoiser_steps_not_weight_loading() { assert_eq!(sampling_progress("|====>| 2/20 - 3.71it/s",20),Some((2,20))); assert_eq!(sampling_progress("|####| 20/20 - 2.00GB/s",20),None); assert_eq!(sampling_progress("|====>| 2/40 - 1.2s/it",20),None); assert_eq!(sampling_progress("|====>| 3/5 - 1.2s/it",6),Some((3,5))); }
     #[test] fn missing_runtime_never_claims_ready() { let dir=tempfile::tempdir().unwrap(); assert!(runtime_files(dir.path()).is_err()); }
 }

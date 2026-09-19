@@ -141,3 +141,9 @@ summary { cursor: pointer; list-style: none; display: flex; align-items: center;
 .shortcut-key[aria-pressed="true"] { outline:2px solid var(--accent); }
 .shortcut-settings .setting-row { gap:16px; }
 .update-notes{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;max-height:240px;overflow:auto;background:var(--field);padding:12px;border-radius:8px}.update-dialog progress{width:100%}.update-dialog .project-exit-option{margin:18px 0}
+.project-name-field { display: grid; gap: 8px; min-width: 0; font-size: 13px; }
+.project-name-field > input { display: block; width: 100%; min-width: 0; box-sizing: border-box; }
+.project-create-dialog > h2 { margin: 0 0 18px; }
+.project-create-dialog > form { display: grid; gap: 16px; min-width: 0; }
+.project-create-dialog > form > p { margin: 0; overflow-wrap: anywhere; }
+.project-create-dialog .image-dialog-actions { margin: 0; padding-top: 4px; justify-content: flex-end; flex-wrap: wrap; }
