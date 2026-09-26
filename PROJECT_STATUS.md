@@ -1,3 +1,11 @@
+# Release 0.34.0 gebaut (2026-09-26)
+
+Das Update-Center zeigt Local Studio und ComfyUI jetzt in getrennten Spalten. Die vorhandene Einstellung für die automatische Startprüfung gilt für beide: Sie prüft die signierten Local-Studio-Metadaten und das offizielle ComfyUI-GitHub-Release und öffnet das Center, wenn mindestens eine neue Version vorliegt. Eine Installation startet nie allein durch die Suche.
+
+Die installierte ComfyUI-Version wird als Datenwert aus der lokalen Versionsdatei oder der laufenden Loopback-API gelesen. Bei einem verfügbaren Update öffnet eine bewusste Nutzeraktion den offiziellen Updater-Ordner der portablen Installation. Local Studio führt keine Custom-Node-Updates oder zusätzliche Abhängigkeitsinstallationen aus.
+
+Windows-EXE, Inno-Installer, portables Archiv, Prüfsummen und signierte Update-Metadaten wurden erzeugt und lokal bytegenau geprüft.
+
 # Release 0.33.1 veröffentlicht (2026-09-26)
 
 Der ComfyUI-Installationsbutton dient während des laufenden Vorgangs jetzt selbst als Fortschrittsanzeige. Er zeigt die Ermittlung des offiziellen Releases, den echten prozentualen Bytefortschritt, die Prüfsummenprüfung und das Entpacken an. Der Status wird auch während des lang laufenden Desktop-Befehls regelmäßig aktualisiert. Nach erfolgreicher Installation übernimmt Local Studio den Pfad automatisch und startet die eingerichtete Engine wie bereits in 0.33.0 implementiert.

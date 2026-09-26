@@ -17,15 +17,19 @@ try{
  console.log('Fixture page ready');
  async function mount(options={}){
   await page.evaluate(options=>window.UpdateFixture.mount(options),options);
-  await expect(page.getByRole('heading',{name:options.de===false?'Update available':'Update verfügbar',exact:true})).toBeVisible();
+  await expect(page.getByRole('heading',{name:options.de===false?'Updates available':'Updates verfügbar',exact:true})).toBeVisible();
  }
  const installed=()=>page.evaluate(()=>window.updateFixture.installed);
  await mount();
- await expect(page.getByRole('dialog').getByRole('button')).toHaveCount(2);
- await page.getByRole('button',{name:'Abbrechen',exact:true}).click();
+ await expect(page.getByRole('heading',{name:'Local Studio',exact:true})).toBeVisible();
+ await expect(page.getByRole('heading',{name:'ComfyUI',exact:true})).toBeVisible();
+ await expect(page.getByText('Beim Start automatisch nach Updates für Local Studio und ComfyUI suchen')).toBeVisible();
+ await page.getByRole('button',{name:'Offiziellen Updater öffnen',exact:true}).click();
+ expect(await page.evaluate(()=>window.updateFixture.calls.includes('comfy_open_updater'))).toBe(true);
+ await page.getByRole('button',{name:'Schließen',exact:true}).click();
  await expect(page.getByRole('dialog')).toHaveCount(0);
  expect(await page.evaluate(()=>window.updateFixture.calls.includes('update_download'))).toBe(false);
- passed.push('Cancel closes without downloading or installing');
+ passed.push('Two-column update center uses one automatic setting and opens the official ComfyUI updater only on action');
 
  await mount();
  await page.getByRole('button',{name:'Update installieren',exact:true}).dblclick();
@@ -41,7 +45,7 @@ try{
  await page.getByRole('button',{name:'Update installieren',exact:true}).click();
  await page.clock.runFor(500);
  await expect(page.getByRole('progressbar')).toBeVisible();
- await page.getByRole('button',{name:'Abbrechen',exact:true}).click();
+ await page.getByRole('button',{name:'Schließen',exact:true}).click();
  await page.evaluate(()=>window.updateFixture.finish());
  expect(await installed()).toBe(0);
  expect(await page.evaluate(()=>window.updateFixture.calls.includes('update_cancel'))).toBe(true);
@@ -56,7 +60,7 @@ try{
 
  await mount({portable:true,de:false});
  await expect(page.getByRole('button',{name:'Install update',exact:true})).toHaveCount(0);
- await page.getByRole('button',{name:'Open download on GitHub',exact:true}).click();
+ await page.getByRole('button',{name:'Open download',exact:true}).click();
  expect(await page.evaluate(()=>window.updateFixture.calls.includes('update_open_download'))).toBe(true);
  expect(await page.evaluate(()=>window.updateFixture.calls.includes('update_download'))).toBe(false);
  await page.keyboard.press('Escape');

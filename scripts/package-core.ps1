@@ -42,6 +42,11 @@ Videoschnitt und GIF-Studio. Galerie und Modelle bleiben zentral erreichbar;
 Hugging Face, Downloads, Auftraege und Einstellungen liegen rechts. Die bisherige
 doppelte Studio-Navigation und Breadcrumb-Leiste wurden entfernt.
 
+Neu in 0.34.0: Das Update-Center zeigt Local Studio und ComfyUI in zwei Bereichen.
+Die gemeinsame automatische Startpruefung sucht fuer beide nach neuen Versionen,
+installiert aber nichts ohne Nutzeraktion. ComfyUI verwendet den offiziellen
+portablen Updater; Custom Nodes werden nicht automatisch aktualisiert.
+
 Neu in 0.33.1: Der ComfyUI-Installationsbutton zeigt waehrend des Vorgangs direkt
 die aktuelle Phase und den echten prozentualen Downloadfortschritt. Nach Download,
 Pruefung und Entpacken wird die Installation automatisch als Engine eingebunden.

@@ -42,6 +42,7 @@ pub struct ComfyStatus {
     error: Option<String>,
     dismissed: bool,
     install: ComfyInstallStatus,
+    update: ComfyUpdateStatus,
 }
 #[derive(Clone, Default, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -51,6 +52,14 @@ pub struct ComfyInstallStatus {
     total_bytes: u64,
     received_bytes: u64,
     bytes_per_second: u64,
+    error: Option<String>,
+}
+#[derive(Clone, Default, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ComfyUpdateStatus {
+    phase: String,
+    installed_version: Option<String>,
+    latest_version: Option<String>,
     error: Option<String>,
 }
 struct Process {
@@ -63,6 +72,7 @@ pub struct Comfy {
     config: Mutex<Config>,
     process: Mutex<Option<Process>>,
     install: Mutex<ComfyInstallStatus>,
+    update: Mutex<ComfyUpdateStatus>,
 }
 
 fn valid_root(path: &Path) -> bool {
@@ -194,6 +204,40 @@ fn package_name(variant: &str) -> Result<&'static str> {
         "intel" => Ok("ComfyUI_windows_portable_intel.7z"),
         _ => Err("comfy_variant".into()),
     }
+}
+fn parse_version(value: &str) -> Result<(u32, u32, u32)> {
+    let value = value.strip_prefix('v').unwrap_or(value);
+    let parts = value.split('.').collect::<Vec<_>>();
+    if parts.len() != 3
+        || parts.iter().any(|part| {
+            part.is_empty()
+                || (part.len() > 1 && part.starts_with('0'))
+                || !part.bytes().all(|b| b.is_ascii_digit())
+        })
+    {
+        return Err("comfy_version".into());
+    }
+    Ok((
+        parts[0].parse().map_err(|_| "comfy_version")?,
+        parts[1].parse().map_err(|_| "comfy_version")?,
+        parts[2].parse().map_err(|_| "comfy_version")?,
+    ))
+}
+fn version_from_root(root: &Path) -> Option<String> {
+    let bytes = fs::read(root.join("ComfyUI/comfy_version.py")).ok()?;
+    if bytes.len() > 4096 {
+        return None;
+    }
+    let text = std::str::from_utf8(&bytes).ok()?;
+    for line in text.lines() {
+        let Some(rest) = line.trim().strip_prefix("__version__") else { continue };
+        let Some(rest) = rest.trim_start().strip_prefix('=') else { continue };
+        let value = rest.trim().trim_matches(['\'', '"']);
+        if parse_version(value).is_ok() {
+            return Some(value.into());
+        }
+    }
+    None
 }
 fn release_client() -> Result<Client> {
     Client::builder()
@@ -343,6 +387,10 @@ impl Comfy {
                 phase: "idle".into(),
                 ..Default::default()
             }),
+            update: Mutex::new(ComfyUpdateStatus {
+                phase: "idle".into(),
+                ..Default::default()
+            }),
         });
         this.save()?;
         Ok(this)
@@ -364,28 +412,72 @@ impl Comfy {
         let managed = self.process.lock().ok().is_some_and(|p| p.is_some());
         let response = probe_http();
         let config = self.config.lock().map(|c| c.clone()).unwrap_or_default();
+        let installed = config.path.as_ref().is_some_and(|p| valid_root(Path::new(p)));
+        let version = response
+            .as_ref()
+            .ok()
+            .and_then(|v| {
+                v.pointer("/system/comfyui_version")
+                    .or_else(|| v.get("comfyui_version"))
+            })
+            .and_then(Value::as_str)
+            .map(str::to_owned)
+            .or_else(|| config.path.as_ref().and_then(|p| version_from_root(Path::new(p))));
+        let mut update = self.update.lock().map(|s| s.clone()).unwrap_or_default();
+        update.installed_version = version.clone();
         ComfyStatus {
-            installed: config
-                .path
-                .as_ref()
-                .is_some_and(|p| valid_root(Path::new(p))),
+            installed,
             path: config.path,
             running: response.is_ok(),
             managed,
             endpoint: ENDPOINT.into(),
-            version: response
-                .as_ref()
-                .ok()
-                .and_then(|v| {
-                    v.pointer("/system/comfyui_version")
-                        .or_else(|| v.get("comfyui_version"))
-                })
-                .and_then(Value::as_str)
-                .map(str::to_owned),
+            version,
             error: response.err().filter(|_| managed).map(|e| e.to_string()),
             dismissed: config.dismissed,
             install: self.install.lock().map(|s| s.clone()).unwrap_or_default(),
+            update,
         }
+    }
+    pub fn check_update(&self) -> Result<ComfyStatus> {
+        let current = self.status();
+        if !current.installed {
+            return Err("comfy_missing".into());
+        }
+        let installed = current.version.ok_or("comfy_version")?;
+        {
+            let mut update = self.update.lock().map_err(|_| "comfy_storage")?;
+            *update = ComfyUpdateStatus {
+                phase: "checking".into(),
+                installed_version: Some(installed.clone()),
+                latest_version: None,
+                error: None,
+            };
+        }
+        let result: Result<()> = (|| {
+            let release: Release = release_client()?
+                .get(RELEASE_API)
+                .header("User-Agent", "Local-Studio")
+                .send()
+                .map_err(|_| "comfy_update_network")?
+                .error_for_status()
+                .map_err(|_| "comfy_update_network")?
+                .json()
+                .map_err(|_| "comfy_update_network")?;
+            let latest = release.tag_name.strip_prefix('v').ok_or("comfy_version")?.to_string();
+            let newer = parse_version(&latest)? > parse_version(&installed)?;
+            let mut update = self.update.lock().map_err(|_| "comfy_storage")?;
+            update.phase = if newer { "available" } else { "current" }.into();
+            update.latest_version = Some(latest);
+            Ok(())
+        })();
+        if let Err(error) = result {
+            if let Ok(mut update) = self.update.lock() {
+                update.phase = "error".into();
+                update.error = Some(error.clone());
+            }
+            return Err(error);
+        }
+        Ok(self.status())
     }
     pub fn detect_installation(&self) -> Result<ComfyStatus> {
         let found = detect(&self.managed_root, true).ok_or("comfy_not_found")?;
@@ -785,8 +877,11 @@ impl Drop for Comfy {
 }
 
 #[tauri::command]
-pub fn comfy_status(state: tauri::State<'_, Arc<Comfy>>) -> ComfyStatus {
-    state.status()
+pub async fn comfy_status(state: tauri::State<'_, Arc<Comfy>>) -> Result<ComfyStatus> {
+    let s = state.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || s.status())
+        .await
+        .map_err(|_| "comfy_connection".into())
 }
 #[tauri::command]
 pub async fn comfy_set_path(
@@ -832,6 +927,13 @@ pub async fn comfy_download(
         .map_err(|_| "comfy_download")?
 }
 #[tauri::command]
+pub async fn comfy_update_check(state: tauri::State<'_, Arc<Comfy>>) -> Result<ComfyStatus> {
+    let s = state.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || s.check_update())
+        .await
+        .map_err(|_| "comfy_update_network")?
+}
+#[tauri::command]
 pub fn comfy_open_updater(state: tauri::State<'_, Arc<Comfy>>) -> Result<()> {
     let root = state
         .config
@@ -870,6 +972,19 @@ mod tests {
             "ComfyUI_windows_portable_nvidia_cu126.7z"
         );
         assert_eq!(package_name("other"), Err("comfy_variant".into()));
+    }
+
+    #[test]
+    fn versions_are_read_as_data_and_compared_numerically() {
+        assert!(parse_version("v0.37.0").unwrap() > parse_version("0.9.99").unwrap());
+        for invalid in ["0.37", "0.37.0-beta", "00.37.0", "version 0.37.0"] {
+            assert!(parse_version(invalid).is_err());
+        }
+        let temp = tempfile::tempdir().unwrap();
+        let folder = temp.path().join("ComfyUI");
+        fs::create_dir(&folder).unwrap();
+        fs::write(folder.join("comfy_version.py"), b"# metadata\n__version__ = \"0.37.0\"\n").unwrap();
+        assert_eq!(version_from_root(temp.path()).as_deref(), Some("0.37.0"));
     }
 
     #[test]
