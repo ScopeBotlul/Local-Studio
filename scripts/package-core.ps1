@@ -42,6 +42,11 @@ Videoschnitt und GIF-Studio. Galerie und Modelle bleiben zentral erreichbar;
 Hugging Face, Downloads, Auftraege und Einstellungen liegen rechts. Die bisherige
 doppelte Studio-Navigation und Breadcrumb-Leiste wurden entfernt.
 
+Neu in 0.36.7: Vor dem Workflow liest Local Studio die exakten Checkpoint-, LoRA-,
+Sampler- und Scheduler-Namen aus der laufenden ComfyUI-API. Verschachtelte
+Windows-Modellpfade werden dadurch im von ComfyUI erwarteten Format gesendet.
+Konkrete Workflow-Ablehnungen stehen zusaetzlich in den Auftragsdetails und Logs.
+
 Neu in 0.36.6: Das Bildstudio zeigt beim Oeffnen einen leeren Canvas statt
 automatisch den letzten fehlgeschlagenen Auftrag. Laufende und wartende Auftraege
 bleiben sichtbar; alte Ergebnisse und Fehler koennen bewusst im Verlauf geoeffnet

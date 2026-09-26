@@ -102,6 +102,27 @@ fn relative_model_path(path: &Path, root: &Path) -> Option<String> {
     let relative = path.strip_prefix(root).ok()?.to_str()?.replace('\\', "/");
     (!relative.is_empty()).then_some(relative)
 }
+fn normalized_model_name(value: &str) -> String {
+    value.replace('\\', "/").to_lowercase()
+}
+fn resolve_comfy_option(info: &Value, node: &str, input: &str, requested: &str) -> Option<String> {
+    let options = info
+        .get(node)?
+        .pointer(&format!("/input/required/{input}/0"))?
+        .as_array()?;
+    options
+        .iter()
+        .filter_map(Value::as_str)
+        .find(|value| *value == requested)
+        .or_else(|| {
+            let requested = normalized_model_name(requested);
+            options
+                .iter()
+                .filter_map(Value::as_str)
+                .find(|value| normalized_model_name(value) == requested)
+        })
+        .map(str::to_owned)
+}
 fn uses_amd_safe_attention(path: &Path) -> bool {
     path.join("run_amd_gpu.bat").is_file()
 }
@@ -1131,6 +1152,7 @@ impl Comfy {
         output: &Path,
         cancel: &AtomicBool,
         mut update: impl FnMut(&str),
+        mut log_detail: impl FnMut(&str),
     ) -> Result<()> {
         if self
             .update
@@ -1150,28 +1172,77 @@ impl Comfy {
         {
             return Err("comfy_update_busy".into());
         }
-        let checkpoint = self
+        let requested_checkpoint = self
             .checkpoint(Path::new(&request.model_path))
             .ok_or("comfy_model_path")?;
-        let sampler = if request.sampler == "dpm++2m" {
+        let requested_sampler = if request.sampler == "dpm++2m" {
             "dpmpp_2m"
         } else {
             "euler"
         };
+        let client = client(Duration::from_secs(20))?;
+        let loader_info = client
+            .get(format!("{ENDPOINT}/object_info/CheckpointLoaderSimple"))
+            .send()
+            .and_then(|response| response.error_for_status())
+            .and_then(|response| response.json::<Value>())
+            .map_err(|_| "comfy_connection")?;
+        let checkpoint = resolve_comfy_option(
+            &loader_info,
+            "CheckpointLoaderSimple",
+            "ckpt_name",
+            &requested_checkpoint,
+        )
+        .ok_or("comfy_checkpoint_unavailable")?;
+        let sampler_info = client
+            .get(format!("{ENDPOINT}/object_info/KSampler"))
+            .send()
+            .and_then(|response| response.error_for_status())
+            .and_then(|response| response.json::<Value>())
+            .map_err(|_| "comfy_connection")?;
+        let sampler = resolve_comfy_option(
+            &sampler_info,
+            "KSampler",
+            "sampler_name",
+            requested_sampler,
+        )
+        .ok_or("comfy_workflow")?;
+        let scheduler =
+            resolve_comfy_option(&sampler_info, "KSampler", "scheduler", "karras")
+                .ok_or("comfy_workflow")?;
         let mut workflow = json!({
          "1":{"class_type":"CheckpointLoaderSimple","inputs":{"ckpt_name":checkpoint}},
          "2":{"class_type":"CLIPTextEncode","inputs":{"text":request.prompt,"clip":["1",1]}},
          "3":{"class_type":"CLIPTextEncode","inputs":{"text":request.negative_prompt,"clip":["1",1]}},
          "4":{"class_type":"EmptyLatentImage","inputs":{"width":request.width,"height":request.height,"batch_size":1}},
-         "5":{"class_type":"KSampler","inputs":{"seed":request.seed,"steps":request.steps,"cfg":request.guidance,"sampler_name":sampler,"scheduler":"karras","denoise":1.0,"model":["1",0],"positive":["2",0],"negative":["3",0],"latent_image":["4",0]}},
+         "5":{"class_type":"KSampler","inputs":{"seed":request.seed,"steps":request.steps,"cfg":request.guidance,"sampler_name":sampler,"scheduler":scheduler,"denoise":1.0,"model":["1",0],"positive":["2",0],"negative":["3",0],"latent_image":["4",0]}},
          "6":{"class_type":"VAEDecode","inputs":{"samples":["5",0],"vae":["1",2]}},
          "7":{"class_type":"PreviewImage","inputs":{"images":["6",0]}}
         });
         let mut source = "1".to_string();
+        let lora_info = if request.loras.is_empty() {
+            None
+        } else {
+            Some(
+                client
+                    .get(format!("{ENDPOINT}/object_info/LoraLoader"))
+                    .send()
+                    .and_then(|response| response.error_for_status())
+                    .and_then(|response| response.json::<Value>())
+                    .map_err(|_| "comfy_connection")?,
+            )
+        };
         for (index, lora) in request.loras.iter().enumerate() {
-            let name = self
+            let requested_name = self
                 .model_relative(Path::new(&lora.path), "loras")
                 .ok_or("image_lora_path")?;
+            let name = resolve_comfy_option(
+                lora_info.as_ref().ok_or("image_lora_path")?,
+                "LoraLoader",
+                "lora_name",
+                &requested_name,
+            )
+            .ok_or("image_lora_path")?;
             let node = (8 + index).to_string();
             workflow[&node] = json!({
                 "class_type":"LoraLoader",
@@ -1188,13 +1259,26 @@ impl Comfy {
         workflow["2"]["inputs"]["clip"] = json!([source, 1]);
         workflow["3"]["inputs"]["clip"] = json!([source, 1]);
         workflow["5"]["inputs"]["model"] = json!([source, 0]);
-        let client = client(Duration::from_secs(20))?;
         let response = client
             .post(format!("{ENDPOINT}/prompt"))
             .json(&json!({"prompt":workflow,"client_id":uuid::Uuid::new_v4().to_string()}))
             .send()
             .map_err(|_| "comfy_connection")?;
         if !response.status().is_success() {
+            let status = response.status();
+            let mut body = String::new();
+            let _ = response.take(16 * 1024).read_to_string(&mut body);
+            let body: String = body
+                .chars()
+                .map(|character| if character.is_control() { ' ' } else { character })
+                .collect();
+            log_detail(&format!("ComfyUI HTTP {status}: {body}"));
+            if let Ok(mut log) = fs::OpenOptions::new().append(true).open(&self.runtime_log) {
+                let _ = writeln!(log, "Local Studio: ComfyUI rejected workflow ({status}): {body}");
+            }
+            if body.contains("ckpt_name") && body.contains("not in") {
+                return Err("comfy_checkpoint_unavailable".into());
+            }
             return Err("comfy_workflow".into());
         }
         let id = response.json::<Value>().map_err(|_| "comfy_response")?["prompt_id"]
@@ -1399,6 +1483,32 @@ mod tests {
             Some("hf-download/wai.safetensors")
         );
         assert!(relative_model_path(&checkpoint, &config).is_none());
+    }
+
+    #[test]
+    fn workflow_options_use_the_exact_names_reported_by_comfyui() {
+        let info = json!({
+            "CheckpointLoaderSimple": {"input":{"required":{"ckpt_name":[["nested\\wai.safetensors"]]}}},
+            "KSampler": {"input":{"required":{
+                "sampler_name":[["euler", "dpmpp_2m"]],
+                "scheduler":[["normal", "karras"]]
+            }}}
+        });
+        assert_eq!(
+            resolve_comfy_option(
+                &info,
+                "CheckpointLoaderSimple",
+                "ckpt_name",
+                "nested/wai.safetensors"
+            )
+            .as_deref(),
+            Some("nested\\wai.safetensors")
+        );
+        assert_eq!(
+            resolve_comfy_option(&info, "KSampler", "scheduler", "karras").as_deref(),
+            Some("karras")
+        );
+        assert!(resolve_comfy_option(&info, "KSampler", "sampler_name", "missing").is_none());
     }
 
     #[test]

@@ -1,3 +1,9 @@
+# Release 0.36.7 vorbereitet – ComfyUI-Workflowwerte aus der laufenden API (2026-09-26)
+
+Die erreichte ComfyUI-API lehnte den Workflow vor der Ausführung ab. Der wahrscheinlich konkrete Auslöser bei einem verschachtelt heruntergeladenen WAI-Checkpoint ist die strikte `CheckpointLoaderSimple`-Auswahlliste: Local Studio erzeugte plattformneutral `unterordner/modell.safetensors`, während ComfyUI unter Windows den Wert `unterordner\modell.safetensors` führt.
+
+Local Studio liest nun vor jedem Workflow die exakten zulässigen Checkpoint-, LoRA-, Sampler- und Scheduler-Werte aus den lokalen `object_info`-Endpunkten, vergleicht Pfadtrenner normalisiert und sendet den originalen ComfyUI-Wert. Unbekannte Checkpoints erhalten eine eigene Meldung. Andere begrenzte Ablehnungsantworten landen lokal in Auftragsdetails und ComfyUI-Protokoll. Sechs gezielte ComfyUI-Tests, Frontend-Produktionsbuild, optimierter Rust-/Tauri-Build, Installer, portables Archiv und signierte Update-Metadaten sind bestanden. Die Veröffentlichung wird nach der GitHub-Rückprüfung ergänzt.
+
 # Release 0.36.6 veröffentlicht – alte Auftragsfehler vom aktuellen Formular getrennt (2026-09-26)
 
 Die sofort sichtbare RAM-Meldung ohne Modellauswahl war keine neue Ressourcenprüfung. Das Bildstudio wählte beim Öffnen automatisch den neuesten gespeicherten Auftrag aus; dessen alter `resource_memory`-Fehler erschien dadurch im aktuellen Canvasbereich.

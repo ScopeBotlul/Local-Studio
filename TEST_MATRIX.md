@@ -1,3 +1,12 @@
+# Releaseprüfung 0.36.7 – 2026-09-26
+
+- `cargo test --manifest-path src-tauri/Cargo.toml comfy::tests`: 6/6 bestanden. Paket-Allowlist, AMD-Kompatibilitätsmodus, Archivschutz, Versionsparsing und zusätzliche Modellpfade bleiben grün.
+- Der neue Workflow-Test bildet einen internen Pfad mit `/` auf den exakten von ComfyUI gemeldeten Windows-Namen mit `\` ab, bestätigt die Scheduler-Auswahl und weist unbekannte Werte ab.
+- Checkpoint, LoRA, Sampler und Scheduler werden vor dem POST auf `/prompt` gegen die lokale `object_info`-Antwort aufgelöst. Ablehnungsantworten sind auf 16 KiB begrenzt, Steuerzeichen werden entfernt, und die Details bleiben ausschließlich in lokalem Auftrag und Runtime-Protokoll.
+- Ein echter WAI-Illustrious-Lauf auf dem ROG Ally wurde auf dem Entwicklungsgerät nicht ausgeführt.
+- Frontend-Produktionsbuild sowie optimierter Rust-/Tauri-Release-Build und Inno-Installer: bestanden. Das portable ZIP enthält exakt 80 erlaubte Dateien; 77 Runtime-Dateien entsprechen ihren Manifesten. EXE SHA-256 `d5ec859fb1dfee512e8090f70358c5c09e72baf9124ab31df2ff874da2200e97`, ZIP `f1cabc6740a7c2ef3f86d0c8de09d2e37e5905f7724ede9efce6c48e3f91fea9`, Installer `0d581f9ce76953810be9fcf6f2597392e67bb4a1ae02b14846d3f1f3139fa15c`. Das signierte Manifest stimmt mit Version, URLs, Größen, Hashes und eingebettetem öffentlichen Schlüssel überein.
+- Veröffentlichung und Rückprüfung der GitHub-Assets: ausstehend.
+
 # Releaseprüfung 0.36.6 – 2026-09-26
 
 - Geändert ist ausschließlich die Auswahl und Beschriftung des im Bildstudio angezeigten Auftrags. Ohne explizite Auswahl fällt die Ansicht nur noch auf laufende beziehungsweise wartende Aufträge zurück; ein terminaler historischer Fehler wird nicht automatisch eingeblendet.

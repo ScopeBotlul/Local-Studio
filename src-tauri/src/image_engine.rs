@@ -771,12 +771,30 @@ impl ImageEngine {
                 if request.reference.is_some() {
                     return Err("comfy_reference".into());
                 }
-                self.comfy.generate(request, &output, &cancel, |phase| {
-                    let _ = self.update(&job.id, false, |j| {
-                        j.phase = phase.into();
-                        j.elapsed_ms = started.elapsed().as_millis() as u64;
-                    });
-                })?;
+                self.comfy.generate(
+                    request,
+                    &output,
+                    &cancel,
+                    |phase| {
+                        let _ = self.update(&job.id, false, |j| {
+                            j.phase = phase.into();
+                            j.elapsed_ms = started.elapsed().as_millis() as u64;
+                        });
+                    },
+                    |detail| {
+                        let _ = self.update(&job.id, false, |j| {
+                            j.log_tail.push_str(detail);
+                            j.log_tail.push('\n');
+                            if j.log_tail.len() > 64 * 1024 {
+                                let mut keep = j.log_tail.len() - 48 * 1024;
+                                while !j.log_tail.is_char_boundary(keep) {
+                                    keep += 1;
+                                }
+                                j.log_tail.drain(..keep);
+                            }
+                        });
+                    },
+                )?;
                 png_bytes(&output, request.width, request.height)?;
                 return Ok(output.to_string_lossy().into());
             }
