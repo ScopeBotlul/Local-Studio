@@ -1,8 +1,8 @@
-# Release 0.36.3 vorbereitet – Local-Studio-Modelle in ComfyUI (2026-09-26)
+# Release 0.36.3 veröffentlicht – Local-Studio-Modelle in ComfyUI (2026-09-26)
 
 Die falsche NVIDIA-Sperre bei einem heruntergeladenen WAI-Illustrious-Checkpoint entstand durch einen Laufzeitwechsel: Das Modell lag im Local-Studio-Modellordner, während ComfyUI ausschließlich seinen eigenen Checkpointordner kannte. Die Prüfung fiel deshalb auf den nativen `stable-diffusion.cpp`-Vulkan-Adapter zurück, dessen aktueller Pfad NVIDIA voraussetzt.
 
-Beim verwalteten Start erzeugt Local Studio nun eine begrenzte `comfy-extra-model-paths.yaml` und übergibt sie mit ComfyUIs offiziellem `--extra-model-paths-config`. Sie gibt ausschließlich den eingestellten Local-Studio-Modellordner als zusätzlichen Checkpointpfad frei. Die Gewichte bleiben an ihrem Ort; verschachtelte Downloadnamen werden relativ an `CheckpointLoaderSimple` übergeben. Fünf gezielte ComfyUI-Tests, Frontend-Produktionsbuild und optimierter Rust-/Tauri-Release-Build sind bestanden. Installer und portables Archiv wurden erzeugt; Paketinhalt, Hashes und signierte Update-Metadaten stimmen. Die Veröffentlichung folgt.
+Beim verwalteten Start erzeugt Local Studio nun eine begrenzte `comfy-extra-model-paths.yaml` und übergibt sie mit ComfyUIs offiziellem `--extra-model-paths-config`. Sie gibt ausschließlich den eingestellten Local-Studio-Modellordner als zusätzlichen Checkpointpfad frei. Die Gewichte bleiben an ihrem Ort; verschachtelte Downloadnamen werden relativ an `CheckpointLoaderSimple` übergeben. Fünf gezielte ComfyUI-Tests, Frontend-Produktionsbuild und optimierter Rust-/Tauri-Release-Build sind bestanden. Version 0.36.3 ist unter https://github.com/ScopeBotlul/Local-Studio/releases/tag/v0.36.3 öffentlich als Latest verfügbar; Tag `v0.36.3` verweist auf Release-Commit `fbf89b8`. Installer und portables Archiv wurden vollständig von GitHub zurückgeladen, und Signatur, Größen, Hashes sowie alle fünf Asset-Digests stimmen.
 
 # Release 0.36.2 veröffentlicht – automatische Modellübernahme nach Download (2026-09-26)
 
