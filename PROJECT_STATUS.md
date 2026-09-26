@@ -1,3 +1,9 @@
+# Release 0.36.6 vorbereitet – alte Auftragsfehler vom aktuellen Formular getrennt (2026-09-26)
+
+Die sofort sichtbare RAM-Meldung ohne Modellauswahl war keine neue Ressourcenprüfung. Das Bildstudio wählte beim Öffnen automatisch den neuesten gespeicherten Auftrag aus; dessen alter `resource_memory`-Fehler erschien dadurch im aktuellen Canvasbereich.
+
+Ohne bewusste Auswahl zeigt das Studio nun einen leeren Canvas. Nur laufende oder wartende Aufträge werden automatisch eingeblendet. Historische Aufträge bleiben im Verlauf auswählbar, und ihre Fehler werden ausdrücklich als Meldung dieses gespeicherten Auftrags gekennzeichnet. Frontend-Produktionsbuild, optimierter Rust-/Tauri-Build, Installer, portables Archiv und signierte Update-Metadaten sind bestanden. Die Veröffentlichung wird nach der GitHub-Rückprüfung ergänzt.
+
 # Release 0.36.5 veröffentlicht – verbleibende ComfyUI-RAM-Sperre entfernt (2026-09-26)
 
 Die in 0.36.4 reduzierte Vorabreserve blieb auf dem ROG Ally zu streng: Bei weniger als ungefähr 1 GiB unmittelbar freiem Windows-RAM wurde der Auftrag weiterhin vor ComfyUI abgewiesen. Das kann bei gemeinsamem CPU-/GPU-Speicher auftreten, obwohl ComfyUI/ROCm noch auslagern kann.

@@ -42,6 +42,11 @@ Videoschnitt und GIF-Studio. Galerie und Modelle bleiben zentral erreichbar;
 Hugging Face, Downloads, Auftraege und Einstellungen liegen rechts. Die bisherige
 doppelte Studio-Navigation und Breadcrumb-Leiste wurden entfernt.
 
+Neu in 0.36.6: Das Bildstudio zeigt beim Oeffnen einen leeren Canvas statt
+automatisch den letzten fehlgeschlagenen Auftrag. Laufende und wartende Auftraege
+bleiben sichtbar; alte Ergebnisse und Fehler koennen bewusst im Verlauf geoeffnet
+werden und sind eindeutig als Meldung des gespeicherten Auftrags gekennzeichnet.
+
 Neu in 0.36.5: Verwaltete ComfyUI-Auftraege besitzen keine pauschale Grenze fuer
 den von Windows gerade als frei gemeldeten RAM mehr. Auf Geraeten mit gemeinsamem
 CPU-/GPU-Speicher entscheidet ComfyUI/ROCm ueber Laden und Auslagern. Reihenfolge
