@@ -6,6 +6,7 @@
 - Codepfad geprüft: Ein beendeter verwalteter ComfyUI-Prozess liefert sofort `comfy_runtime_exit`; drei aufeinanderfolgende History-Verbindungsfehler liefern `comfy_connection` statt bis zum 15-Minuten-Zeitlimit weiterzulaufen.
 - Bestanden: optimierter Rust-/Tauri-Build, Inno-Installer, portables Archiv, Runtime-Staging und signierte Update-Metadaten; lokale Größen, SHA-256-Werte und Signatur stimmen.
 - Paket-Hashes: Portable ZIP `cea38064df86b8580f40e527f9b9d7cebf04f96cd50e52ac0c95cab66124200f`, Installer `a7dfc07cef0c9ddec7ca1a566bc214f217d608c44742d51de8a4b30079ba019b`.
+- Veröffentlichung: `v0.36.10` ist öffentlich und als Latest markiert. Installer und Portable-ZIP wurden vollständig von GitHub zurückgeladen; alle fünf Asset-Digests, Größen, SHA-256-Werte und die Update-Signatur stimmen. Nachweis: `.artifacts/github-release-verification-0.36.10.json`.
 - Noch offen: echter AMD-/WAI-Illustrious-Lauf auf dem ROG Ally und Diagnose der nativen Python-/ROCm-Absturzursache mit dem verbesserten Bericht.
 
 # Releaseprüfung 0.36.9 – 2026-09-26
