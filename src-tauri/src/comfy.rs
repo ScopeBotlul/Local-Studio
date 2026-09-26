@@ -515,7 +515,7 @@ impl Comfy {
             .map_err(|_| "comfy_storage")?;
         fs::write(&self.config_path, data).map_err(|_| "comfy_storage".into())
     }
-    pub fn status(&self) -> ComfyStatus {
+    fn reap_runtime_exit(&self) -> bool {
         let mut exited = false;
         if let Ok(mut process) = self.process.lock() {
             if process
@@ -531,6 +531,15 @@ impl Comfy {
                 *error = Some("comfy_runtime_exit".into());
             }
         }
+        exited
+            || self
+                .runtime_error
+                .lock()
+                .ok()
+                .is_some_and(|error| error.as_deref() == Some("comfy_runtime_exit"))
+    }
+    pub fn status(&self) -> ComfyStatus {
+        self.reap_runtime_exit();
         let managed = self.process.lock().ok().is_some_and(|p| p.is_some());
         let response = probe_http();
         let running = response.is_ok();
@@ -1318,6 +1327,7 @@ impl Comfy {
             .to_owned();
         update("processing");
         let started = Instant::now();
+        let mut connection_failures = 0u8;
         loop {
             if cancel.load(Ordering::Relaxed) {
                 let _ = client.post(format!("{ENDPOINT}/interrupt")).send();
@@ -1330,8 +1340,27 @@ impl Comfy {
             let history = client
                 .get(format!("{ENDPOINT}/history/{id}"))
                 .send()
-                .and_then(|r| r.json::<Value>())
-                .unwrap_or(Value::Null);
+                .and_then(|r| r.error_for_status())
+                .and_then(|r| r.json::<Value>());
+            let history = match history {
+                Ok(history) => {
+                    connection_failures = 0;
+                    history
+                }
+                Err(_) => {
+                    if self.reap_runtime_exit() {
+                        log_detail("ComfyUI process exited during image generation.");
+                        return Err("comfy_runtime_exit".into());
+                    }
+                    connection_failures = connection_failures.saturating_add(1);
+                    if connection_failures >= 3 {
+                        log_detail("ComfyUI API stopped responding during image generation.");
+                        return Err("comfy_connection".into());
+                    }
+                    std::thread::sleep(Duration::from_millis(250));
+                    continue;
+                }
+            };
             if let Some(entry) = history.get(&id) {
                 if entry.pointer("/status/status_str").and_then(Value::as_str) == Some("error")
                     || entry.pointer("/status/completed").and_then(Value::as_bool) == Some(false)

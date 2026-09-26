@@ -1,4 +1,4 @@
-use crate::{comfy::Comfy, core::Core, hub, updater::Updater};
+use crate::{comfy::Comfy, core::Core, hub, image_engine::ImageEngine, updater::Updater};
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -128,6 +128,26 @@ fn tail_chars(input: &str, limit: usize) -> String {
     format!("[older output omitted]\n{}", &input[start..])
 }
 
+fn head_tail_chars(input: &str, limit: usize) -> String {
+    if input.len() <= limit {
+        return input.to_string();
+    }
+    let half = limit / 2;
+    let mut end = half;
+    while !input.is_char_boundary(end) {
+        end -= 1;
+    }
+    let mut start = input.len() - half;
+    while !input.is_char_boundary(start) {
+        start += 1;
+    }
+    format!(
+        "{}\n[middle output omitted]\n{}",
+        &input[..end],
+        &input[start..]
+    )
+}
+
 fn prefix_chars(input: &str, limit: usize) -> String {
     if input.chars().count() <= limit {
         return input.to_string();
@@ -146,12 +166,18 @@ fn settings_json(snapshot: &crate::types::AppSnapshot) -> Result<String> {
     serde_json::to_string_pretty(&settings).map_err(|_| "bug_report_storage".into())
 }
 
-fn job_summary(snapshot: &crate::types::AppSnapshot) -> BTreeMap<String, usize> {
+fn job_summary(
+    snapshot: &crate::types::AppSnapshot,
+    image_jobs: &[crate::image_engine::ImageJob],
+) -> BTreeMap<String, usize> {
     let mut summary = BTreeMap::new();
     for job in &snapshot.jobs {
         *summary
             .entry(format!("{}:{}", job.kind, job.status))
             .or_default() += 1;
+    }
+    for job in image_jobs {
+        *summary.entry(format!("image:{}", job.status)).or_default() += 1;
     }
     summary
 }
@@ -161,6 +187,7 @@ fn build(
     core: &Core,
     comfy: &Comfy,
     updater: &Updater,
+    images: &ImageEngine,
 ) -> Result<BugReportDraft> {
     let title = checked(&input.title, 120, false)?;
     let description = checked(&input.description, 4_000, false)?;
@@ -183,7 +210,8 @@ fn build(
     );
     let logs = tail_chars(&sanitize(&core.logs()?, &snapshot), 16 * 1024);
     let report_id = Uuid::new_v4();
-    let jobs = serde_json::to_string_pretty(&job_summary(&snapshot))
+    let image_jobs = images.list()?;
+    let jobs = serde_json::to_string_pretty(&job_summary(&snapshot, &image_jobs))
         .map_err(|_| "bug_report_storage")?;
     let report = format!(
         "# Local Studio bug report\n\nReport ID: `{report_id}`\nCreated: `{}`\n\n## User report\n\nTitle: {}\n\n### Description\n{}\n\n### Steps to reproduce\n{}\n\nUI context: `{}`\n\n## Application\n\n```json\n{}\n```\n\n## Settings (paths redacted)\n\n```json\n{}\n```\n\n## Hardware\n\n```json\n{}\n```\n\n## Job summary (no input/output paths)\n\n```json\n{}\n```\n\n## ComfyUI status and startup log\n\n```text\n{}\n```\n\n## Update status\n\n```json\n{}\n```\n\n## Recent Local Studio log\n\n```text\n{}\n```\n\n## Privacy\n\nTokens, cookies, passwords, prompts, media, project contents, database contents and personal path segments are not included.\n",
@@ -200,7 +228,7 @@ fn build(
         settings,
         hardware,
         jobs,
-        tail_chars(&comfy_status, 16 * 1024),
+        head_tail_chars(&comfy_status, 16 * 1024),
         tail_chars(&update_status, 6 * 1024),
         logs,
     );
@@ -274,11 +302,13 @@ pub async fn bug_report_preview(
     core: State<'_, Arc<Core>>,
     comfy: State<'_, Arc<Comfy>>,
     updater: State<'_, Arc<Updater>>,
+    images: State<'_, Arc<ImageEngine>>,
 ) -> Result<BugReportDraft> {
     let core = core.inner().clone();
     let comfy = comfy.inner().clone();
     let updater = updater.inner().clone();
-    tauri::async_runtime::spawn_blocking(move || build(input, &core, &comfy, &updater))
+    let images = images.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || build(input, &core, &comfy, &updater, &images))
         .await
         .map_err(|_| "bug_report_storage")?
 }
@@ -289,14 +319,16 @@ pub async fn bug_report_submit(
     core: State<'_, Arc<Core>>,
     comfy: State<'_, Arc<Comfy>>,
     updater: State<'_, Arc<Updater>>,
+    images: State<'_, Arc<ImageEngine>>,
 ) -> Result<BugReportResult> {
     let core = core.inner().clone();
     let comfy = comfy.inner().clone();
     let updater = updater.inner().clone();
+    let images = images.inner().clone();
     tauri::async_runtime::spawn_blocking(move || {
         checked(&input.title, 120, true)?;
         checked(&input.description, 4_000, true)?;
-        let draft = build(input.clone(), &core, &comfy, &updater)?;
+        let draft = build(input.clone(), &core, &comfy, &updater, &images)?;
         let snapshot = core.snapshot()?;
         let directory = report_directory(&snapshot)?;
         let name = format!("bug-report-{}-{}.md", Utc::now().format("%Y%m%d-%H%M%S"), Uuid::new_v4());
@@ -385,5 +417,15 @@ mod tests {
         assert!(url.len() < 8_000);
         assert!(!url.contains(&"d".repeat(2_000)));
         assert!(url.starts_with(ISSUE_URL));
+    }
+
+    #[test]
+    fn bounded_diagnostics_keep_the_error_lead_and_crash_tail() {
+        let input = format!("fatal error\n{}\nstack tail", "x".repeat(1_000));
+        let bounded = head_tail_chars(&input, 128);
+        assert!(bounded.starts_with("fatal error"));
+        assert!(bounded.ends_with("stack tail"));
+        assert!(bounded.contains("[middle output omitted]"));
+        assert!(bounded.len() < input.len());
     }
 }

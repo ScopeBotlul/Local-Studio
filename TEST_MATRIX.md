@@ -1,3 +1,13 @@
+# Releaseprüfung 0.36.10 – 2026-09-26
+
+- Bestanden: drei gezielte Bugreport-Tests einschließlich Schutz persönlicher Daten und Erhalt von Fehleranfang plus Stackende bei begrenzter Berichtslänge.
+- Bestanden: sechs gezielte ComfyUI-Tests für Installationstypen, Pfade, Workflow-Namen und Versionsbehandlung.
+- Bestanden: TypeScript-/Vite-Produktionsbuild einschließlich der neuen verständlichen Meldung für einen ComfyUI-Prozessabsturz.
+- Codepfad geprüft: Ein beendeter verwalteter ComfyUI-Prozess liefert sofort `comfy_runtime_exit`; drei aufeinanderfolgende History-Verbindungsfehler liefern `comfy_connection` statt bis zum 15-Minuten-Zeitlimit weiterzulaufen.
+- Bestanden: optimierter Rust-/Tauri-Build, Inno-Installer, portables Archiv, Runtime-Staging und signierte Update-Metadaten; lokale Größen, SHA-256-Werte und Signatur stimmen.
+- Paket-Hashes: Portable ZIP `cea38064df86b8580f40e527f9b9d7cebf04f96cd50e52ac0c95cab66124200f`, Installer `a7dfc07cef0c9ddec7ca1a566bc214f217d608c44742d51de8a4b30079ba019b`.
+- Noch offen: echter AMD-/WAI-Illustrious-Lauf auf dem ROG Ally und Diagnose der nativen Python-/ROCm-Absturzursache mit dem verbesserten Bericht.
+
 # Releaseprüfung 0.36.9 – 2026-09-26
 
 - Bestanden: gezielter Rust-Test `comfy::tests::managed_comfy_config_exposes_local_studio_checkpoints_without_copying`.
