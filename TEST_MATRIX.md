@@ -5,6 +5,7 @@
 - Bestanden: TypeScript-/Vite-Produktionsbuild und optimierter Rust-/Tauri-Release-Build.
 - Bestanden: Inno-Installer, portables Archiv, Runtime-Staging und signierte Update-Metadaten; lokale Größen, SHA-256-Werte und Signatur stimmen.
 - Paket-Hashes: Portable ZIP `0625cb80640d14a3359006a7f8d9417c6f34ffbbed05b4c2496a1772e8ef36fc`, Installer `3b1682fc8ed74411af68613539d9f076dc0fc64f45feb073472e68c8d0bfee34`.
+- Veröffentlichung: `v0.36.9` ist öffentlich und als Latest markiert. Installer und Portable-ZIP wurden vollständig von GitHub zurückgeladen; alle fünf Asset-Digests, Größen, SHA-256-Werte und die Update-Signatur stimmen. Nachweis: `.artifacts/github-release-verification-0.36.9.json`.
 - Noch offen: echter Start und WAI-Illustrious-Generierung mit der verwalteten AMD-ComfyUI-Installation auf dem ROG Ally.
 
 # Releaseprüfung 0.36.8 – 2026-09-26
