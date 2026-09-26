@@ -71,6 +71,8 @@ struct Process {
 pub struct Comfy {
     config_path: PathBuf,
     managed_root: PathBuf,
+    external_checkpoints: PathBuf,
+    extra_model_paths: PathBuf,
     config: Mutex<Config>,
     process: Mutex<Option<Process>>,
     install: Mutex<ComfyInstallStatus>,
@@ -93,6 +95,12 @@ fn valid_root(path: &Path) -> bool {
         && model_library::no_links(path).is_ok()
         && path.join("python_embeded/python.exe").is_file()
         && path.join("ComfyUI/main.py").is_file()
+}
+fn relative_model_path(path: &Path, root: &Path) -> Option<String> {
+    let root = fs::canonicalize(root).ok()?;
+    let path = fs::canonicalize(path).ok()?;
+    let relative = path.strip_prefix(root).ok()?.to_str()?.replace('\\', "/");
+    (!relative.is_empty()).then_some(relative)
 }
 fn uses_amd_safe_attention(path: &Path) -> bool {
     path.join("run_amd_gpu.bat").is_file()
@@ -412,8 +420,12 @@ fn extracted_root(stage: &Path) -> Option<PathBuf> {
 }
 
 impl Comfy {
-    pub fn new(config_dir: &Path) -> Result<Arc<Self>> {
+    pub fn new_with_checkpoints(
+        config_dir: &Path,
+        checkpoints: Option<PathBuf>,
+    ) -> Result<Arc<Self>> {
         let config_path = config_dir.join("comfy.json");
+        let extra_model_paths = config_dir.join("comfy-extra-model-paths.yaml");
         let update_log = config_dir.join("comfy-update.log");
         let runtime_log = config_dir.join("comfy-runtime.log");
         let data_root = if config_dir
@@ -425,6 +437,7 @@ impl Comfy {
             config_dir.join("Data")
         };
         let managed_root = data_root.join("ComfyUI");
+        let external_checkpoints = checkpoints.unwrap_or_else(|| data_root.join("Models"));
         let mut config: Config = fs::read(&config_path)
             .ok()
             .and_then(|b| serde_json::from_slice(&b).ok())
@@ -439,6 +452,8 @@ impl Comfy {
         let this = Arc::new(Self {
             config_path,
             managed_root,
+            external_checkpoints,
+            extra_model_paths,
             config: Mutex::new(config),
             process: Mutex::new(None),
             install: Mutex::new(ComfyInstallStatus {
@@ -456,6 +471,23 @@ impl Comfy {
         });
         this.save()?;
         Ok(this)
+    }
+    fn write_extra_model_paths(&self) -> Result<()> {
+        model_library::no_links(&self.external_checkpoints).map_err(|_| "comfy_model_path")?;
+        let root = fs::canonicalize(&self.external_checkpoints)
+            .map_err(|_| "comfy_model_path")?
+            .to_string_lossy()
+            .trim_start_matches(r"\\?\")
+            .to_string();
+        if root.chars().any(char::is_control) {
+            return Err("comfy_model_path".into());
+        }
+        let root = root.replace('\'', "''");
+        fs::write(
+            &self.extra_model_paths,
+            format!("local_studio:\n  base_path: '{root}'\n  checkpoints: '.'\n"),
+        )
+        .map_err(|_| "comfy_storage".into())
     }
     fn save(&self) -> Result<()> {
         let data = serde_json::to_vec_pretty(&*self.config.lock().map_err(|_| "comfy_storage")?)
@@ -944,6 +976,7 @@ impl Comfy {
         if !valid_root(&root) {
             return Err("comfy_path".into());
         }
+        self.write_extra_model_paths()?;
         let amd_safe_attention = uses_amd_safe_attention(&root);
         let log_header = if amd_safe_attention {
             "Local Studio: ComfyUI runtime (AMD compatibility: split cross attention)\r\n"
@@ -971,7 +1004,9 @@ impl Comfy {
                 "8188",
                 "--disable-auto-launch",
                 "--disable-api-nodes",
+                "--extra-model-paths-config",
             ])
+            .arg(&self.extra_model_paths)
             .stdin(Stdio::null());
         if amd_safe_attention {
             // Current AMD Windows builds may terminate inside aotriton_supported()
@@ -1082,10 +1117,13 @@ impl Comfy {
             return None;
         }
         let root = self.config.lock().ok()?.path.clone().map(PathBuf::from)?;
-        let models = fs::canonicalize(root.join("ComfyUI/models").join(folder)).ok()?;
-        let path = fs::canonicalize(path).ok()?;
-        let relative = path.strip_prefix(models).ok()?.to_str()?.replace('\\', "/");
-        (!relative.is_empty()).then_some(relative)
+        if let Some(relative) = relative_model_path(path, &root.join("ComfyUI/models").join(folder)) {
+            return Some(relative);
+        }
+        let managed = self.process.lock().ok().is_some_and(|process| process.is_some());
+        (folder == "checkpoints" && managed)
+            .then(|| relative_model_path(path, &self.external_checkpoints))
+            .flatten()
     }
     pub fn generate(
         &self,
@@ -1337,6 +1375,30 @@ mod tests {
         assert!(!uses_amd_safe_attention(temp.path()));
         fs::write(temp.path().join("run_amd_gpu.bat"), b"rem official launcher").unwrap();
         assert!(uses_amd_safe_attention(temp.path()));
+    }
+
+    #[test]
+    fn managed_comfy_config_exposes_local_studio_checkpoints_without_copying() {
+        let temp = tempfile::tempdir().unwrap();
+        let config = temp.path().join("config");
+        let models = temp.path().join("Model's");
+        let nested = models.join("hf-download");
+        fs::create_dir_all(&config).unwrap();
+        fs::create_dir_all(&nested).unwrap();
+        let checkpoint = nested.join("wai.safetensors");
+        fs::write(&checkpoint, b"model").unwrap();
+        let comfy = Comfy::new_with_checkpoints(&config, Some(models.clone())).unwrap();
+
+        comfy.write_extra_model_paths().unwrap();
+        let yaml = fs::read_to_string(config.join("comfy-extra-model-paths.yaml")).unwrap();
+        assert!(yaml.contains("local_studio:"));
+        assert!(yaml.contains("Model''s"));
+        assert!(yaml.contains("checkpoints: '.'"));
+        assert_eq!(
+            relative_model_path(&checkpoint, &models).as_deref(),
+            Some("hf-download/wai.safetensors")
+        );
+        assert!(relative_model_path(&checkpoint, &config).is_none());
     }
 
     #[test]

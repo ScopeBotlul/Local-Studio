@@ -588,7 +588,11 @@ impl ImageEngine {
     }
     #[cfg(test)]
     pub fn new(config: &Path, runtime: PathBuf) -> Result<Arc<Self>> {
-        Self::new_with_comfy(config, runtime, crate::comfy::Comfy::new(config)?)
+        Self::new_with_comfy(
+            config,
+            runtime,
+            crate::comfy::Comfy::new_with_checkpoints(config, None)?,
+        )
     }
     pub fn list(&self) -> Result<Vec<ImageJob>> {
         let state = self.state.lock().map_err(|_| "image_storage")?;

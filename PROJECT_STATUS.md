@@ -1,3 +1,9 @@
+# Release 0.36.3 vorbereitet – Local-Studio-Modelle in ComfyUI (2026-09-26)
+
+Die falsche NVIDIA-Sperre bei einem heruntergeladenen WAI-Illustrious-Checkpoint entstand durch einen Laufzeitwechsel: Das Modell lag im Local-Studio-Modellordner, während ComfyUI ausschließlich seinen eigenen Checkpointordner kannte. Die Prüfung fiel deshalb auf den nativen `stable-diffusion.cpp`-Vulkan-Adapter zurück, dessen aktueller Pfad NVIDIA voraussetzt.
+
+Beim verwalteten Start erzeugt Local Studio nun eine begrenzte `comfy-extra-model-paths.yaml` und übergibt sie mit ComfyUIs offiziellem `--extra-model-paths-config`. Sie gibt ausschließlich den eingestellten Local-Studio-Modellordner als zusätzlichen Checkpointpfad frei. Die Gewichte bleiben an ihrem Ort; verschachtelte Downloadnamen werden relativ an `CheckpointLoaderSimple` übergeben. Fünf gezielte ComfyUI-Tests, Frontend-Produktionsbuild und optimierter Rust-/Tauri-Release-Build sind bestanden. Installer und portables Archiv wurden erzeugt; Paketinhalt, Hashes und signierte Update-Metadaten stimmen. Die Veröffentlichung folgt.
+
 # Release 0.36.2 veröffentlicht – automatische Modellübernahme nach Download (2026-09-26)
 
 Der bislang fehlende Übergang zwischen Downloadverwaltung und Modellbibliothek ist geschlossen. Sobald alle Dateien vollständig übertragen, gehasht und atomar veröffentlicht wurden, untersucht die Bibliothek ausschließlich die ausgewählten lokalen Dateien und trägt erkannte Modelle direkt ein. Die Modellansicht und die Studio-Kataloge lesen denselben SQLite-Bestand. Bereits abgeschlossene Downloads werden beim Start nachgetragen; nicht erkannte Begleitdateien bleiben gespeichert, erzeugen aber keinen falschen Modelleintrag.

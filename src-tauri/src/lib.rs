@@ -224,7 +224,10 @@ pub fn run() {
             app.manage(GalleryCatalog::new(&config_dir)?);
             app.manage(Arc::new(GalleryWatch::new()));
             app.manage(Benchmarks::new(&config_dir)?);
-            let comfy=Comfy::new(&config_dir)?;
+            let comfy=Comfy::new_with_checkpoints(
+                &config_dir,
+                Some(std::path::PathBuf::from(core.storage_paths()?.models)),
+            )?;
             if comfy.status().installed {let service=comfy.clone();tauri::async_runtime::spawn_blocking(move||{let _=service.start();});}
             app.manage(ImageEngine::new_with_comfy(&config_dir, runtime_dir,comfy.clone())?);
             app.manage(comfy);

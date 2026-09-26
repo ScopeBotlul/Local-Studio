@@ -1,3 +1,12 @@
+# Releaseprüfung 0.36.3 – 2026-09-26
+
+- `cargo test --manifest-path src-tauri/Cargo.toml comfy::tests`: 5/5 bestanden. Paket-Allowlist, AMD-Kompatibilitätsmodus, Versionsparsing und Archivpfadschutz bleiben grün.
+- Der neue Pfadtest erzeugt eine lokale Modellstruktur mit Apostroph im Ordnernamen, schreibt die zusätzliche ComfyUI-YAML sicher, prüft korrektes YAML-Escaping und bildet `hf-download/wai.safetensors` relativ ab. Eine Datei außerhalb des freigegebenen Modellordners wird abgewiesen.
+- `npm.cmd run build`: bestanden. Die korrigierte zweisprachige Laufzeitmeldung und das Frontend-Bundle kompilieren.
+- ComfyUI erhält den Pfad nur bei einem von Local Studio verwalteten Start über `--extra-model-paths-config`; extern laufende Instanzen werden nicht verändert. Ein echter WAI-Illustrious-Generierungslauf auf dem ROG Ally wurde auf dem Entwicklungsgerät nicht ausgeführt.
+- Optimierter Rust-/Tauri-Release-Build und Inno-Installer bestanden. Das portable ZIP enthält exakt 80 erlaubte Dateien; 77 Runtime-Dateien entsprechen ihren Manifesten. EXE SHA-256 `b7734150e420e739d0f24afc58c8ae023ce0bd9caa7605854e6accf8f6547adf`, ZIP `55e70a7b325eb9c40a83a8cdd602bfe3452be8a3306efcfa90d83a998fabc624`, Installer `3ece4ebdbe30add95a458d6e5707c919d0f0fdc00266530328f0fd0682d7a3a7`. Das signierte Manifest stimmt mit Version, URLs, Größen, Hashes und eingebettetem öffentlichen Schlüssel überein.
+- Veröffentlichung folgt.
+
 # Releaseprüfung 0.36.2 – 2026-09-26
 
 - `cargo test --manifest-path src-tauri/Cargo.toml downloads::integration_tests`: 6/6 bestanden. Pause/Fortsetzung, Abbruch, Hashfehler, Priorisierung, Neustartwiederherstellung und automatische Bibliotheksübernahme bleiben gemeinsam abgedeckt.

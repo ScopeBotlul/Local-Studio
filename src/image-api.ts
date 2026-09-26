@@ -60,7 +60,7 @@ const errors: Record<string, [string, string]> = {
   image_runtime_invalid: ['Die Bild-Runtime wurde verändert. Bitte die Originaldateien aus dem Local-Studio-Paket wiederherstellen.', 'Image runtime has changed. Restore the original files from the Local Studio package.'],
   image_runtime_start: ['Die Bild-Runtime konnte nicht gestartet werden. Prüfe den Grafiktreiber; Details stehen im Auftrag.', 'Image runtime could not start. Check your graphics driver; see job details.'],
   image_runtime_timeout: ['Die Runtime antwortet nicht. Grafiktreiber prüfen und erneut versuchen.', 'The runtime is not responding. Check your graphics driver and retry.'],
-  image_gpu: ['Dieser Adapter benötigt derzeit eine NVIDIA-GPU mit funktionierendem Vulkan-Treiber.', 'This adapter currently requires an NVIDIA GPU with a working Vulkan driver.'],
+  image_gpu: ['Das Modell ist für die ComfyUI-Engine noch nicht erreichbar. Starte die von Local Studio verwaltete ComfyUI-Engine neu. Nur der native Ersatzadapter benötigt derzeit eine NVIDIA-GPU mit funktionierendem Vulkan-Treiber.', 'The model is not yet available to the ComfyUI engine. Restart the ComfyUI engine managed by Local Studio. Only the native fallback adapter currently requires an NVIDIA GPU with a working Vulkan driver.'],
   image_vram: ['Für diesen ersten SDXL-Pfad sind mindestens 8 GB Grafikspeicher vorgesehen.', 'This first SDXL path requires at least 8 GB of graphics memory.'],
   image_prompt: ['Bitte einen Prompt mit höchstens 4.000 UTF-8-Bytes eingeben.', 'Enter a prompt of at most 4,000 UTF-8 bytes.'],
   image_parameters: ['Ungültige Bildparameter. Auflösung, Schritte, Guidance und Sampler prüfen.', 'Invalid image parameters. Check resolution, steps, guidance and sampler.'],

@@ -42,6 +42,10 @@ Videoschnitt und GIF-Studio. Galerie und Modelle bleiben zentral erreichbar;
 Hugging Face, Downloads, Auftraege und Einstellungen liegen rechts. Die bisherige
 doppelte Studio-Navigation und Breadcrumb-Leiste wurden entfernt.
 
+Neu in 0.36.3: Die von Local Studio verwaltete ComfyUI-Engine erhaelt den lokalen
+Modellordner als zusaetzlichen Checkpoint-Pfad. Heruntergeladene SDXL-Modelle wie
+WAI Illustrious laufen dadurch auch ueber das AMD-ROCm-Paket, ohne Kopie der Gewichte.
+
 Neu in 0.36.2: Erfolgreich gepruefte Modell-Downloads werden automatisch in die
 Modellbibliothek uebernommen und stehen dadurch ohne manuellen Suchlauf im Studio
 bereit. Bereits abgeschlossene Downloads werden beim Start einmalig nachgetragen.
