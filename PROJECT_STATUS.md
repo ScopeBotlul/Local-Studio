@@ -1,6 +1,6 @@
-# Release 0.29.0 gebaut, Veröffentlichung vorbereitet (2026-09-26)
+# Release 0.29.0 veröffentlicht (2026-09-26)
 
-Version 0.29.0 ist als finale Windows-EXE, Installer und portable ZIP gebaut. Der isolierte native Lauf der exakten Release-EXE bestand 15/15 Prüfungen; Paketinhalt, Runtime-Hashes, Installeridentität und Prüfsummen sind bestätigt. Update-Metadaten werden aus den Release-Hinweisen mit dem vorhandenen Ed25519-Schlüssel signiert. Die Veröffentlichung auf `ScopeBotlul/Local-Studio` folgt mit Installer, portablem Archiv, Prüfsummen, `update.json` und `update.sig`.
+Version 0.29.0 ist als finale Windows-EXE, Installer und portable ZIP gebaut und unter https://github.com/ScopeBotlul/Local-Studio/releases/tag/v0.29.0 öffentlich als neuester Release verfügbar. Der Tag verweist auf Release-Commit `2e3b38a`. Der isolierte native Lauf der exakten Release-EXE bestand 15/15 Prüfungen; Paketinhalt, Runtime-Hashes, Installeridentität und Prüfsummen sind bestätigt. Die Update-Metadaten sind mit dem vorhandenen Ed25519-Schlüssel signiert. Installer, portables Archiv, Prüfsummen, `update.json` und `update.sig` wurden vollständig von GitHub zurückgeladen und stimmen mit den lokalen Paketen überein.
 
 Automatisierte Abnahme: 54/54 Frontendtests sowie 178 Rusttests bestanden, 0 fehlgeschlagen; ein Windows-Symlinktest blieb wegen fehlender Developer-Mode-Berechtigung planmäßig ignoriert. Der native Test verwendete ein isoliertes portables Profil und keine persönlichen Daten. Echte ComfyUI-Inferenz mit beliebigen Nutzergewichten sowie Live-Civitai-/Danbooru-Netzantworten bleiben wie in den Release-Hinweisen offengelegt.
 
