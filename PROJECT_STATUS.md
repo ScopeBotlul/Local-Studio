@@ -848,3 +848,10 @@ Als Nächstes stehen die noch offenen M0-Punkte und anschließend M1 gemäß `PL
 - Der gemeinsam verwendete Civitai-/Danbooru-WebView schneidet seine native Fläche beim Scrollen an den sichtbaren Fensterbereich, blendet sie außerhalb aus und stellt sie ohne Navigationsverlust wieder her. Offizielle Civitai-Authentifizierungs-Subdomains sind zugelassen; HTTP, Zugangsdaten in URLs und ähnlich aussehende Fremddomains bleiben gesperrt.
 - Die Website-Sitzung wird bewusst nicht als App-API-Schlüssel ausgegeben oder in Downloadaufträgen gespeichert. Private oder anderweitig kontogebundene API-Downloads sind damit nicht als unterstützt ausgewiesen.
 - Version 0.36.18 wurde als optimierte Windows-EXE, Installer und portables Archiv gebaut und unter `ScopeBotlul/Local-Studio` veröffentlicht. Paketbytes, 80 erlaubte Archivdateien, 77 Runtime-Dateien, Prüfsummen und signierte Update-Metadaten sind lokal sowie nach vollständigem öffentlichen Rückdownload verifiziert.
+
+## 2026-09-27 – Rule34-Tagimport
+
+- `Tags importieren` im Bildstudio bietet Rule34 jetzt als echte zweite Browserquelle neben Danbooru. Ein einzelner Post kann vollständig im integrierten Browser geöffnet und mit `Tags übernehmen` eingelesen werden.
+- Die Tags werden direkt aus der bereits geladenen Post-Seite gelesen, nach den vorhandenen Kategorien gruppiert und anschließend durch denselben lokalen Tag-Parser wie eingefügte Listen verarbeitet. Es gibt keinen zusätzlichen HTML-Abruf und keine Speicherung von Website-Zugangsdaten oder API-Schlüsseln.
+- Der neue typisierte IPC-Befehl akzeptiert ausschließlich exakte Rule34-Post-URLs über HTTPS, gleicht die angeforderte ID mit der tatsächlich geöffneten Child-WebView-Seite ab und begrenzt Anzahl, Länge und Gesamtgröße der übernommenen Tags.
+- Das manuelle Einfügen von Taglisten sowie der Danbooru-Import bleiben erhalten. Version 0.36.19 ist für die Veröffentlichung als Windows-Installer und portables Archiv vorbereitet.

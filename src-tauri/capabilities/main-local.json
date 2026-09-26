@@ -24,6 +24,7 @@
     "allow-civitai-model-detail",
     "allow-civitai-download-plan",
     "allow-danbooru-post-tags",
+    "allow-tag-post-tags",
     "allow-civitai-save-reference",
     "allow-civitai-open-download",
     "allow-civitai-browser-mount",

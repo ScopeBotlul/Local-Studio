@@ -1,6 +1,6 @@
 use crate::{core::Core, gallery};
 use reqwest::blocking::{Client, Response};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::{
     fs::{self, File},
@@ -212,6 +212,36 @@ fn danbooru_id(input: &str) -> Result<u64> {
     }
     parts[1].parse().map_err(|_| "tag_post".into())
 }
+fn rule34_id(input: &str) -> Result<u64> {
+    if input.len() > 8192 || input.chars().any(char::is_control) {
+        return Err("tag_url".into());
+    }
+    let url = Url::parse(input).map_err(|_| "tag_url")?;
+    if url.scheme() != "https"
+        || url.port().is_some()
+        || !url.username().is_empty()
+        || url.password().is_some()
+        || !matches!(url.host_str(), Some("rule34.xxx" | "www.rule34.xxx"))
+        || !matches!(url.path(), "/" | "/index.php")
+        || url.fragment().is_some()
+    {
+        return Err("tag_url".into());
+    }
+    let values = |key: &str| {
+        url.query_pairs()
+            .filter(|(name, _)| name == key)
+            .map(|(_, value)| value.into_owned())
+            .collect::<Vec<_>>()
+    };
+    if values("page") != ["post"] || values("s") != ["view"] {
+        return Err("tag_post".into());
+    }
+    let ids = values("id");
+    if ids.len() != 1 {
+        return Err("tag_post".into());
+    }
+    ids[0].parse().map_err(|_| "tag_post".into())
+}
 fn site(url: &Url) -> bool {
     let trusted_host = url.host_str().is_some_and(|host| {
         host == "civitai.com"
@@ -219,6 +249,8 @@ fn site(url: &Url) -> bool {
             || host == "civitai.red"
             || host.ends_with(".civitai.red")
             || host == "danbooru.donmai.us"
+            || host == "rule34.xxx"
+            || host == "www.rule34.xxx"
     });
     url.scheme() == "https"
         && url.port().is_none()
@@ -268,7 +300,9 @@ fn current(caller: &Webview, browser: &CivitaiBrowser) -> Result<BrowserState> {
     let meta = browser.meta.lock().map_err(|_| "internal")?;
     Ok(BrowserState {
         image_id: image_id(url.as_str()).ok(),
-        post_id: danbooru_id(url.as_str()).ok(),
+        post_id: danbooru_id(url.as_str())
+            .ok()
+            .or_else(|| rule34_id(url.as_str()).ok()),
         url: url.into(),
         title: meta.0.clone(),
         loading: meta.1,
@@ -312,6 +346,134 @@ fn danbooru_tags(id: u64) -> Result<String> {
     let value: Value =
         serde_json::from_slice(&limited(response, 1024 * 1024)?).map_err(|_| "tag_response")?;
     danbooru_tag_text(&value, id)
+}
+
+#[derive(Deserialize)]
+struct BrowserTag {
+    category: String,
+    tag: String,
+}
+
+fn rule34_tag_text(items: Vec<BrowserTag>) -> Result<String> {
+    use std::collections::{HashMap, HashSet};
+    let mut grouped: HashMap<&'static str, Vec<String>> = HashMap::new();
+    let mut seen = HashSet::new();
+    for item in items.into_iter().take(1500) {
+        let tag = item.tag.trim();
+        if tag.is_empty()
+            || tag.len() > 200
+            || tag.chars().any(char::is_control)
+            || !seen.insert(tag.to_lowercase())
+        {
+            continue;
+        }
+        let heading = match item.category.as_str() {
+            "character" => "Character",
+            "copyright" => "Copyright",
+            "artist" => "Artist",
+            "metadata" | "meta" => "Metadata",
+            _ => "General",
+        };
+        grouped.entry(heading).or_default().push(tag.to_string());
+    }
+    let mut output = String::new();
+    for heading in ["Character", "General", "Copyright", "Artist", "Metadata"] {
+        let Some(tags) = grouped.remove(heading) else {
+            continue;
+        };
+        output.push_str(heading);
+        output.push('\n');
+        for tag in tags {
+            output.push_str(&tag);
+            output.push('\n');
+        }
+    }
+    if output.is_empty() || output.len() > 64 * 1024 {
+        Err("tag_response".into())
+    } else {
+        Ok(output)
+    }
+}
+
+#[cfg(windows)]
+async fn rule34_browser_tags(
+    caller: &Webview,
+    expected_id: u64,
+    browser: &CivitaiBrowser,
+) -> Result<String> {
+    use std::sync::{Arc, Mutex as StdMutex};
+    use tokio::sync::oneshot;
+    use webview2_com::ExecuteScriptCompletedHandler;
+    use windows::core::HSTRING;
+
+    if browser.owner.lock().map_err(|_| "internal")?.is_none() {
+        return Err("tag_browser".into());
+    }
+    let view = caller
+        .app_handle()
+        .get_webview(LABEL)
+        .ok_or("tag_browser")?;
+    let current_url = view.url().map_err(|_| "tag_browser")?;
+    if rule34_id(current_url.as_str())? != expected_id {
+        return Err("tag_post".into());
+    }
+    let script = r#"(()=>JSON.stringify(Array.from(document.querySelectorAll('#tag-sidebar li.tag')).slice(0,1500).map(item=>({category:(Array.from(item.classList).find(value=>value.startsWith('tag-type-'))||'tag-type-general').slice(9),tag:(item.querySelectorAll('a')[1]?.textContent||'').trim()}))))()"#;
+    let (sender, receiver) = oneshot::channel::<Result<String>>();
+    let sender = Arc::new(StdMutex::new(Some(sender)));
+    let dispatch_sender = Arc::clone(&sender);
+    view.with_webview(move |platform| {
+        let result = (|| unsafe {
+            let webview = platform
+                .controller()
+                .CoreWebView2()
+                .map_err(|_| "tag_browser")?;
+            let callback_sender = Arc::clone(&dispatch_sender);
+            let handler = ExecuteScriptCompletedHandler::create(Box::new(move |error, value| {
+                let result = if error.is_ok() {
+                    if value.len() > 96 * 1024 {
+                        Err("tag_response".into())
+                    } else {
+                        Ok(value)
+                    }
+                } else {
+                    Err("tag_browser".into())
+                };
+                if let Ok(mut slot) = callback_sender.lock() {
+                    if let Some(sender) = slot.take() {
+                        let _ = sender.send(result);
+                    }
+                }
+                Ok(())
+            }));
+            webview
+                .ExecuteScript(&HSTRING::from(script), &handler)
+                .map_err(|_| "tag_browser")
+        })();
+        if let Err(error) = result {
+            if let Ok(mut slot) = dispatch_sender.lock() {
+                if let Some(sender) = slot.take() {
+                    let _ = sender.send(Err(error.into()));
+                }
+            }
+        }
+    })
+    .map_err(|_| "tag_browser")?;
+    let raw = tokio::time::timeout(Duration::from_secs(5), receiver)
+        .await
+        .map_err(|_| "tag_browser")?
+        .map_err(|_| "tag_browser")??;
+    let encoded: String = serde_json::from_str(&raw).map_err(|_| "tag_response")?;
+    let items: Vec<BrowserTag> = serde_json::from_str(&encoded).map_err(|_| "tag_response")?;
+    rule34_tag_text(items)
+}
+
+#[cfg(not(windows))]
+async fn rule34_browser_tags(
+    _caller: &Webview,
+    _expected_id: u64,
+    _browser: &CivitaiBrowser,
+) -> Result<String> {
+    Err("tag_browser".into())
 }
 fn api_json_limit(path: &str, limit: u64) -> Result<Value> {
     let url = format!("{API}/{path}");
@@ -907,6 +1069,21 @@ pub async fn danbooru_post_tags(url: String) -> Result<String> {
         .map_err(|_| "tag_network")?
 }
 #[tauri::command]
+pub async fn tag_post_tags(
+    caller: Webview,
+    url: String,
+    browser: State<'_, CivitaiBrowser>,
+) -> Result<String> {
+    local(&caller)?;
+    if let Ok(id) = danbooru_id(&url) {
+        return tauri::async_runtime::spawn_blocking(move || danbooru_tags(id))
+            .await
+            .map_err(|_| "tag_network")?;
+    }
+    let id = rule34_id(&url)?;
+    rule34_browser_tags(&caller, id, &browser).await
+}
+#[tauri::command]
 pub async fn civitai_save_reference(
     url: String,
     folder: String,
@@ -1132,6 +1309,7 @@ mod tests {
             "https://auth.civitai.com/login",
             "https://civitai.red/models",
             "https://blue.civitai.red/models",
+            "https://rule34.xxx/index.php?page=post&s=list",
         ] {
             assert!(site(&Url::parse(url).unwrap()), "{url}");
         }
@@ -1140,9 +1318,60 @@ mod tests {
             "https://civitai.com.evil.test/login",
             "https://evilcivitai.com/login",
             "https://user@civitai.com/login",
+            "https://rule34.xxx.evil.test/",
         ] {
             assert!(!site(&Url::parse(url).unwrap()), "{url}");
         }
+    }
+
+    #[test]
+    fn accepts_only_exact_rule34_post_urls() {
+        assert_eq!(
+            rule34_id("https://rule34.xxx/index.php?page=post&s=view&id=1887067").unwrap(),
+            1_887_067
+        );
+        assert_eq!(
+            rule34_id("https://www.rule34.xxx/?s=view&id=42&page=post").unwrap(),
+            42
+        );
+        for url in [
+            "http://rule34.xxx/index.php?page=post&s=view&id=42",
+            "https://rule34.xxx.evil.test/index.php?page=post&s=view&id=42",
+            "https://rule34.xxx/index.php?page=post&s=list&id=42",
+            "https://rule34.xxx/index.php?page=post&s=view&id=42&id=43",
+            "https://user@rule34.xxx/index.php?page=post&s=view&id=42",
+        ] {
+            assert!(rule34_id(url).is_err(), "{url}");
+        }
+    }
+
+    #[test]
+    fn rule34_browser_tags_become_bounded_sectioned_text() {
+        let output = rule34_tag_text(vec![
+            BrowserTag {
+                category: "copyright".into(),
+                tag: "example series".into(),
+            },
+            BrowserTag {
+                category: "character".into(),
+                tag: "example character".into(),
+            },
+            BrowserTag {
+                category: "general".into(),
+                tag: "green hair".into(),
+            },
+            BrowserTag {
+                category: "general".into(),
+                tag: "GREEN HAIR".into(),
+            },
+            BrowserTag {
+                category: "artist".into(),
+                tag: "artist name".into(),
+            },
+        ])
+        .unwrap();
+        assert_eq!(output, "Character\nexample character\nGeneral\ngreen hair\nCopyright\nexample series\nArtist\nartist name\n");
+        assert_eq!(rule34_tag_text(Vec::new()).unwrap_err(), "tag_response");
     }
 
     #[test]

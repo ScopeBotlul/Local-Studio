@@ -73,6 +73,11 @@ Website im getrennten integrierten Browserprofil, schnelle Typfilter sowie die
 bestehende sichere Detail- und Downloadpruefung. Die Website-Sitzung wird nicht
 als API-Schluessel ausgelesen oder in Downloadauftraegen gespeichert.
 
+Neu in 0.36.19: Tags importieren bietet Rule34 als direkte Quelle neben
+Danbooru. Einzelne Posts werden im getrennten integrierten Browser geoeffnet;
+Local Studio liest die sichtbaren Tags lokal aus der geladenen Seite und
+gruppiert sie fuer die Uebernahme in den Bildprompt.
+
 Neu in 0.36.12: AMD-Systeme mit hoechstens 16 GB gemeinsamem Speicher starten
 ComfyUI ohne DynamicVRAM und mit Low-VRAM-Modus. Der SDXL-Textencoder laeuft
 dadurch auf der CPU und umgeht den auf dem ROG Ally abgestuerzten ROCm-Pfad.

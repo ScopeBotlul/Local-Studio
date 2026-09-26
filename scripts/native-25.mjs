@@ -9,9 +9,10 @@ import {checkMenuUpdates} from './check-menu-updates.mjs';
 import {checkCivitai31} from './check-civitai31.mjs';
 import {checkRelease32} from './check-release32.mjs';
 import {checkRelease36} from './check-release36.mjs';
-const suites={release36:checkRelease36,release32:checkRelease32,ui28:checkUi28,studio27:checkStudio27,core:checkCore25,references:checkReference25,models:checkUpdatesBench25,editors:checkCreative25,ai:checkAi24,menu:checkMenuUpdates,civitai:checkCivitai31};
+import {checkTags37} from './check-tags37.mjs';
+const suites={release36:checkRelease36,release32:checkRelease32,ui28:checkUi28,studio27:checkStudio27,core:checkCore25,references:checkReference25,models:checkUpdatesBench25,editors:checkCreative25,ai:checkAi24,menu:checkMenuUpdates,civitai:checkCivitai31,tags:checkTags37};
 const suite=suites[process.argv[2]];
-if(!suite)throw Error('Usage: node scripts/native-25.mjs release36|release32|core|references|models|editors|ai|menu|civitai');
+if(!suite)throw Error('Usage: node scripts/native-25.mjs release36|release32|core|references|models|editors|ai|menu|civitai|tags');
 // Runs the real Windows executable with an isolated database and WebView2 profile.
 // CDP is enabled only for this child process, never in normal app configuration.
 import { chromium } from '@playwright/test';

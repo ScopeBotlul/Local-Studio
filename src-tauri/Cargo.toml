@@ -1,6 +1,6 @@
 [package]
 name = "local-studio"
-version = "0.36.18"
+version = "0.36.19"
 description = "Local Studio desktop core"
 edition = "2021"
 rust-version = "1.88"
@@ -38,6 +38,10 @@ zeroize = "1"
 windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Graphics_Dwm", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging", "Win32_System_Com", "Win32_Storage_FileSystem", "Win32_System_JobObjects", "Win32_System_Threading", "Win32_Security"] }
 url = "2"
 zip = { version = "=8.6.0", default-features = false, features = ["deflate"] }
+
+[target.'cfg(windows)'.dependencies]
+webview2-com = "=0.38.2"
+windows = { version = "0.61", features = ["Win32_Foundation"] }
 
 [dev-dependencies]
 tempfile = "3"
