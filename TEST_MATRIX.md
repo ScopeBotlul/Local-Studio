@@ -7,7 +7,9 @@
 - Bestanden: Frontend-Produktionsbuild, optimierter Rust-/Tauri-Build, Inno-Installer, portables Archiv, Runtime-Staging und lokale Prüfung der signierten Update-Metadaten.
 - Paket-Hashes: Portable ZIP `0d60b4e7a8f012a09fd216ae931946026ce377a5e692f060ff9e365edba3083c`, Installer `971f6125db712477e5282473ae05d57a37fa89ef7e4a561cc7470f84e6709c79`.
 - Veröffentlichung: `v0.36.14` ist öffentlich und als Latest markiert. Installer und Portable-ZIP wurden vollständig von GitHub zurückgeladen; alle fünf Asset-Digests, Größen, SHA-256-Werte und die Update-Signatur stimmen. Nachweis: `.artifacts/github-release-verification-0.36.14.json`.
-- Noch ausstehend: echter WAI-Illustrious-Lauf auf dem ROG Ally.
+- Fehlgeschlagen auf dem Zielgerät: GitHub-Issue #6 bestätigt, dass 0.36.14 mmap und den `comfy-kitchen`-HIP-Backend deaktiviert. Der 6,94-GB-Checkpoint, VAE und Textencoder laden vollständig; der erste Sampler-Aufruf endet weiterhin mit einer nativen Windows-Zugriffsverletzung.
+- Diagnosegrenze: Der ROG Ally meldet `gfx1103`. AMDs Windows-Supportmatrix für PyTorch 2.9/ROCm 7.2.1 führt nur `gfx1200`, `gfx1201`, `gfx1100` und `gfx1101`. Die mit dem offiziellen ComfyUI-AMD-Paket ausgelieferte Runtime unterstützt dieses Zielgerät daher nicht offiziell.
+- Noch ausstehend: erneuter Zielgerätetest, sobald das offizielle ComfyUI-AMD-Paket eine für `gfx1103` freigegebene ROCm-/PyTorch-/Treiberkombination enthält.
 
 # Releaseprüfung 0.36.13 – 2026-09-26
 
