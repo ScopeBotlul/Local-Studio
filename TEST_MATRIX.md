@@ -4,7 +4,7 @@
 - `npm.cmd run build`: bestanden. TypeScript und Vite-Produktionsbundle kompilieren mit der dauerhaft aktualisierten kompakten Fortschrittsanzeige.
 - Kein echter Modelldownload wurde für diese reine Oberflächenänderung erneut übertragen; eine native visuelle Abnahme der Leiste bleibt offen.
 - Optimierter Rust-/Tauri-Release-Build und Inno-Installer bestanden. Das portable ZIP enthält exakt 80 erlaubte Dateien; 77 Runtime-Dateien entsprechen ihren Manifesten. EXE SHA-256 `2eec0653c25555112e80f85eca7e491017a94fa311c5cd321991f10dd2ac1f83`, ZIP `e201f4a203ce8c130551988fc99b668b4ee949b87fe620f0198334c8e183a6df`, Installer `b9ca603dc933f1c140f67eadefd5d491fffe37cb53819a04154becc72ff331d7`. Das signierte Manifest stimmt mit Version, URLs, Größen, Hashes und eingebettetem öffentlichen Schlüssel überein.
-- Veröffentlichung folgt.
+- Veröffentlichung: `v0.36.1` ist öffentlich und als Latest markiert. Installer und Portable-ZIP wurden vollständig von GitHub zurückgeladen; alle fünf Asset-Digests, Größen, SHA-256-Werte und die Update-Signatur stimmen. Nachweis: `.artifacts/github-release-verification-0.36.1.json`.
 
 # Releaseprüfung 0.36.0 – 2026-09-26
 

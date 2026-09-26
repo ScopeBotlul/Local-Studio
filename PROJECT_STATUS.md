@@ -1,8 +1,8 @@
-# Release 0.36.1 vorbereitet – Downloadfortschritt in der Titelleiste (2026-09-26)
+# Release 0.36.1 veröffentlicht – Downloadfortschritt in der Titelleiste (2026-09-26)
 
 Unter dem kompakten Download-Symbol zeigt eine schmale Leiste den gemeinsamen Fortschritt aller laufenden Downloads in der eingestellten Akzentfarbe. Bekannte Downloadgrößen werden nach übertragenen Bytes gewichtet zusammengefasst. Sobald ein laufender Schritt noch keine Gesamtgröße meldet, wechselt die Leiste in einen laufenden unbestimmten Zustand. Die Statusabfrage läuft dafür auch bei geschlossenem Downloadfenster in einem reduzierten Intervall weiter.
 
-Sechs gezielte Komponententests, TypeScript-/Vite-Produktionsbuild und optimierter Rust-/Tauri-Release-Build sind bestanden. Installer und portables Archiv wurden erzeugt; Paketinhalt, Hashes und signierte Update-Metadaten stimmen. Die Veröffentlichung folgt.
+Sechs gezielte Komponententests, TypeScript-/Vite-Produktionsbuild und optimierter Rust-/Tauri-Release-Build sind bestanden. Version 0.36.1 ist unter https://github.com/ScopeBotlul/Local-Studio/releases/tag/v0.36.1 öffentlich als Latest verfügbar; Tag `v0.36.1` verweist auf Release-Commit `d27a227`. Installer und portables Archiv wurden vollständig von GitHub zurückgeladen, und Signatur, Größen, Hashes sowie alle fünf Asset-Digests stimmen.
 
 # Release 0.36.0 veröffentlicht – lokaler Diagnosebericht und GitHub-Fehlermeldung (2026-09-26)
 
