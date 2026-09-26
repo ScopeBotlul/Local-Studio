@@ -833,9 +833,10 @@ impl Comfy {
                 let system_root =
                     PathBuf::from(std::env::var_os("SystemRoot").ok_or("comfy_extract")?);
                 let tar = system_root.join("System32/tar.exe");
-                let listing = Command::new(&tar)
-                    .arg("-tf")
-                    .arg(&archive)
+                let mut listing_command = Command::new(&tar);
+                listing_command.arg("-tf").arg(&archive);
+                crate::hardware::hide_console(&mut listing_command);
+                let listing = listing_command
                     .output()
                     .map_err(|_| "comfy_extract")?;
                 if !listing.status.success() {
@@ -844,11 +845,14 @@ impl Comfy {
                 safe_archive_listing(&listing.stdout)?;
                 fs::create_dir(&stage).map_err(|_| "comfy_storage")?;
                 self.install_progress("installing", &variant, asset.size, received, 0, None);
-                let extracted = Command::new(&tar)
+                let mut extract_command = Command::new(&tar);
+                extract_command
                     .arg("-xf")
                     .arg(&archive)
                     .arg("-C")
-                    .arg(&stage)
+                    .arg(&stage);
+                crate::hardware::hide_console(&mut extract_command);
+                let extracted = extract_command
                     .status()
                     .map_err(|_| "comfy_extract")?;
                 if !extracted.success() {

@@ -1,3 +1,7 @@
+# Version 0.35.3 – unsichtbare ComfyUI-Archivprozesse (2026-09-26)
+
+Die ComfyUI-Installation startete `System32\tar.exe` für Dateilistenprüfung und Extraktion ohne Windows-Erstellungsflag. Dadurch erschien auf dem ROG Ally während der langen Archivverarbeitung ein scheinbar untätiges Konsolenfenster. Beide Prozesse verwenden jetzt denselben `CREATE_NO_WINDOW`-Pfad wie die übrigen lokalen Hilfsprozesse. Phase und Fortschrittszustand bleiben im Einrichtungsdialog sichtbar. Optimierte EXE, Installer, portables Archiv und signierte Update-Metadaten sind erstellt und lokal geprüft. Die Veröffentlichung folgt in diesem Arbeitsgang.
+
 # Release 0.35.2 veröffentlicht – offizielles AMD-Archiv vollständig geprüft (2026-09-26)
 
 Die erneute ROG-Ally-Meldung wurde mit dem vollständigen offiziellen AMD-Paket `ComfyUI_windows_portable_amd.7z` aus Release v0.37.0 reproduziert. Downloadgröße und SHA-256 `563da2462a866f8fdf8ccd091a8c0e185e785394408735f8e99647593a67dd79` stimmen mit der offiziellen GitHub-API überein. Der konkrete Auslöser sind 3.666 AOTriton-/ROCm-Kerneldateien mit einem einzelnen `*` im 7z-Dateinamen. Windows `tar.exe` extrahiert dieses Zeichen deterministisch als `＊`.

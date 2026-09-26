@@ -42,6 +42,10 @@ Videoschnitt und GIF-Studio. Galerie und Modelle bleiben zentral erreichbar;
 Hugging Face, Downloads, Auftraege und Einstellungen liegen rechts. Die bisherige
 doppelte Studio-Navigation und Breadcrumb-Leiste wurden entfernt.
 
+Neu in 0.35.3: Pruefung und Entpacken des ComfyUI-Archivs laufen unter Windows
+ohne sichtbares tar.exe-Konsolenfenster. Der Installationsstatus bleibt direkt
+im Einrichtungsdialog sichtbar.
+
 Neu in 0.35.2: Der offizielle AMD-Build enthaelt 3.666 ROCm-Kerneldateien mit
 einem Sternchen im 7z-Namen. Windows tar legt dieses Zeichen sicher als
 Vollbreitenstern ab. Die Archivpruefung erlaubt genau diese .aks2-Dateien im
