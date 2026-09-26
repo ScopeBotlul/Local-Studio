@@ -7,7 +7,7 @@
 - Bestanden: optimierter Rust-/Tauri-Build, Inno-Installer, portables Archiv, Runtime-Staging und lokale Prüfung der signierten Update-Metadaten.
 - Paket-Hashes: Portable ZIP `83f2930ba92d4ffe0856ac7a10955d960ee8a82a9529096ee78747f10c3b4798`, Installer `0ef2c67167b119bfb70b213b0c62054224e2f0563a65adc82849ced06136ba45`.
 - Abgrenzung: Die Rust-Inferenzpfade sind gegenüber 0.36.12 unverändert und wurden für diese UI-Änderung nicht erneut getestet. Der echte ROG-Ally-Lauf bleibt offen.
-- Noch ausstehend: öffentliche Releaseprüfung nach dem Upload.
+- Veröffentlichung: `v0.36.13` ist öffentlich und als Latest markiert. Installer und Portable-ZIP wurden vollständig von GitHub zurückgeladen; alle fünf Asset-Digests, Größen, SHA-256-Werte und die Update-Signatur stimmen. Nachweis: `.artifacts/github-release-verification-0.36.13.json`.
 
 # Releaseprüfung 0.36.12 – 2026-09-26
 
