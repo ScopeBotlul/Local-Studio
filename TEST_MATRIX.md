@@ -1,3 +1,11 @@
+# Releaseprüfung 0.35.2 – 2026-09-26
+
+- Echtes offizielles AMD-Paket v0.37.0 vollständig heruntergeladen; 1.595.844.037 Bytes und SHA-256 `563da2462a866f8fdf8ccd091a8c0e185e785394408735f8e99647593a67dd79` stimmen mit dem GitHub-Release überein.
+- Exakte Windows-`tar.exe`-Dateiliste geprüft: 69.154 Einträge, davon 3.666 offizielle AOTriton-`.aks2`-Kerneldateien mit genau einem `*`. Die korrigierte Regel akzeptiert die vollständige echte Liste; beliebige Wildcards unter `custom_nodes`, doppelte Sternchen, Traversal, absolute Pfade, Laufwerkspfade und Windows-Gerätenamen bleiben abgewiesen.
+- Archiv vollständig mit derselben Windows-Archivfunktion entpackt: 69.154 Elemente, null Reparse Points, vorhandene `python_embeded/python.exe` und `ComfyUI/main.py`. Das Sternchen wird auf NTFS als `＊` abgelegt.
+- `cargo test --manifest-path src-tauri/Cargo.toml comfy::tests`: 3/3 bestanden. Rust-/Tauri-Compilercheck und Release-Build bestanden. Unveränderte Frontend- und Mediensuiten wurden nicht wiederholt.
+- Das portable ZIP enthält exakt 80 erlaubte Dateien; 77 Runtime-Dateien entsprechen ihren Manifesten. EXE SHA-256 `11a3c6f6b15293b5d879dfa6a0691d43d21acadb6214bbf31b46d4d58adb18f7`, ZIP `cc57d932f1526a196f11c1ca7599545a99603829999b412ffe0abb0bb40de31c`, Installer `4197ff9deaf27f7946b591e9cf1197d82c55aab3dae2493cca860f43c01ee0ab`. Signiertes Manifest stimmt mit Version, URLs, Größen, Hashes und eingebettetem öffentlichen Schlüssel überein. Öffentliche Verifikation folgt nach dem Upload.
+
 # Releaseprüfung 0.35.1 – 2026-09-26
 
 - Fehlerursache reproduziert: Die vorhandene offizielle ComfyUI-Installation enthält relative PyTorch-Pfade bis 206 Zeichen; mit dem Archivwurzelordner überschreiten diese die alte, sachlich falsche Gesamtgrenze von 220 Zeichen.

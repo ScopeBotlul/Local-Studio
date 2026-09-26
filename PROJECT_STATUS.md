@@ -1,3 +1,9 @@
+# Version 0.35.2 – offizielles AMD-Archiv vollständig geprüft (2026-09-26)
+
+Die erneute ROG-Ally-Meldung wurde mit dem vollständigen offiziellen AMD-Paket `ComfyUI_windows_portable_amd.7z` aus Release v0.37.0 reproduziert. Downloadgröße und SHA-256 `563da2462a866f8fdf8ccd091a8c0e185e785394408735f8e99647593a67dd79` stimmen mit der offiziellen GitHub-API überein. Der konkrete Auslöser sind 3.666 AOTriton-/ROCm-Kerneldateien mit einem einzelnen `*` im 7z-Dateinamen. Windows `tar.exe` extrahiert dieses Zeichen deterministisch als `＊`.
+
+Die Vorprüfung erlaubt diese Besonderheit ausschließlich für `.aks2`-Dateien unter dem offiziellen `python_embeded/Lib/site-packages/torch/lib/aotriton.images`-Pfad, mit genau einem Sternchen und ansonsten gültigem Windows-Namen. Wildcards in Custom Nodes oder anderen Archivbereichen sowie mehrere Sternchen bleiben gesperrt. Alle 69.154 Einträge des echten AMD-Archivs bestehen die korrigierte Prüfung; der vollständig entpackte Baum enthält 69.154 Elemente, keine Reparse Points und die erwartete portable ComfyUI-Struktur. Optimierte EXE, Installer, portables Archiv und signierte Update-Metadaten sind erstellt und lokal vollständig geprüft. Die Veröffentlichung folgt in diesem Arbeitsgang.
+
 # Release 0.35.1 veröffentlicht – ComfyUI-Archivprüfung korrigiert (2026-09-26)
 
 Die Installation des offiziellen portablen ComfyUI-Pakets wurde fälschlich mit `comfy_archive` abgewiesen. Ursache war die Wiederverwendung der 220-Zeichen-Grenze für komplette Modelldownloadpfade. Das offizielle Paket enthält sichere verschachtelte Python-/PyTorch-Pfade, die einschließlich des Archivwurzelordners länger sind.

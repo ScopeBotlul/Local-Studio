@@ -42,6 +42,11 @@ Videoschnitt und GIF-Studio. Galerie und Modelle bleiben zentral erreichbar;
 Hugging Face, Downloads, Auftraege und Einstellungen liegen rechts. Die bisherige
 doppelte Studio-Navigation und Breadcrumb-Leiste wurden entfernt.
 
+Neu in 0.35.2: Der offizielle AMD-Build enthaelt 3.666 ROCm-Kerneldateien mit
+einem Sternchen im 7z-Namen. Windows tar legt dieses Zeichen sicher als
+Vollbreitenstern ab. Die Archivpruefung erlaubt genau diese .aks2-Dateien im
+offiziellen aotriton-Ordner; Wildcards an allen anderen Stellen bleiben gesperrt.
+
 Neu in 0.35.1: Die ComfyUI-Installation akzeptiert die langen, verschachtelten
 Python-/PyTorch-Pfade des offiziellen portablen Archivs. Die Sicherheitspruefung
 bleibt komponentenweise aktiv und sperrt absolute Pfade, Laufwerkspfade,

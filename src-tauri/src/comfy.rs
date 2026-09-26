@@ -327,6 +327,23 @@ fn safe_archive_listing(listing: &[u8]) -> Result<()> {
             continue;
         }
         count += 1;
+        let parts = entry.split('/').collect::<Vec<_>>();
+        let official_amd_kernel = parts.len() > 8
+            && parts[0] == "ComfyUI_windows_portable"
+            && parts[1..7]
+                == [
+                    "python_embeded",
+                    "Lib",
+                    "site-packages",
+                    "torch",
+                    "lib",
+                    "aotriton.images",
+                ]
+            && parts.last().is_some_and(|name| {
+                name.ends_with(".aks2")
+                    && name.matches('*').count() == 1
+                    && crate::downloads::valid_file(&name.replace('*', "＊"))
+            });
         if count > 250_000
             || entry.len() > 4096
             || entry.starts_with('/')
@@ -334,7 +351,10 @@ fn safe_archive_listing(listing: &[u8]) -> Result<()> {
             // The portable Python environment legitimately contains complete paths longer
             // than the 220-character model-download limit. Validate every Windows component
             // separately instead of applying that limit to the complete archive member.
-            || !entry.split('/').all(crate::downloads::valid_file)
+            || !parts.iter().enumerate().all(|(index, part)| {
+                crate::downloads::valid_file(part)
+                    || (official_amd_kernel && index + 1 == parts.len())
+            })
         {
             return Err("comfy_archive".into());
         }
@@ -1248,9 +1268,14 @@ mod tests {
             b"ComfyUI_windows_portable/python_embeded/Lib/site-packages/name-\x96/module.py\n"
         )
         .is_ok());
+        assert!(safe_archive_listing(b"ComfyUI_windows_portable/python_embeded/Lib/site-packages/torch/lib/aotriton.images/amd-gfx11xx/flash/attn_fwd/FONLY__*bf16@16_128_F_F_0_0___gfx11xx.aks2\n").is_ok());
         assert!(safe_archive_listing(b"../escape.exe\n").is_err());
         assert!(safe_archive_listing(b"C:/escape.exe\n").is_err());
         assert!(safe_archive_listing(b"ComfyUI_windows_portable/../../escape.exe\n").is_err());
         assert!(safe_archive_listing(b"ComfyUI_windows_portable/CON/file.py\n").is_err());
+        assert!(
+            safe_archive_listing(b"ComfyUI_windows_portable/ComfyUI/custom_nodes/*.py\n").is_err()
+        );
+        assert!(safe_archive_listing(b"ComfyUI_windows_portable/python_embeded/Lib/site-packages/torch/lib/aotriton.images/amd-gfx11xx/flash/attn_fwd/bad**kernel.aks2\n").is_err());
     }
 }
