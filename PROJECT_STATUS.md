@@ -1,8 +1,8 @@
-# Version 0.35.5 – AMD-Startmodus für den ROG Ally (2026-09-26)
+# Release 0.35.5 veröffentlicht – AMD-Startmodus für den ROG Ally (2026-09-26)
 
 Das echte Startprotokoll von einem ROG Ally belegt einen nativen Zugriffsfehler in `amdhip64_7.dll`, ausgelöst durch ComfyUIs AOTriton-Kompatibilitätstest in `model_management.py`. Hardware und ROCm werden davor korrekt als `gfx1103`, ROCm 7.2 und PyTorch 2.9.1 erkannt.
 
-Local Studio erkennt das offizielle AMD-Portable-Paket an dessen `run_amd_gpu.bat` und startet es automatisch mit `--use-split-cross-attention`. ComfyUI überspringt damit den abstürzenden AOTriton-Test und verwendet einen kompatiblen Attention-Pfad. NVIDIA-, Intel- und CPU-Pakete bleiben unverändert. Das lokale Startprotokoll kennzeichnet den aktiven AMD-Kompatibilitätsmodus. Der gezielte ComfyUI-Test, Frontend-Produktionsbuild, Rust-Release-Build, Installer, portables Archiv und signierte Update-Metadaten sind lokal geprüft. Die Veröffentlichung folgt in diesem Arbeitsgang.
+Local Studio erkennt das offizielle AMD-Portable-Paket an dessen `run_amd_gpu.bat` und startet es automatisch mit `--use-split-cross-attention`. ComfyUI überspringt damit den abstürzenden AOTriton-Test und verwendet einen kompatiblen Attention-Pfad. NVIDIA-, Intel- und CPU-Pakete bleiben unverändert. Das lokale Startprotokoll kennzeichnet den aktiven AMD-Kompatibilitätsmodus. Der gezielte ComfyUI-Test, Frontend-Produktionsbuild, Rust-Release-Build, Installer, portables Archiv und signierte Update-Metadaten sind geprüft. Version 0.35.5 ist unter https://github.com/ScopeBotlul/Local-Studio/releases/tag/v0.35.5 öffentlich als Latest verfügbar; Tag `v0.35.5` verweist auf Release-Commit `f4b9fb8`. Installer und portables Archiv wurden vollständig von GitHub zurückgeladen, und Signatur, Größen, Hashes sowie alle fünf Asset-Digests stimmen.
 
 # Release 0.35.4 veröffentlicht – portabler ComfyUI-Start und Diagnose (2026-09-26)
 
