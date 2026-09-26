@@ -5,8 +5,8 @@ import {createHash,verify} from 'node:crypto';
 import path from 'node:path';
 const root=path.resolve(import.meta.dirname,'..');
 const version=JSON.parse(await readFile(path.join(root,'package.json'),'utf8')).version;
-async function get(url){const r=await fetch(url,{signal:AbortSignal.timeout(120000),headers:{'User-Agent':'Local-Studio-release-verification'}});assert(r.ok,`${r.status}: ${url}`);return Buffer.from(await r.arrayBuffer());}
-const release=JSON.parse(await get('https://api.github.com/repos/ScopeBotlul/Local-Studio/releases/latest'));
+async function get(url){const r=await fetch(url,{signal:AbortSignal.timeout(120000),headers:{'User-Agent':'Local-Studio-release-verification','Cache-Control':'no-cache'}});assert(r.ok,`${r.status}: ${url}`);return Buffer.from(await r.arrayBuffer());}
+const release=JSON.parse(await get(`https://api.github.com/repos/ScopeBotlul/Local-Studio/releases/latest?verify=${Date.now()}`));
 assert.equal(release.tag_name,`v${version}`);assert.equal(release.draft,false);assert.equal(release.prerelease,false);
 const base=`https://github.com/ScopeBotlul/Local-Studio/releases/download/v${version}/`;
 const [bytes,sig,rawKey]=await Promise.all([get(base+'update.json'),get(base+'update.sig'),readFile(path.join(root,'src-tauri/update-public-key.txt'),'utf8')]);
