@@ -1,5 +1,7 @@
 # Local Studio
 
+Version 0.36.17 nennt den Arbeitsbereich wieder **Studio** und aktualisiert die Akzentfarbe jetzt über Windows' großes Fenstericon, das für die laufende Taskleistenschaltfläche verwendet wird. [Änderungen und Grenzen](docs/RELEASE_0.36.17.md).
+
 Version 0.36.16 korrigiert die **Oberflächenskalierung**, färbt das laufende Windows-Fenstericon passend zum Akzent und unterstützt **LoRAs über die Vulkan-Engine auf AMD-/Intel-Handhelds**. [Änderungen und Grenzen](docs/RELEASE_0.36.16.md).
 
 Version 0.25.0 ergänzt **Bild-zu-Bild, maskiertes Inpainting, Bildstapel, Ressourcensteuerung, sichere Modellverschiebung, Modellupdates und lokale Messwerte/Präferenzen**. Dazu kommen Windows-Infobereich, optionale Hardwareanzeige und Systemakzent. [Bedienung](docs/IMAGE_REFERENCES.md), [Änderungen und Grenzen](docs/RELEASE_0.25.0.md). Der gesamte Masterprompt ist weiterhin in Arbeit; [vollständiger Anforderungsabgleich](REQUIREMENTS_STATUS.md).

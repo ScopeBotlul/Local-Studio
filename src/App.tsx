@@ -451,14 +451,14 @@ export default function App() {
         <button type="button" className={`topnav-brand ${page==='home'?'selected':''}`} title={t.home} aria-label={t.home} onClick={()=>{setProjectDetailsOpen(false);setPage('home');}}><Logo small /><span>Local Studio</span></button>
       </div>
       <div className="topnav-primary">
-        {primaryNav.map(item=>{const Icon=item.icon;const label=item.id==='assistant'?'Chat':item.id==='studio'?'Create':item.id==='gallery'?(language==='de'?'Galerie':'Gallery'):t.models;return <button key={item.id} className={`nav-item ${page===item.id?'selected':''}`} aria-current={page===item.id?'page':undefined} onClick={()=>{setInitialModelRepo(null);setProjectDetailsOpen(false);setPage(item.id);}}><Icon size={15}/><span>{label}</span>{item.id==='studio'&&activeImages.length>0&&<span className="nav-count">{activeImages.length}</span>}</button>;})}
+        {primaryNav.map(item=>{const Icon=item.icon;const label=item.id==='assistant'?'Chat':item.id==='studio'?t.studio:item.id==='gallery'?(language==='de'?'Galerie':'Gallery'):t.models;return <button key={item.id} className={`nav-item ${page===item.id?'selected':''}`} aria-current={page===item.id?'page':undefined} onClick={()=>{setInitialModelRepo(null);setProjectDetailsOpen(false);setPage(item.id);}}><Icon size={15}/><span>{label}</span>{item.id==='studio'&&activeImages.length>0&&<span className="nav-count">{activeImages.length}</span>}</button>;})}
       </div>
       <div className="topnav-actions">
         {utilityNav.map(item=>{const Icon=item.icon;return <button key={item.id} className={`nav-item ${page===item.id?'selected':''}`} title={t[item.id]} aria-label={t[item.id]} aria-current={page===item.id?'page':undefined} onClick={()=>{setInitialModelRepo(null);setProjectDetailsOpen(false);setPage(item.id);}}><Icon size={16}/><span>{t[item.id]}</span>{item.id==='jobs'&&activeCount>0&&<span className="nav-count">{activeCount}</span>}</button>;})}
         <button type="button" className={`nav-item ${page==='settings'?'selected':''}`} title={t.settings} aria-label={t.settings} aria-current={page==='settings'?'page':undefined} onClick={()=>{setProjectDetailsOpen(false);setPage('settings');}}><Settings2 size={16}/><span>{t.settings}</span>{dirty&&<span className="unsaved-dot" title={t.unsaved}/>}</button>
       </div>
     </nav>
-    {page === 'studio' && !projectDetailsOpen && <nav className="create-nav" aria-label={language === 'de' ? 'Create-Werkzeuge' : 'Create tools'}>
+    {page === 'studio' && !projectDetailsOpen && <nav className="create-nav" aria-label={language === 'de' ? 'Studio-Werkzeuge' : 'Studio tools'}>
       {studioTabs.map(tab => {
         const Icon = tab === 'generate' ? Sparkles : tab === 'canvas' ? Palette : tab === 'timeline' ? Film : Images;
         const label = tab === 'generate'

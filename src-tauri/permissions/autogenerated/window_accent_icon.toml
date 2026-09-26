@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-window-accent-icon"
+description = "Enables the window_accent_icon command without any pre-configured scope."
+commands.allow = ["window_accent_icon"]
+
+[[permission]]
+identifier = "deny-window-accent-icon"
+description = "Denies the window_accent_icon command without any pre-configured scope."
+commands.deny = ["window_accent_icon"]

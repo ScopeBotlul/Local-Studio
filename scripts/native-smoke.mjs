@@ -151,7 +151,7 @@ try {
   record('First-run setup through real UI');
 
   await page.getByRole('button', { name: 'Create', exact: true }).click();
-  const createNav = page.getByRole('navigation', { name: /Create-Werkzeuge|Create tools/ });
+  const createNav = page.getByRole('navigation', { name: /Studio-Werkzeuge|Studio tools/ });
   await createNav.waitFor();
   const createButtons = createNav.getByRole('button');
   assert.equal(await createButtons.count(), 4);

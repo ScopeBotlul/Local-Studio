@@ -1,3 +1,9 @@
+# Release 0.36.17 vorbereitet – echtes Taskleistenicon und Studio-Name (2026-09-27)
+
+Der zentrale Arbeitsbereich heißt in der Hauptnavigation wieder **Studio**; die Unterleiste für Bild, Editor, Video und GIF bleibt bestehen. Die Akzentfarbe wird nicht länger nur über Tauri als kleines Windows-Fenstericon gesetzt. Ein eng begrenzter nativer IPC-Pfad validiert das lokal erzeugte 64×64-PNG, setzt `ICON_BIG`, `ICON_SMALL` und `ICON_SMALL2` am Hauptfenster und liest `ICON_BIG` anschließend mit `WM_GETICON` zurück. Damit erhält die laufende Taskleistenschaltfläche den Akzent, während Datei-, Desktop- und Startmenüicons statisch bleiben.
+
+11 gezielte Frontendtests, der neue Rust-Grenztest, Rust-Compilercheck, Produktions- und optimierter Tauri-Build sowie die reale isolierte Release-App sind bestanden. Der native Lauf öffnet **Studio**, wechselt die Akzentfarbe mehrfach, bestätigt den erfolgreichen großen Windows-Iconpfad ohne IPC-Fehler und hält die bestehenden Skalierungs- und Vulkan-LoRA-Prüfungen grün. Installer, Portable-ZIP, 80 Paketdateien, Runtime-Manifeste, Hashes und signierte Update-Metadaten sind lokal geprüft.
+
 # Release 0.36.16 veröffentlicht – UI-Skalierung, Akzenticon und Vulkan-LoRAs (2026-09-27)
 
 Die Oberflächenskalierung wirkt jetzt auf den vollständigen Arbeitsbereich und hält bei 75 bis 150 Prozent die tatsächlich verfügbare Fensterfläche ein. Die eingestellte Akzentfarbe steuert zusätzlich den Kontrast des Logos und das Icon des laufenden Windows-Fensters beziehungsweise seiner Taskleistenschaltfläche. LoRAs erzwingen auf AMD-/Intel-Handhelds nicht länger ComfyUI: Der Vulkan-Pfad prüft und sperrt die ausgewählten Dateien, kopiert sie mit neutralen Namen in einen auftragseigenen Ordner, übergibt diesen an `stable-diffusion.cpp` und entfernt die Kopien nach Ende oder Abbruch des Workers.

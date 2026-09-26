@@ -1,4 +1,4 @@
-import { getCurrentWindow } from '@tauri-apps/api/window';
+import { invoke } from '@tauri-apps/api/core';
 
 export function accentInk(accent: string): '#102421' | '#ffffff' {
   const match = /^#([0-9a-f]{6})$/i.exec(accent);
@@ -43,5 +43,6 @@ export async function applyAccentWindowIcon(accent: string): Promise<void> {
   }
   context.restore();
   const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob(value => value ? resolve(value) : reject(new Error('window_icon_png')), 'image/png'));
-  await getCurrentWindow().setIcon(new Uint8Array(await blob.arrayBuffer()));
+  const png = new Uint8Array(await blob.arrayBuffer());
+  await invoke('window_accent_icon', { png: Array.from(png) });
 }

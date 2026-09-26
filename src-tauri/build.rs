@@ -30,6 +30,7 @@ fn main() {
             "civitai_browser_action",
             "background_hide",
             "desktop_accent",
+            "window_accent_icon",
             "hardware_live",
             "resource_status",
             "ai_catalog",
