@@ -47,6 +47,11 @@ Wiederherstellungen und wichtige Hinweise, ohne den Arbeitsbereich zu verdecken.
 Projekt-, Bildarbeitsstand- und Auftragswiederherstellungen lassen sich direkt
 im Benachrichtigungsfenster aufrufen; ein Zaehler zeigt offene Hinweise.
 
+Neu in 0.36.14: Das AMD-Low-Memory-Profil deaktiviert auf kleinen Windows-APUs
+zusaetzlich mmap fuer grosse Safetensors und den nativen comfy-kitchen-HIP-
+Dispatcher. Damit umgeht Local Studio zwei offizielle ROCm-/UMA-Risikopfade,
+die zum in Bugreport #5 gemeldeten Sampling-Absturz passen.
+
 Neu in 0.36.12: AMD-Systeme mit hoechstens 16 GB gemeinsamem Speicher starten
 ComfyUI ohne DynamicVRAM und mit Low-VRAM-Modus. Der SDXL-Textencoder laeuft
 dadurch auf der CPU und umgeht den auf dem ROG Ally abgestuerzten ROCm-Pfad.

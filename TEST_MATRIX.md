@@ -1,3 +1,13 @@
+# Releaseprüfung 0.36.14 – 2026-09-26
+
+- Bestanden: sechs gezielte ComfyUI-Tests für Paket-Allowlist, AMD-Kompatibilitätsprofil, verschachtelte Modellpfade, exakte Workflowwerte, Archivschutz und Versionsvergleich.
+- Das AMD-Low-Memory-Profil enthält jetzt `--disable-dynamic-vram`, `--lowvram` und `--disable-mmap`; zusätzlich wird nach dem bereinigten Prozessumfeld `COMFY_KITCHEN_DISABLE_HIP=1` gesetzt.
+- Abgrenzung: Die neuen Schalter gelten nur für von Local Studio verwaltete offizielle AMD-Pakete bei höchstens 16 GB Gesamtspeicher. Externe Instanzen, NVIDIA und größere AMD-Systeme bleiben unverändert.
+- `cargo fmt --check` meldet bereits vorhandene Formatabweichungen in mehreren unveränderten Rust-Dateien. Die geänderten Zeilen erzeugen keine zusätzliche gemeldete Abweichung.
+- Bestanden: Frontend-Produktionsbuild, optimierter Rust-/Tauri-Build, Inno-Installer, portables Archiv, Runtime-Staging und lokale Prüfung der signierten Update-Metadaten.
+- Paket-Hashes: Portable ZIP `0d60b4e7a8f012a09fd216ae931946026ce377a5e692f060ff9e365edba3083c`, Installer `971f6125db712477e5282473ae05d57a37fa89ef7e4a561cc7470f84e6709c79`.
+- Noch ausstehend: echter WAI-Illustrious-Lauf auf dem ROG Ally und öffentliche Releaseprüfung.
+
 # Releaseprüfung 0.36.13 – 2026-09-26
 
 - Bestanden: sieben gezielte Frontendtests für Singular-/Pluralbeschriftung des Benachrichtigungssymbols sowie bekannten und unbestimmten gemeinsamen Downloadfortschritt.

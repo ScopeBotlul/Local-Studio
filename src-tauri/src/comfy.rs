@@ -28,7 +28,8 @@ const AMD_COMPAT_ARGS: [&str; 3] = [
     "--disable-pinned-memory",
     "--disable-async-offload",
 ];
-const AMD_LOW_MEMORY_ARGS: [&str; 2] = ["--disable-dynamic-vram", "--lowvram"];
+const AMD_LOW_MEMORY_ARGS: [&str; 3] = ["--disable-dynamic-vram", "--lowvram", "--disable-mmap"];
+const AMD_LOW_MEMORY_ENV: (&str, &str) = ("COMFY_KITCHEN_DISABLE_HIP", "1");
 
 #[derive(Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -1034,7 +1035,7 @@ impl Comfy {
             false
         };
         let log_header = if amd_low_memory {
-            "Local Studio: ComfyUI runtime (AMD low-memory compatibility: split cross attention, pinned memory, async offload and dynamic VRAM disabled; lowvram enabled)\r\n"
+            "Local Studio: ComfyUI runtime (AMD low-memory compatibility: split cross attention, pinned memory, async offload, dynamic VRAM, mmap and comfy-kitchen HIP disabled; lowvram enabled)\r\n"
         } else if amd_safe_attention {
             "Local Studio: ComfyUI runtime (AMD compatibility: split cross attention, pinned memory and async offload disabled)\r\n"
         } else {
@@ -1087,6 +1088,9 @@ impl Comfy {
             if let Some(v) = std::env::var_os(key) {
                 command.env(key, v);
             }
+        }
+        if amd_low_memory {
+            command.env(AMD_LOW_MEMORY_ENV.0, AMD_LOW_MEMORY_ENV.1);
         }
         crate::hardware::hide_console(&mut command);
         let mut child = command.spawn().map_err(|_| {
@@ -1529,8 +1533,9 @@ mod tests {
         assert!(!uses_amd_low_memory_profile(32 * 1024 * 1024 * 1024));
         assert_eq!(
             AMD_LOW_MEMORY_ARGS,
-            ["--disable-dynamic-vram", "--lowvram"]
+            ["--disable-dynamic-vram", "--lowvram", "--disable-mmap"]
         );
+        assert_eq!(AMD_LOW_MEMORY_ENV, ("COMFY_KITCHEN_DISABLE_HIP", "1"));
         assert_eq!(
             package_name("nvidia_legacy").unwrap(),
             "ComfyUI_windows_portable_nvidia_cu126.7z"
