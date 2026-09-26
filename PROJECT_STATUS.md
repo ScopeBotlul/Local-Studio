@@ -1,8 +1,8 @@
-# Release 0.36.4 vorbereitet – RAM-Vorprüfung für ComfyUI korrigiert (2026-09-26)
+# Release 0.36.4 veröffentlicht – RAM-Vorprüfung für ComfyUI korrigiert (2026-09-26)
 
 Die gemeinsame Ressourcenplanung hat bisher für jeden Bildauftrag die vollständige Checkpoint-Dateigröße plus 1 GiB als freien System-RAM verlangt. Zusammen mit der allgemeinen 512-MiB-Sicherheitsreserve wurden WAI Illustrious und ähnlich große Checkpoints auf dem ROG Ally deshalb bereits vor dem ComfyUI-Start abgewiesen.
 
-Für ComfyUI reserviert Local Studio nun 512 MiB Arbeits-RAM und behält die vorhandene allgemeine Reserve sowie die serielle GPU-Sperre bei. ComfyUI/ROCm verwaltet den tatsächlichen gemeinsamen CPU-/GPU-Speicher und kann bei einer real zu großen Konfiguration eine konkrete Laufzeitmeldung liefern. Der native Adapter bleibt unverändert streng. Die direkt betroffenen Bild-Engine- und Ressourcenplaner-Tests, der Frontend-Produktionsbuild, der optimierte Rust-/Tauri-Build, Installer, portables Archiv und die signierten Update-Metadaten sind bestanden. Die Veröffentlichung wird nach der GitHub-Rückprüfung ergänzt.
+Für ComfyUI reserviert Local Studio nun 512 MiB Arbeits-RAM und behält die vorhandene allgemeine Reserve sowie die serielle GPU-Sperre bei. ComfyUI/ROCm verwaltet den tatsächlichen gemeinsamen CPU-/GPU-Speicher und kann bei einer real zu großen Konfiguration eine konkrete Laufzeitmeldung liefern. Der native Adapter bleibt unverändert streng. Die direkt betroffenen Bild-Engine- und Ressourcenplaner-Tests, der Frontend-Produktionsbuild, der optimierte Rust-/Tauri-Build, Installer, portables Archiv und die signierten Update-Metadaten sind bestanden. Version 0.36.4 ist unter https://github.com/ScopeBotlul/Local-Studio/releases/tag/v0.36.4 öffentlich als Latest verfügbar; Tag `v0.36.4` verweist auf Release-Commit `3ad6545`. Installer und portables Archiv wurden vollständig von GitHub zurückgeladen, und Signatur, Größen, Hashes sowie alle fünf Asset-Digests stimmen.
 
 # Release 0.36.3 veröffentlicht – Local-Studio-Modelle in ComfyUI (2026-09-26)
 

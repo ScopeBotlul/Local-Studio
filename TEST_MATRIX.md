@@ -4,7 +4,7 @@
 - `cargo test --manifest-path src-tauri/Cargo.toml resources::tests`: 2/2 bestanden. Reservierung, Sicherheitsreserve, Abweisung und Freigabe des gemeinsamen Planers bleiben abgedeckt.
 - Ein echter WAI-Illustrious-Lauf auf dem ROG Ally wurde auf dem Entwicklungsgerät nicht ausgeführt. Falls ComfyUI/ROCm dort selbst einen Speicherfehler meldet, ist das eine reale Laufzeitgrenze und wird anhand des lokalen ComfyUI-Protokolls weiter untersucht.
 - Frontend-Produktionsbuild sowie optimierter Rust-/Tauri-Release-Build und Inno-Installer: bestanden. Das portable ZIP enthält exakt 80 erlaubte Dateien; 77 Runtime-Dateien entsprechen ihren Manifesten. EXE SHA-256 `5526a58ae8cab176a1144c60a2e25b89c11762167609114c72c2a9b04418b520`, ZIP `820d51383cab514a1c88c142700c1909a9dbd6d9a0b0d605a7c7c5eaaabd163c`, Installer `52fe3ab832fba23c75cf1dc495c9a75c111dfe1d81f23064f9d917335de39ef6`. Das signierte Manifest stimmt mit Version, URLs, Größen, Hashes und eingebettetem öffentlichen Schlüssel überein.
-- Veröffentlichung und Rückprüfung der GitHub-Assets: ausstehend.
+- Veröffentlichung: `v0.36.4` ist öffentlich und als Latest markiert. Installer und Portable-ZIP wurden vollständig von GitHub zurückgeladen; alle fünf Asset-Digests, Größen, SHA-256-Werte und die Update-Signatur stimmen. Nachweis: `.artifacts/github-release-verification-0.36.4.json`.
 
 # Releaseprüfung 0.36.3 – 2026-09-26
 
