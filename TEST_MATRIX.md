@@ -732,3 +732,12 @@ ZIP-Inhalt/CRC, Anleitung, EXE-Identität und Prüfsummen geprüft. Vollständig
 - `git diff --check`: bestanden.
 - Geprüft wurden Frontend-Kompilierung und bestehende direkte Frontend-Abhängigkeiten. Rust-, Inferenz-, Netzwerk-, Installer- und Updateprüfungen wurden nicht wiederholt, da diese Bereiche unverändert sind.
 - Eine native visuelle Abnahme der neuen Navigation bei verschiedenen Fensterbreiten steht noch aus.
+
+## 2026-09-26 – ComfyUI-Download und Installationssuche (gezielte Prüfung)
+
+- `npm.cmd run build`: bestanden; TypeScript und Vite-Produktionsbuild einschließlich Einrichtungsdialog und Downloadübersicht erfolgreich.
+- `scripts/desktop.ps1 check`: bestanden; Rust-/Tauri-Kompilierung einschließlich neuem typisiertem IPC `comfy_detect` und geändertem `comfy_download` erfolgreich.
+- `cargo test --manifest-path src-tauri/Cargo.toml comfy::tests`: 2/2 neue Tests bestanden. Geprüft wurden die feste Paket-Allowlist und das Abweisen absoluter bzw. aus dem Installationsordner ausbrechender Archivpfade.
+- Die offizielle GitHub-Release-API wurde am 26. September 2026 gegen Release `v0.37.0` geprüft. Alle vier erwarteten Windows-Pakete waren mit plausibler Größe und SHA-256-Digest vorhanden.
+- `git diff --check`: bestanden. Ein echter Mehrgigabyte-Download, Entpacken mit Windows `tar.exe`, Start der frisch installierten Engine und Bildinferenz bleiben als native End-to-End-Prüfung offen. Unveränderte Galerie-, Projekt-, Assistent-, Update- und Installer-Suiten wurden nicht wiederholt.
+- Release 0.33.0: optimierte Windows-EXE und Inno-Installer erfolgreich gebaut. Das portable ZIP enthält 80 erlaubte Dateien; alle 77 Runtime-Dateien stimmen mit ihren Manifesten überein. EXE SHA-256 `41f7a2852104affd980a485195bc97bcf7c0b61f9a83b810ea9eb5e5416684da`, ZIP `300d28d9dda2e820bdaa5300127b461f89f478a116b1c27e9beb6d50840c4664`, Installer `634698d95674ff3c40c31452bbcee8c9cffc4090b65ff0077b92a6541d5507a1`. Update-Manifest und Signatur stimmen mit dem eingebetteten öffentlichen Schlüssel überein.

@@ -3,6 +3,7 @@ import {createPortal} from 'react-dom';
 import {Download, X} from 'lucide-react';
 import {activeDownload, downloads} from './download-api';
 import {updateApi} from './update-api';
+import {comfyApi} from './comfy-api';
 import {formatBytes} from './helpers';
 import {useWindowFrame} from './WindowFrame';
 import type {Language} from './types';
@@ -22,6 +23,7 @@ export function downloadEta(remaining:number, speed:number, de:boolean):string {
 interface Entry {id:string; name:string; status:string; total:number; received:number; speed:number}
 const labels:Record<string,[string,string]> = {
   queued:['Wartet auf Start','Waiting to start'], downloading:['Wird heruntergeladen','Downloading'],
+  resolving:['Offizielles Release wird ermittelt','Resolving official release'],
   verifying:['Dateien werden geprüft','Verifying files'], installing:['Dateien werden übernommen','Installing files'],
   pausing:['Wird pausiert','Pausing'], cancelling:['Wird abgebrochen','Cancelling'],
 };
@@ -36,7 +38,7 @@ export default function DownloadOverview({language, disabled=false, onOpenDownlo
     let live=true, timer:ReturnType<typeof setTimeout>;
     let previous:{version:string; bytes:number; at:number}|null=null;
     const refresh = async () => {
-      const [models,update] = await Promise.allSettled([downloads.list(),updateApi.status()]);
+      const [models,update,comfy] = await Promise.allSettled([downloads.list(),updateApi.status(),comfyApi.status()]);
       if (!live) return;
       const rows:Entry[] = models.status === 'fulfilled' ? models.value.filter(activeDownload).filter(d=>!d.verifyOnly).map(d=>({
         id:d.id,name:d.repo,status:d.status,total:d.totalBytes,received:d.downloadedBytes,speed:d.bytesPerSecond,
@@ -47,7 +49,11 @@ export default function DownloadOverview({language, disabled=false, onOpenDownlo
         previous={version,bytes:s.received,at};
         rows.push({id:'app-update',name:`Local Studio ${version}`,status:'downloading',total:s.total,received:s.received,speed});
       } else previous=null;
-      setEntries(rows); setLoaded(true); setError(models.status==='rejected'||update.status==='rejected');
+      if (comfy.status === 'fulfilled' && ['resolving','downloading','verifying','installing'].includes(comfy.value.install.phase)) {
+        const s=comfy.value.install;
+        rows.push({id:'comfyui-install',name:'ComfyUI Portable',status:s.phase,total:s.totalBytes,received:s.receivedBytes,speed:s.bytesPerSecond});
+      }
+      setEntries(rows); setLoaded(true); setError(models.status==='rejected'||update.status==='rejected'||comfy.status==='rejected');
       timer=setTimeout(()=>void refresh(),1000);
     };
     void refresh();

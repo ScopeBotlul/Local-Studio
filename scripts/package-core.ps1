@@ -42,6 +42,14 @@ Videoschnitt und GIF-Studio. Galerie und Modelle bleiben zentral erreichbar;
 Hugging Face, Downloads, Auftraege und Einstellungen liegen rechts. Die bisherige
 doppelte Studio-Navigation und Breadcrumb-Leiste wurden entfernt.
 
+Neu in 0.33.0: ComfyUI Portable wird bei der Einrichtung direkt in Local Studio
+heruntergeladen, per offizieller SHA-256-Pruefsumme geprueft, sicher entpackt und
+als lokale Bildengine eingerichtet. NVIDIA-, NVIDIA-CUDA-12.6-, AMD- und Intel-
+Pakete sind waehlbar. Der Fortschritt erscheint im Download-Menue. Mit
+Nach Installation suchen werden typische lokale Ordner begrenzt durchsucht;
+abweichende Installationsorte koennen weiterhin manuell ausgewaehlt werden.
+Custom Nodes oder weitere Modellabhaengigkeiten werden nicht installiert.
+
 Neu in 0.32.0: Ist die automatische Update-Suche aktiv, erscheint bei einem
 verfuegbaren Release selbststaendig der Update-Dialog mit Abbrechen und Update
 installieren. Andere geoeffnete Dialoge werden abgewartet. Die bisherige lokale

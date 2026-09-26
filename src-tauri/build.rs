@@ -3,6 +3,7 @@ fn main() {
         tauri_build::AppManifest::new().commands(&[
             "comfy_status",
             "comfy_set_path",
+            "comfy_detect",
             "comfy_start",
             "comfy_stop",
             "comfy_dismiss",

@@ -5,9 +5,11 @@ use crate::{
 use reqwest::blocking::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use sha2::{Digest, Sha256};
 use std::{
+    collections::VecDeque,
     fs,
-    io::Read,
+    io::{Read, Write},
     path::{Path, PathBuf},
     process::{Child, Command, Stdio},
     sync::{
@@ -19,7 +21,8 @@ use std::{
 
 type Result<T> = std::result::Result<T, String>;
 const ENDPOINT: &str = "http://127.0.0.1:8188";
-const DOWNLOAD:&str="https://github.com/Comfy-Org/ComfyUI/releases/latest/download/ComfyUI_windows_portable_nvidia.7z";
+const RELEASE_API: &str = "https://api.github.com/repos/Comfy-Org/ComfyUI/releases/latest";
+const MAX_ARCHIVE_BYTES: u64 = 12 * 1024 * 1024 * 1024;
 
 #[derive(Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -38,6 +41,17 @@ pub struct ComfyStatus {
     version: Option<String>,
     error: Option<String>,
     dismissed: bool,
+    install: ComfyInstallStatus,
+}
+#[derive(Clone, Default, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ComfyInstallStatus {
+    phase: String,
+    variant: Option<String>,
+    total_bytes: u64,
+    received_bytes: u64,
+    bytes_per_second: u64,
+    error: Option<String>,
 }
 struct Process {
     child: Child,
@@ -45,8 +59,10 @@ struct Process {
 }
 pub struct Comfy {
     config_path: PathBuf,
+    managed_root: PathBuf,
     config: Mutex<Config>,
     process: Mutex<Option<Process>>,
+    install: Mutex<ComfyInstallStatus>,
 }
 
 fn valid_root(path: &Path) -> bool {
@@ -55,19 +71,81 @@ fn valid_root(path: &Path) -> bool {
         && path.join("python_embeded/python.exe").is_file()
         && path.join("ComfyUI/main.py").is_file()
 }
-fn detect() -> Option<PathBuf> {
+fn likely_roots(managed_root: &Path) -> Vec<PathBuf> {
     let mut choices = Vec::new();
+    choices.push(managed_root.join("ComfyUI_windows_portable"));
     for drive in b'C'..=b'Z' {
         let root = PathBuf::from(format!("{}:\\", drive as char));
         choices.push(root.join("ComfyUI_windows_portable"));
         choices.push(root.join("Local/AI/ComfyUI_windows_portable"));
+        choices.push(root.join("LocalAI/ComfyUI_windows_portable"));
+        choices.push(root.join("AI/ComfyUI_windows_portable"));
     }
     if let Some(user) = std::env::var_os("USERPROFILE") {
         let user = PathBuf::from(user);
         choices.push(user.join("Downloads/ComfyUI_windows_portable"));
+        choices.push(user.join("Desktop/ComfyUI_windows_portable"));
+        choices.push(user.join("Documents/ComfyUI_windows_portable"));
         choices.push(user.join("ComfyUI_windows_portable"));
     }
-    choices.into_iter().find(|p| valid_root(p))
+    choices
+}
+fn detect(managed_root: &Path, deep: bool) -> Option<PathBuf> {
+    if let Some(path) = likely_roots(managed_root)
+        .into_iter()
+        .find(|p| valid_root(p))
+    {
+        return fs::canonicalize(path).ok();
+    }
+    if !deep {
+        return None;
+    }
+    let mut queue = VecDeque::new();
+    for root in [
+        std::env::var_os("USERPROFILE").map(PathBuf::from),
+        Some(managed_root.to_path_buf()),
+    ]
+    .into_iter()
+    .flatten()
+    {
+        for child in ["Downloads", "Desktop", "Documents", "LocalAI", "AI", ""] {
+            let path = root.join(child);
+            if path.is_dir() {
+                queue.push_back((path, 0usize));
+            }
+        }
+    }
+    let mut visited = 0usize;
+    while let Some((path, depth)) = queue.pop_front() {
+        visited += 1;
+        if visited > 15_000 {
+            break;
+        }
+        if valid_root(&path) {
+            return fs::canonicalize(path).ok();
+        }
+        if depth >= 4 {
+            continue;
+        }
+        let Ok(entries) = fs::read_dir(&path) else {
+            continue;
+        };
+        for entry in entries.flatten() {
+            let child = entry.path();
+            let Ok(metadata) = fs::symlink_metadata(&child) else {
+                continue;
+            };
+            if metadata.is_dir() && !metadata.file_type().is_symlink() {
+                let name = entry.file_name().to_string_lossy().to_ascii_lowercase();
+                if !name.starts_with('.')
+                    && !["node_modules", "$recycle.bin", "windows"].contains(&name.as_str())
+                {
+                    queue.push_back((child, depth + 1));
+                }
+            }
+        }
+    }
+    None
 }
 fn client(timeout: Duration) -> Result<Client> {
     Client::builder()
@@ -94,9 +172,157 @@ fn probe_http() -> Result<Value> {
     }
     Ok(value)
 }
+
+#[derive(Deserialize)]
+struct ReleaseAsset {
+    name: String,
+    size: u64,
+    digest: Option<String>,
+    browser_download_url: String,
+}
+#[derive(Deserialize)]
+struct Release {
+    tag_name: String,
+    assets: Vec<ReleaseAsset>,
+}
+
+fn package_name(variant: &str) -> Result<&'static str> {
+    match variant {
+        "nvidia" => Ok("ComfyUI_windows_portable_nvidia.7z"),
+        "nvidia_legacy" => Ok("ComfyUI_windows_portable_nvidia_cu126.7z"),
+        "amd" => Ok("ComfyUI_windows_portable_amd.7z"),
+        "intel" => Ok("ComfyUI_windows_portable_intel.7z"),
+        _ => Err("comfy_variant".into()),
+    }
+}
+fn release_client() -> Result<Client> {
+    Client::builder()
+        .no_proxy()
+        .redirect(reqwest::redirect::Policy::custom(|attempt| {
+            if attempt.previous().len() >= 8 {
+                return attempt.error("redirect limit");
+            }
+            match attempt.url().host_str() {
+                Some(
+                    "github.com"
+                    | "release-assets.githubusercontent.com"
+                    | "objects.githubusercontent.com",
+                ) => attempt.follow(),
+                _ => attempt.stop(),
+            }
+        }))
+        .connect_timeout(Duration::from_secs(15))
+        .timeout(Duration::from_secs(60 * 60 * 3))
+        .build()
+        .map_err(|_| "comfy_download".into())
+}
+fn official_asset(client: &Client, variant: &str) -> Result<(String, ReleaseAsset)> {
+    let release: Release = client
+        .get(RELEASE_API)
+        .header("User-Agent", "Local-Studio")
+        .send()
+        .map_err(|_| "comfy_download")?
+        .error_for_status()
+        .map_err(|_| "comfy_download")?
+        .json()
+        .map_err(|_| "comfy_download")?;
+    let wanted = package_name(variant)?;
+    let asset = release
+        .assets
+        .into_iter()
+        .find(|a| a.name == wanted)
+        .ok_or("comfy_package")?;
+    let url = url::Url::parse(&asset.browser_download_url).map_err(|_| "comfy_package")?;
+    let expected_prefix = format!("/Comfy-Org/ComfyUI/releases/download/{}/", release.tag_name);
+    let digest = asset.digest.as_deref().unwrap_or_default();
+    if url.scheme() != "https"
+        || url.host_str() != Some("github.com")
+        || !url.path().starts_with(&expected_prefix)
+        || asset.size < 64 * 1024 * 1024
+        || asset.size > MAX_ARCHIVE_BYTES
+        || !digest.starts_with("sha256:")
+        || digest.len() != 71
+        || !digest[7..].bytes().all(|b| b.is_ascii_hexdigit())
+    {
+        return Err("comfy_package".into());
+    }
+    Ok((release.tag_name, asset))
+}
+fn safe_archive_listing(listing: &[u8]) -> Result<()> {
+    let listing = std::str::from_utf8(listing).map_err(|_| "comfy_archive")?;
+    let mut count = 0usize;
+    for raw in listing.lines() {
+        let entry = raw.trim().trim_end_matches(['/', '\\']).replace('\\', "/");
+        if entry.is_empty() {
+            continue;
+        }
+        count += 1;
+        if count > 250_000
+            || entry.starts_with('/')
+            || entry.as_bytes().get(1) == Some(&b':')
+            || !crate::downloads::valid_file(&entry)
+        {
+            return Err("comfy_archive".into());
+        }
+    }
+    if count == 0 {
+        Err("comfy_archive".into())
+    } else {
+        Ok(())
+    }
+}
+fn verify_tree(root: &Path) -> Result<()> {
+    let mut queue = VecDeque::from([root.to_path_buf()]);
+    let mut count = 0usize;
+    while let Some(path) = queue.pop_front() {
+        count += 1;
+        if count > 250_000 {
+            return Err("comfy_archive".into());
+        }
+        let metadata = fs::symlink_metadata(&path).map_err(|_| "comfy_archive")?;
+        #[cfg(windows)]
+        {
+            use std::os::windows::fs::MetadataExt;
+            if metadata.file_attributes() & 0x400 != 0 {
+                return Err("comfy_archive".into());
+            }
+        }
+        if metadata.file_type().is_symlink() {
+            return Err("comfy_archive".into());
+        }
+        if metadata.is_dir() {
+            for child in fs::read_dir(&path).map_err(|_| "comfy_archive")? {
+                queue.push_back(child.map_err(|_| "comfy_archive")?.path());
+            }
+        } else if !metadata.is_file() {
+            return Err("comfy_archive".into());
+        }
+    }
+    Ok(())
+}
+fn extracted_root(stage: &Path) -> Option<PathBuf> {
+    if valid_root(stage) {
+        return Some(stage.to_path_buf());
+    }
+    fs::read_dir(stage)
+        .ok()?
+        .flatten()
+        .map(|e| e.path())
+        .find(|p| valid_root(p))
+}
+
 impl Comfy {
     pub fn new(config_dir: &Path) -> Result<Arc<Self>> {
         let config_path = config_dir.join("comfy.json");
+        let data_root = if config_dir
+            .file_name()
+            .is_some_and(|name| name.eq_ignore_ascii_case("config"))
+        {
+            config_dir.parent().unwrap_or(config_dir).to_path_buf()
+        } else {
+            config_dir.join("Data")
+        };
+        let managed_root = data_root.join("ComfyUI");
         let mut config: Config = fs::read(&config_path)
             .ok()
             .and_then(|b| serde_json::from_slice(&b).ok())
@@ -106,12 +332,17 @@ impl Comfy {
             .as_ref()
             .is_none_or(|p| !valid_root(Path::new(p)))
         {
-            config.path = detect().map(|p| p.to_string_lossy().into());
+            config.path = detect(&managed_root, false).map(|p| p.to_string_lossy().into());
         }
         let this = Arc::new(Self {
             config_path,
+            managed_root,
             config: Mutex::new(config),
             process: Mutex::new(None),
+            install: Mutex::new(ComfyInstallStatus {
+                phase: "idle".into(),
+                ..Default::default()
+            }),
         });
         this.save()?;
         Ok(this)
@@ -153,6 +384,170 @@ impl Comfy {
                 .map(str::to_owned),
             error: response.err().filter(|_| managed).map(|e| e.to_string()),
             dismissed: config.dismissed,
+            install: self.install.lock().map(|s| s.clone()).unwrap_or_default(),
+        }
+    }
+    pub fn detect_installation(&self) -> Result<ComfyStatus> {
+        let found = detect(&self.managed_root, true).ok_or("comfy_not_found")?;
+        self.set_path(found.to_string_lossy().into())
+    }
+    fn install_progress(
+        &self,
+        phase: &str,
+        variant: &str,
+        total: u64,
+        received: u64,
+        speed: u64,
+        error: Option<String>,
+    ) {
+        if let Ok(mut state) = self.install.lock() {
+            *state = ComfyInstallStatus {
+                phase: phase.into(),
+                variant: Some(variant.into()),
+                total_bytes: total,
+                received_bytes: received,
+                bytes_per_second: speed,
+                error,
+            };
+        }
+    }
+    pub fn download_install(&self, variant: String) -> Result<ComfyStatus> {
+        {
+            let state = self.install.lock().map_err(|_| "comfy_storage")?;
+            if ["resolving", "downloading", "verifying", "installing"]
+                .contains(&state.phase.as_str())
+            {
+                return Err("comfy_install_busy".into());
+            }
+        }
+        self.install_progress("resolving", &variant, 0, 0, 0, None);
+        let result = (|| {
+            let client = release_client()?;
+            let (_release, asset) = official_asset(&client, &variant)?;
+            fs::create_dir_all(&self.managed_root).map_err(|_| "comfy_storage")?;
+            model_library::no_links(&self.managed_root).map_err(|_| "comfy_storage")?;
+            let required = asset
+                .size
+                .checked_mul(4)
+                .ok_or("comfy_space")?
+                .saturating_add(1024 * 1024 * 1024);
+            if fs2::available_space(&self.managed_root).map_err(|_| "comfy_space")? < required {
+                return Err("comfy_space".into());
+            }
+            let work = self
+                .managed_root
+                .join(format!(".install-{}", uuid::Uuid::new_v4()));
+            fs::create_dir(&work).map_err(|_| "comfy_storage")?;
+            let archive = work.join(&asset.name);
+            let stage = work.join("extracted");
+            let install_result = (|| {
+                let mut response = client
+                    .get(&asset.browser_download_url)
+                    .header("User-Agent", "Local-Studio")
+                    .send()
+                    .map_err(|_| "comfy_download")?
+                    .error_for_status()
+                    .map_err(|_| "comfy_download")?;
+                let final_host = response.url().host_str();
+                if !matches!(
+                    final_host,
+                    Some(
+                        "github.com"
+                            | "release-assets.githubusercontent.com"
+                            | "objects.githubusercontent.com"
+                    )
+                ) {
+                    return Err("comfy_package".into());
+                }
+                let mut file = fs::OpenOptions::new()
+                    .write(true)
+                    .create_new(true)
+                    .open(&archive)
+                    .map_err(|_| "comfy_storage")?;
+                let mut hasher = Sha256::new();
+                let mut received = 0u64;
+                let started = Instant::now();
+                let mut buffer = vec![0u8; 1024 * 1024];
+                self.install_progress("downloading", &variant, asset.size, 0, 0, None);
+                loop {
+                    let read = response.read(&mut buffer).map_err(|_| "comfy_download")?;
+                    if read == 0 {
+                        break;
+                    }
+                    received = received.checked_add(read as u64).ok_or("comfy_download")?;
+                    if received > asset.size {
+                        return Err("comfy_package".into());
+                    }
+                    file.write_all(&buffer[..read])
+                        .map_err(|_| "comfy_storage")?;
+                    hasher.update(&buffer[..read]);
+                    let speed =
+                        (received as f64 / started.elapsed().as_secs_f64().max(0.001)) as u64;
+                    self.install_progress(
+                        "downloading",
+                        &variant,
+                        asset.size,
+                        received,
+                        speed,
+                        None,
+                    );
+                }
+                file.sync_all().map_err(|_| "comfy_storage")?;
+                self.install_progress("verifying", &variant, asset.size, received, 0, None);
+                let actual = format!("{:x}", hasher.finalize());
+                if received != asset.size
+                    || asset.digest.as_deref().map(|d| &d[7..]) != Some(actual.as_str())
+                {
+                    return Err("comfy_hash".into());
+                }
+                let system_root =
+                    PathBuf::from(std::env::var_os("SystemRoot").ok_or("comfy_extract")?);
+                let tar = system_root.join("System32/tar.exe");
+                let listing = Command::new(&tar)
+                    .arg("-tf")
+                    .arg(&archive)
+                    .output()
+                    .map_err(|_| "comfy_extract")?;
+                if !listing.status.success() {
+                    return Err("comfy_extract".into());
+                }
+                safe_archive_listing(&listing.stdout)?;
+                fs::create_dir(&stage).map_err(|_| "comfy_storage")?;
+                self.install_progress("installing", &variant, asset.size, received, 0, None);
+                let extracted = Command::new(&tar)
+                    .arg("-xf")
+                    .arg(&archive)
+                    .arg("-C")
+                    .arg(&stage)
+                    .status()
+                    .map_err(|_| "comfy_extract")?;
+                if !extracted.success() {
+                    return Err("comfy_extract".into());
+                }
+                verify_tree(&stage)?;
+                let source = extracted_root(&stage).ok_or("comfy_archive")?;
+                let target = self.managed_root.join("ComfyUI_windows_portable");
+                if target.exists() {
+                    if valid_root(&target) {
+                        return self.set_path(target.to_string_lossy().into());
+                    }
+                    return Err("comfy_install_exists".into());
+                }
+                fs::rename(&source, &target).map_err(|_| "comfy_storage")?;
+                self.set_path(target.to_string_lossy().into())
+            })();
+            let _ = fs::remove_dir_all(&work);
+            install_result
+        })();
+        match result {
+            Ok(status) => {
+                self.install_progress("completed", &variant, 0, 0, 0, None);
+                Ok(self.start().unwrap_or(status))
+            }
+            Err(error) => {
+                self.install_progress("failed", &variant, 0, 0, 0, Some(error.clone()));
+                Err(error)
+            }
         }
     }
     pub fn set_path(&self, path: String) -> Result<ComfyStatus> {
@@ -404,6 +799,13 @@ pub async fn comfy_set_path(
         .map_err(|_| "comfy_storage")?
 }
 #[tauri::command]
+pub async fn comfy_detect(state: tauri::State<'_, Arc<Comfy>>) -> Result<ComfyStatus> {
+    let s = state.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || s.detect_installation())
+        .await
+        .map_err(|_| "comfy_storage")?
+}
+#[tauri::command]
 pub async fn comfy_start(state: tauri::State<'_, Arc<Comfy>>) -> Result<ComfyStatus> {
     let s = state.inner().clone();
     tauri::async_runtime::spawn_blocking(move || s.start())
@@ -420,8 +822,14 @@ pub fn comfy_dismiss(state: tauri::State<'_, Arc<Comfy>>) -> Result<ComfyStatus>
     state.dismiss()
 }
 #[tauri::command]
-pub fn comfy_download() {
-    let _ = Command::new("explorer.exe").arg(DOWNLOAD).spawn();
+pub async fn comfy_download(
+    variant: String,
+    state: tauri::State<'_, Arc<Comfy>>,
+) -> Result<ComfyStatus> {
+    let s = state.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || s.download_install(variant))
+        .await
+        .map_err(|_| "comfy_download")?
 }
 #[tauri::command]
 pub fn comfy_open_updater(state: tauri::State<'_, Arc<Comfy>>) -> Result<()> {
@@ -445,4 +853,30 @@ pub fn comfy_open_updater(state: tauri::State<'_, Arc<Comfy>>) -> Result<()> {
         .spawn()
         .map_err(|_| "comfy_path")?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn package_variants_are_an_explicit_allowlist() {
+        assert_eq!(
+            package_name("amd").unwrap(),
+            "ComfyUI_windows_portable_amd.7z"
+        );
+        assert_eq!(
+            package_name("nvidia_legacy").unwrap(),
+            "ComfyUI_windows_portable_nvidia_cu126.7z"
+        );
+        assert_eq!(package_name("other"), Err("comfy_variant".into()));
+    }
+
+    #[test]
+    fn archive_listing_rejects_paths_outside_the_install_root() {
+        assert!(safe_archive_listing(b"ComfyUI_windows_portable/ComfyUI/main.py\n").is_ok());
+        assert!(safe_archive_listing(b"../escape.exe\n").is_err());
+        assert!(safe_archive_listing(b"C:/escape.exe\n").is_err());
+        assert!(safe_archive_listing(b"ComfyUI_windows_portable/../../escape.exe\n").is_err());
+    }
 }

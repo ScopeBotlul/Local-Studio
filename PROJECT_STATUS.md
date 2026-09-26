@@ -675,3 +675,11 @@ Als Nächstes stehen die noch offenen M0-Punkte und anschließend M1 gemäß `PL
 - `Create` öffnet eine zweite, kontextbezogene Werkzeugleiste für Bild erstellen, Bild bearbeiten, Video bearbeiten und GIF erstellen. Die vorhandenen vier Studios und ihre Zustände werden weiterverwendet; es wurden keine funktionslosen Einträge ergänzt.
 - Die frühere Breadcrumb-Leiste und der doppelte Studio-Umschalter im Seiteninhalt wurden entfernt, damit mehr Höhe für Canvas und Editoren verfügbar ist.
 - Tastaturwechsel zwischen den Create-Werkzeugen mit Pfeiltasten sowie Pos1/Ende bleibt erhalten. Kein neuer Installer oder Release wurde für diese reine Quelländerung erstellt.
+
+## 2026-09-26 – ComfyUI-Einrichtung in Local Studio
+
+- Der Einrichtungsdialog lädt die portable Windows-Version jetzt innerhalb von Local Studio herunter und installiert sie in den lokalen App-Daten. Zur Auswahl stehen die vier offiziellen Release-Pakete für NVIDIA, NVIDIA CUDA 12.6, AMD und Intel.
+- Local Studio liest Paketname, Größe und SHA-256-Prüfsumme aus dem offiziellen GitHub-Release, erlaubt nur die erwarteten GitHub-Auslieferungsserver und übernimmt das Paket erst nach erfolgreicher Hashprüfung. Archivpfade, Reparse Points und die erwartete ComfyUI-Verzeichnisstruktur werden vor der Einrichtung geprüft. Custom Nodes und weitere Modellabhängigkeiten werden nicht installiert.
+- Download, Prüfung und Installation erscheinen mit echtem Bytefortschritt, Geschwindigkeit und Phase im vorhandenen Download-Menü. Nach erfolgreicher Installation wird der neue Pfad automatisch als ComfyUI-Engine gespeichert und der bereits vorhandene lokale Startpfad einmal ausgeführt.
+- „Nach Installation suchen“ prüft typische lokale Verzeichnisse sowie eine begrenzte Suche in Benutzerordnern. Die manuelle Ordnerwahl bleibt für abweichende Installationsorte vorhanden. Die automatische schnelle Erkennung beim Programmstart bleibt aktiv.
+- Windows-Release-EXE, Inno-Installer, portables Archiv, Prüfsummen und signierte Update-Metadaten wurden als Version 0.33.0 erzeugt und bytegenau geprüft. Ein vollständiger Download des rund 1,5–1,9 GB großen ComfyUI-Pakets und die anschließende reale Inferenz wurden in diesem Arbeitspaket nicht ausgeführt.

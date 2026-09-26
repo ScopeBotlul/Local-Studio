@@ -6,6 +6,7 @@
   "permissions": [
     "allow-comfy-status",
     "allow-comfy-set-path",
+    "allow-comfy-detect",
     "allow-comfy-start",
     "allow-comfy-stop",
     "allow-comfy-dismiss",
