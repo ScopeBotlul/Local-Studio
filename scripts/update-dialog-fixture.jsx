@@ -9,7 +9,7 @@ export function mount({portable=false,de=true}={}){
  let resolveDownload;
  let resolveComfyUpdate;
  let status={phase:'available',portable,received:0,total:100,error:null,latest:{version:'99.0.0',notes:'Test release',publishedAt:'',installer:{url:'',size:100,sha256:''},portable:{url:'',size:100,sha256:''}}};
- let comfy={installed:true,path:'C:/ComfyUI',running:false,managed:false,endpoint:'http://127.0.0.1:8188',version:'0.33.0',error:null,dismissed:false,install:{phase:'idle',variant:null,totalBytes:0,receivedBytes:0,bytesPerSecond:0,error:null},update:{phase:'available',installedVersion:'0.33.0',latestVersion:'0.34.0',error:null,log:null}};
+ let comfy={installed:true,path:'C:/ComfyUI',running:false,managed:false,endpoint:'http://127.0.0.1:8188',version:'0.33.0',error:null,log:null,dismissed:false,install:{phase:'idle',variant:null,totalBytes:0,receivedBytes:0,bytesPerSecond:0,error:null},update:{phase:'available',installedVersion:'0.33.0',latestVersion:'0.34.0',error:null,log:null}};
  window.__TAURI_INTERNALS__={invoke:async command=>{
   calls.push(command);
   if(command==='update_status')return structuredClone(status);

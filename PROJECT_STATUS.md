@@ -1,3 +1,9 @@
+# Version 0.35.4 – portabler ComfyUI-Start und Diagnose (2026-09-26)
+
+Local Studio startete die portable ComfyUI-Engine ohne das vom offiziellen NVIDIA-, AMD- und CPU-Startskript verwendete Argument `--windows-standalone-build`. Der Prozess verwendet jetzt den offiziellen Aufruf mit `python.exe -s`, behält die lokalen API-/Sicherheitsargumente bei und bleibt ohne Konsolenfenster.
+
+Standardausgabe und Fehlerausgabe werden nicht länger verworfen, sondern ausschließlich lokal in `comfy-runtime.log` geschrieben. Ein vor Erreichen der Loopback-API beendeter Prozess wird sofort als Startfehler erkannt. In den ComfyUI-Einstellungen lässt sich das letzte Startprotokoll aufklappen; damit werden insbesondere ROCm-, Treiber- und fehlende Laufzeitfehler auf dem ROG Ally sichtbar. Frontend-Build, 12 direkt betroffene Frontendtests, Rust-/Tauri-Compilercheck, optimierte EXE, Installer, portables Archiv und signierte Update-Metadaten sind lokal geprüft. Die Veröffentlichung folgt in diesem Arbeitsgang.
+
 # Release 0.35.3 veröffentlicht – unsichtbare ComfyUI-Archivprozesse (2026-09-26)
 
 Die ComfyUI-Installation startete `System32\tar.exe` für Dateilistenprüfung und Extraktion ohne Windows-Erstellungsflag. Dadurch erschien auf dem ROG Ally während der langen Archivverarbeitung ein scheinbar untätiges Konsolenfenster. Beide Prozesse verwenden jetzt denselben `CREATE_NO_WINDOW`-Pfad wie die übrigen lokalen Hilfsprozesse. Phase und Fortschrittszustand bleiben im Einrichtungsdialog sichtbar. Version 0.35.3 ist unter https://github.com/ScopeBotlul/Local-Studio/releases/tag/v0.35.3 öffentlich als Latest verfügbar; Tag `v0.35.3` verweist auf Release-Commit `188c9f0`. Installer und portables Archiv wurden vollständig von GitHub zurückgeladen, und Signatur, Größen, Hashes sowie alle fünf Asset-Digests stimmen.

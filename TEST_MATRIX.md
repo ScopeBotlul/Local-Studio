@@ -1,3 +1,11 @@
+# Releaseprüfung 0.35.4 – 2026-09-26
+
+- Portabler Start verwendet jetzt den offiziellen `python.exe -s ComfyUI/main.py --windows-standalone-build`-Modus zusammen mit den bestehenden Loopback-, Port-, Auto-Launch- und API-Node-Grenzen. Ausgabe und Fehlerausgabe gehen ausschließlich in ein lokales 64-KiB-begrenztes Anzeigeprotokoll; der Prozess bleibt an die Windows-Jobgruppe gebunden.
+- Frühes Prozessende wird während der 30-sekündigen Startfrist erkannt. Ein Fehler beim Anlegen der Jobgruppe beendet und wartet den bereits gestarteten Kindprozess, statt ihn unbeaufsichtigt weiterlaufen zu lassen.
+- `npm.cmd run build`: bestanden. `npm.cmd test -- src/startup-update.test.ts`: 12/12 bestanden. `scripts/desktop.ps1 check`: Rust-/Tauri-Compilercheck bestanden.
+- Ein echter Start auf dem ROG Ally konnte auf dem Entwicklungs-PC nicht ausgeführt werden. Der neue lokale Logpfad legt einen verbleibenden offiziellen AMD-/ROCm- oder Treiberfehler offen, ohne Daten zu übertragen.
+- Release-Build bestanden. Das portable ZIP enthält exakt 80 erlaubte Dateien; 77 Runtime-Dateien entsprechen ihren Manifesten. EXE SHA-256 `5155a1c55dc152f1ba736d835ef529e21bfa8381802fea9d3f943debb6de8c8f`, ZIP `c463252857535f7da1f159178a49755414d77f4403c194652df86b82a3fa8a60`, Installer `6b74c066f2c582fd5e59e5cc5505451e9ec23a6489f7a0b466b360cd69316317`. Signiertes Manifest stimmt mit Version, URLs, Größen, Hashes und eingebettetem öffentlichen Schlüssel überein. Öffentliche Verifikation folgt nach dem Upload.
+
 # Releaseprüfung 0.35.3 – 2026-09-26
 
 - Geändert sind ausschließlich die beiden Windows-`tar.exe`-Starts für Prüfung und Extraktion des bereits hashgeprüften ComfyUI-Archivs. Beide erhalten jetzt `CREATE_NO_WINDOW`; Argumente, Archivprüfung, Zielpfad und Installationsstatus bleiben unverändert.

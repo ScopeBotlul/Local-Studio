@@ -42,6 +42,10 @@ Videoschnitt und GIF-Studio. Galerie und Modelle bleiben zentral erreichbar;
 Hugging Face, Downloads, Auftraege und Einstellungen liegen rechts. Die bisherige
 doppelte Studio-Navigation und Breadcrumb-Leiste wurden entfernt.
 
+Neu in 0.35.4: Portable ComfyUI startet im offiziellen Windows-Standalone-Modus.
+Startausgaben werden lokal protokolliert; ein frueher Absturz wird sofort erkannt
+und das Protokoll kann in den ComfyUI-Einstellungen aufgeklappt werden.
+
 Neu in 0.35.3: Pruefung und Entpacken des ComfyUI-Archivs laufen unter Windows
 ohne sichtbares tar.exe-Konsolenfenster. Der Installationsstatus bleibt direkt
 im Einrichtungsdialog sichtbar.

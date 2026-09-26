@@ -40,6 +40,7 @@ pub struct ComfyStatus {
     endpoint: String,
     version: Option<String>,
     error: Option<String>,
+    log: Option<String>,
     dismissed: bool,
     install: ComfyInstallStatus,
     update: ComfyUpdateStatus,
@@ -75,6 +76,8 @@ pub struct Comfy {
     install: Mutex<ComfyInstallStatus>,
     update: Mutex<ComfyUpdateStatus>,
     update_log: PathBuf,
+    runtime_log: PathBuf,
+    runtime_error: Mutex<Option<String>>,
     active_generations: AtomicUsize,
 }
 
@@ -409,6 +412,7 @@ impl Comfy {
     pub fn new(config_dir: &Path) -> Result<Arc<Self>> {
         let config_path = config_dir.join("comfy.json");
         let update_log = config_dir.join("comfy-update.log");
+        let runtime_log = config_dir.join("comfy-runtime.log");
         let data_root = if config_dir
             .file_name()
             .is_some_and(|name| name.eq_ignore_ascii_case("config"))
@@ -443,6 +447,8 @@ impl Comfy {
                 ..Default::default()
             }),
             update_log,
+            runtime_log,
+            runtime_error: Mutex::new(None),
             active_generations: AtomicUsize::new(0),
         });
         this.save()?;
@@ -454,16 +460,24 @@ impl Comfy {
         fs::write(&self.config_path, data).map_err(|_| "comfy_storage".into())
     }
     pub fn status(&self) -> ComfyStatus {
+        let mut exited = false;
         if let Ok(mut process) = self.process.lock() {
             if process
                 .as_mut()
                 .is_some_and(|p| p.child.try_wait().ok().flatten().is_some())
             {
                 *process = None;
+                exited = true;
+            }
+        }
+        if exited {
+            if let Ok(mut error) = self.runtime_error.lock() {
+                *error = Some("comfy_runtime_exit".into());
             }
         }
         let managed = self.process.lock().ok().is_some_and(|p| p.is_some());
         let response = probe_http();
+        let running = response.is_ok();
         let config = self.config.lock().map(|c| c.clone()).unwrap_or_default();
         let installed = config
             .path
@@ -492,11 +506,20 @@ impl Comfy {
         ComfyStatus {
             installed,
             path: config.path,
-            running: response.is_ok(),
+            running,
             managed,
             endpoint: ENDPOINT.into(),
             version,
-            error: response.err().filter(|_| managed).map(|e| e.to_string()),
+            error: if running {
+                None
+            } else {
+                self.runtime_error
+                    .lock()
+                    .ok()
+                    .and_then(|error| error.clone())
+                    .or_else(|| response.err().filter(|_| managed).map(|e| e.to_string()))
+            },
+            log: log_tail(&self.runtime_log),
             dismissed: config.dismissed,
             install: self.install.lock().map(|s| s.clone()).unwrap_or_default(),
             update,
@@ -874,9 +897,12 @@ impl Comfy {
             install_result
         })();
         match result {
-            Ok(status) => {
+            Ok(_) => {
                 self.install_progress("completed", &variant, 0, 0, 0, None);
-                Ok(self.start().unwrap_or(status))
+                match self.start() {
+                    Ok(running) => Ok(running),
+                    Err(_) => Ok(self.status()),
+                }
             }
             Err(error) => {
                 self.install_progress("failed", &variant, 0, 0, 0, Some(error.clone()));
@@ -915,11 +941,25 @@ impl Comfy {
         if !valid_root(&root) {
             return Err("comfy_path".into());
         }
+        fs::write(
+            &self.runtime_log,
+            b"Local Studio: ComfyUI runtime\r\n",
+        )
+        .map_err(|_| "comfy_storage")?;
+        if let Ok(mut error) = self.runtime_error.lock() {
+            *error = None;
+        }
+        let log = fs::OpenOptions::new()
+            .append(true)
+            .open(&self.runtime_log)
+            .map_err(|_| "comfy_storage")?;
         let mut command = Command::new(root.join("python_embeded/python.exe"));
         command
             .current_dir(&root)
+            .arg("-s")
             .arg("ComfyUI/main.py")
             .args([
+                "--windows-standalone-build",
                 "--listen",
                 "127.0.0.1",
                 "--port",
@@ -928,8 +968,8 @@ impl Comfy {
                 "--disable-api-nodes",
             ])
             .stdin(Stdio::null())
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
+            .stdout(Stdio::from(log.try_clone().map_err(|_| "comfy_storage")?))
+            .stderr(Stdio::from(log))
             .env_clear();
         for key in [
             "SystemRoot",
@@ -945,19 +985,57 @@ impl Comfy {
             }
         }
         crate::hardware::hide_console(&mut command);
-        let child = command.spawn().map_err(|_| "comfy_start")?;
-        let group = ProcessGroup::attach(&child).map_err(|_| "comfy_start")?;
+        let mut child = command.spawn().map_err(|_| {
+            if let Ok(mut error) = self.runtime_error.lock() {
+                *error = Some("comfy_start".into());
+            }
+            "comfy_start"
+        })?;
+        let group = match ProcessGroup::attach(&child) {
+            Ok(group) => group,
+            Err(_) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                if let Ok(mut error) = self.runtime_error.lock() {
+                    *error = Some("comfy_start".into());
+                }
+                return Err("comfy_start".into());
+            }
+        };
         *self.process.lock().map_err(|_| "comfy_start")? = Some(Process {
             child,
             _group: group,
         });
         for _ in 0..120 {
             if probe_http().is_ok() {
+                if let Ok(mut error) = self.runtime_error.lock() {
+                    *error = None;
+                }
                 return Ok(self.status());
+            }
+            let exited = self
+                .process
+                .lock()
+                .ok()
+                .and_then(|mut process| {
+                    process
+                        .as_mut()
+                        .and_then(|process| process.child.try_wait().ok().flatten())
+                })
+                .is_some();
+            if exited {
+                self.stop();
+                if let Ok(mut error) = self.runtime_error.lock() {
+                    *error = Some("comfy_start".into());
+                }
+                return Err("comfy_start".into());
             }
             std::thread::sleep(Duration::from_millis(250));
         }
         self.stop();
+        if let Ok(mut error) = self.runtime_error.lock() {
+            *error = Some("comfy_start".into());
+        }
         Err("comfy_start".into())
     }
     pub fn stop(&self) {
