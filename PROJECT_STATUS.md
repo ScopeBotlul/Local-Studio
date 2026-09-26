@@ -1,10 +1,10 @@
-# Release 0.32.0 vorbereitet (2026-09-26)
+# Release 0.32.0 veröffentlicht (2026-09-26)
 
 Version 0.32.0 entfernt auf ausdrücklichen Nutzerwunsch die lokale 18+-Sperre vollständig aus Oberfläche und öffentlicher Desktop-IPC. Altersabfrage, PIN/Passwort, Neustartsperre, gesperrte Platzhalter und Backend-Abbrüche sind entfernt. Alte Kennzeichnungsfelder bleiben ausschließlich zur Formatkompatibilität lesbar und haben keine Sperrwirkung. 18+-Angaben von Hugging Face und Civitai bleiben als reine Metadaten beziehungsweise Suchfilter sichtbar.
 
 Die bereits vorhandene automatische Startprüfung ist zusätzlich abgesichert: Wenn **Beim Start automatisch nach Updates suchen** aktiv ist und der signierte Kanal eine neuere Version meldet, öffnet sich der Update-Dialog automatisch. Er bietet **Abbrechen** und in installierten Ausgaben **Update installieren**; andere modale Dialoge werden abgewartet. Portable Ausgaben bleiben beim manuellen ZIP-Update.
 
-Windows-EXE, Installer, portables Archiv, Prüfsummen und signierte Update-Metadaten für 0.32.0 sind erstellt. Die gezielten und direkt betroffenen Prüfungen stehen in TEST_MATRIX.md. Veröffentlichung auf GitHub folgt mit dem zugehörigen Quellcommit und Tag.
+Windows-EXE, Installer, portables Archiv, Prüfsummen und signierte Update-Metadaten für 0.32.0 sind erstellt und unter https://github.com/ScopeBotlul/Local-Studio/releases/tag/v0.32.0 öffentlich als Latest verfügbar. Tag `v0.32.0` verweist auf Release-Commit `a88c198`. Die fünf öffentlichen Assets wurden vollständig von GitHub zurückgeladen; Update-Signatur, Größen, lokale Hashes und GitHub-Digests stimmen. Die gezielten und direkt betroffenen Prüfungen stehen in TEST_MATRIX.md.
 
 # Release 0.31.0 veröffentlicht (2026-09-26)
 
