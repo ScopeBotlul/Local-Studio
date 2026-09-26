@@ -228,8 +228,9 @@ pub fn run() {
             if comfy.status().installed {let service=comfy.clone();tauri::async_runtime::spawn_blocking(move||{let _=service.start();});}
             app.manage(ImageEngine::new_with_comfy(&config_dir, runtime_dir,comfy.clone())?);
             app.manage(comfy);
-            app.manage(ModelLibrary::new(&config_dir)?);
-            app.manage(Downloads::new(&config_dir, auth.clone())?);
+            let model_library = ModelLibrary::new(&config_dir)?;
+            app.manage(model_library.clone());
+            app.manage(Downloads::new(&config_dir, auth.clone(), model_library)?);
             app.manage(auth);
             app.manage(hf_browser::HfBrowser::new(&config_dir));
             app.manage(civitai::CivitaiBrowser::new(&config_dir));

@@ -701,6 +701,58 @@ impl ModelLibrary {
             maintenance: AtomicBool::new(false),
         }))
     }
+    pub(crate) fn import_download(&self, destination: &Path, files: &[String]) -> Result<usize> {
+        no_links(destination)?;
+        let root = fs::canonicalize(destination).map_err(|_| "local_unavailable")?;
+        let source = root.to_string_lossy().to_string();
+        let mut found = Vec::new();
+        for relative in files {
+            let path = relative
+                .split('/')
+                .fold(root.clone(), |path, part| path.join(part));
+            if classify(&path).is_none() {
+                continue;
+            }
+            no_links(&path)?;
+            let mut entry = inspect(&path, &source);
+            classify_discovery(&mut entry, ScanMode::Folder);
+            if entry.discovery != Discovery::Excluded {
+                found.push(entry);
+            }
+        }
+        let grouped: HashSet<_> = found
+            .iter()
+            .filter(|entry| entry.completeness == "index")
+            .flat_map(|entry| {
+                entry
+                    .files
+                    .iter()
+                    .skip(1)
+                    .map(|file| file.path.to_lowercase())
+            })
+            .collect();
+        found.retain(|entry| !grouped.contains(&entry.path.to_lowercase()));
+        let imported = found.len();
+        let mut state = self.state.lock().map_err(|_| "local_storage")?;
+        let tx = state.db.transaction().map_err(|_| "local_storage")?;
+        for entry in found {
+            tx.execute(
+                "INSERT OR REPLACE INTO local_models VALUES(?1,?2)",
+                params![
+                    entry.id,
+                    serde_json::to_string(&entry).map_err(|_| "local_storage")?
+                ],
+            )
+            .map_err(|_| "local_storage")?;
+        }
+        for file in grouped {
+            let id = format!("{:x}", Sha256::digest(file.as_bytes()));
+            tx.execute("DELETE FROM local_models WHERE id=?1", [id])
+                .map_err(|_| "local_storage")?;
+        }
+        tx.commit().map_err(|_| "local_storage")?;
+        Ok(imported)
+    }
     fn note(scan: &mut Scan, path: &Path, code: &str) {
         scan.skipped += 1;
         if scan.notes.len() < 50 {

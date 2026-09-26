@@ -42,6 +42,10 @@ Videoschnitt und GIF-Studio. Galerie und Modelle bleiben zentral erreichbar;
 Hugging Face, Downloads, Auftraege und Einstellungen liegen rechts. Die bisherige
 doppelte Studio-Navigation und Breadcrumb-Leiste wurden entfernt.
 
+Neu in 0.36.2: Erfolgreich gepruefte Modell-Downloads werden automatisch in die
+Modellbibliothek uebernommen und stehen dadurch ohne manuellen Suchlauf im Studio
+bereit. Bereits abgeschlossene Downloads werden beim Start einmalig nachgetragen.
+
 Neu in 0.36.1: Unter dem Download-Symbol zeigt eine schmale Leiste den gemeinsamen
 Fortschritt aller laufenden Downloads in der eingestellten Akzentfarbe. Downloads
 mit bekannter Groesse werden nach Bytes zusammengefasst; bei unbekannter Groesse

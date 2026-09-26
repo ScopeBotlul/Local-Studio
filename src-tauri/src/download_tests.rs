@@ -102,7 +102,12 @@ impl Drop for Server {
 fn fixture(dir: &Path, server: &Server, data: &[u8]) -> (Arc<Downloads>, Download) {
     let config = dir.join("config");
     directory(&config).unwrap();
-    let manager = Downloads::new(&config, HfAuth::new(&config)).unwrap();
+    let manager = Downloads::new(
+        &config,
+        HfAuth::new(&config),
+        ModelLibrary::new(&config).unwrap(),
+    )
+    .unwrap();
     let id = uuid::Uuid::new_v4().to_string();
     let job = Download {
         id: id.clone(),
@@ -173,6 +178,59 @@ async fn wait(manager: &Downloads, id: &str, condition: impl Fn(&Download) -> bo
             .collect::<Vec<_>>()
     );
 }
+
+#[tokio::test]
+async fn completed_model_download_is_added_to_model_library() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut data = vec![0; 24];
+    data[..4].copy_from_slice(b"GGUF");
+    data[4..8].copy_from_slice(&3u32.to_le_bytes());
+    let server = Server::new(data.clone(), true);
+    let (manager, mut job) = fixture(dir.path(), &server, &data);
+    job.files[0].path = "model.gguf".into();
+    manager
+        .state
+        .lock()
+        .unwrap()
+        .plans
+        .get_mut(&job.id)
+        .unwrap()
+        .1
+        .download = job.clone();
+
+    manager.start(&job.id).unwrap();
+    let completed = wait(&manager, &job.id, |download| {
+        download.status == "completed" || download.status == "failed"
+    })
+    .await;
+    assert_eq!(completed.status, "completed", "{:?}", completed.error);
+
+    let db = rusqlite::Connection::open(dir.path().join("config/model-library.sqlite3")).unwrap();
+    let count: u64 = db
+        .query_row("SELECT COUNT(*) FROM local_models", [], |row| row.get(0))
+        .unwrap();
+    assert_eq!(count, 1);
+    manager.shutdown().await;
+    drop(manager);
+
+    db.execute("DELETE FROM local_models", []).unwrap();
+    drop(db);
+    let config = dir.path().join("config");
+    let reopened = Downloads::new(
+        &config,
+        HfAuth::new(&config),
+        ModelLibrary::new(&config).unwrap(),
+    )
+    .unwrap();
+    let db = rusqlite::Connection::open(config.join("model-library.sqlite3")).unwrap();
+    let count: u64 = db
+        .query_row("SELECT COUNT(*) FROM local_models", [], |row| row.get(0))
+        .unwrap();
+    assert_eq!(count, 1, "completed downloads are adopted after an update");
+    drop(db);
+    reopened.shutdown().await;
+}
+
 #[tokio::test]
 async fn pause_stops_disk_writes_and_resume_uses_actual_range_after_restart() {
     let dir = tempfile::tempdir().unwrap();
@@ -195,7 +253,12 @@ async fn pause_stops_disk_writes_and_resume_uses_actual_range_after_restart() {
     manager.shutdown().await;
     drop(manager);
     let config = dir.path().join("config");
-    let reopened = Downloads::new(&config, HfAuth::new(&config)).unwrap();
+    let reopened = Downloads::new(
+        &config,
+        HfAuth::new(&config),
+        ModelLibrary::new(&config).unwrap(),
+    )
+    .unwrap();
     reopened.state.lock().unwrap().jobs[0].test_url = Some(server.url.clone());
     assert_eq!(reopened.list().unwrap()[0].status, "paused");
     reopened.action(&job.id, "resume", None).unwrap();
@@ -286,7 +349,12 @@ fn interrupted_jobs_recover_paused_and_old_destination_survives() {
     save(&manager.state.lock().unwrap().db, &job).unwrap();
     drop(manager);
     let config = dir.path().join("config");
-    let reopened = Downloads::new(&config, HfAuth::new(&config)).unwrap();
+    let reopened = Downloads::new(
+        &config,
+        HfAuth::new(&config),
+        ModelLibrary::new(&config).unwrap(),
+    )
+    .unwrap();
     assert_eq!(reopened.list().unwrap()[0].status, "paused");
     assert_eq!(
         fs::read(Path::new(&job.destination).join("original")).unwrap(),

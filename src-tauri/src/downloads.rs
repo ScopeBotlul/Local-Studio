@@ -1,4 +1,4 @@
-use crate::{hf_auth::HfAuth, hub};
+use crate::{hf_auth::HfAuth, hub, model_library::ModelLibrary};
 use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -74,6 +74,7 @@ struct State {
 pub struct Downloads {
     state: Mutex<State>,
     auth: Arc<HfAuth>,
+    library: Arc<ModelLibrary>,
     updates: Mutex<UpdateStatus>,
 }
 
@@ -300,7 +301,7 @@ fn hash_file(path: &Path, file: &DownloadFile, cancel: &watch::Receiver<bool>) -
 }
 
 impl Downloads {
-    pub fn new(config: &Path, auth: Arc<HfAuth>) -> Result<Arc<Self>> {
+    pub fn new(config: &Path, auth: Arc<HfAuth>, library: Arc<ModelLibrary>) -> Result<Arc<Self>> {
         let db =
             Connection::open(config.join("downloads.sqlite3")).map_err(|_| "download_storage")?;
         db.execute_batch("PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; CREATE TABLE IF NOT EXISTS downloads(id TEXT PRIMARY KEY,json TEXT NOT NULL);").map_err(|_| "download_storage")?;
@@ -331,6 +332,16 @@ impl Downloads {
                 job.status = "paused".into();
                 job.error = Some("download_recovered".into());
             }
+            if job.status == "completed" {
+                let files: Vec<_> = job.files.iter().map(|file| file.path.clone()).collect();
+                if library
+                    .import_download(Path::new(&job.destination), &files)
+                    .is_err()
+                {
+                    job.status = "failed".into();
+                    job.error = Some("download_model_import".into());
+                }
+            }
             job.bytes_per_second = 0;
             save(&db, job)?;
         }
@@ -344,6 +355,7 @@ impl Downloads {
                 stopped: false,
             }),
             auth,
+            library,
             updates: Mutex::new(updates),
         }))
     }
@@ -685,7 +697,17 @@ impl Downloads {
         if let Ok(Some((mut job, mut cancel))) = work {
             let manager = Arc::clone(self);
             tauri::async_runtime::spawn(async move {
-                let result = manager.transfer(&mut job, &mut cancel).await;
+                let mut result = manager.transfer(&mut job, &mut cancel).await;
+                if result.is_ok() {
+                    let files: Vec<_> = job.files.iter().map(|file| file.path.clone()).collect();
+                    if manager
+                        .library
+                        .import_download(Path::new(&job.destination), &files)
+                        .is_err()
+                    {
+                        result = Err("download_model_import".into());
+                    }
+                }
                 if let Ok(mut state) = manager.state.lock() {
                     if let Some(index) = state.jobs.iter().position(|j| j.id == job.id) {
                         let desired = state.jobs[index].status.clone();

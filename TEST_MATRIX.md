@@ -1,3 +1,12 @@
+# Releaseprüfung 0.36.2 – 2026-09-26
+
+- `cargo test --manifest-path src-tauri/Cargo.toml downloads::integration_tests`: 6/6 bestanden. Pause/Fortsetzung, Abbruch, Hashfehler, Priorisierung, Neustartwiederherstellung und automatische Bibliotheksübernahme bleiben gemeinsam abgedeckt.
+- Der neue Integrationstest lädt eine minimale gültige GGUF-Datei über den echten lokalen HTTP-/Download-/Hash-/Veröffentlichungspfad. Direkt danach enthält `model-library.sqlite3` genau den Modelleintrag. Nach dessen Entfernung wird derselbe abgeschlossene Download beim erneuten Start automatisch nachgetragen.
+- `npm.cmd run build`: bestanden. Die ergänzte zweisprachige Fehlermeldung und alle bestehenden Frontend-Aufrufe kompilieren.
+- Ein echtes großes Hugging-Face- oder Civitai-Modell wurde nicht erneut übertragen.
+- Optimierter Rust-/Tauri-Release-Build und Inno-Installer bestanden. Das portable ZIP enthält exakt 80 erlaubte Dateien; 77 Runtime-Dateien entsprechen ihren Manifesten. EXE SHA-256 `bc2cad5473f4f64598d7d046b9ecbfc0306d42963531223ba0dc902ba5414698`, ZIP `2a52f1eb2b3f1b5297eaa895a896726da96612fbc454ee0df5a503793f237de0`, Installer `ab81cb1e4f7d1e3e38329e9b4d2c78f5c211c56a76e3443ccdf83cc23209d48b`. Das signierte Manifest stimmt mit Version, URLs, Größen, Hashes und eingebettetem öffentlichen Schlüssel überein.
+- Veröffentlichung folgt.
+
 # Releaseprüfung 0.36.1 – 2026-09-26
 
 - `npm.cmd test -- src/download-overview.test.ts`: 6/6 bestanden. Abgedeckt sind bytegewichtete Zusammenfassung, Begrenzung ungültiger Messwerte, unbekannte Gesamtgrößen und die vorhandene Restzeitanzeige.

@@ -26,6 +26,7 @@ const errors: Record<string, [string, string]> = {
   download_plan_expired: ['Die Vorschau ist abgelaufen. Bitte erneut prüfen.', 'The preview expired. Prepare it again.'],
   download_destination_exists: ['Der Zielordner existiert bereits und wird nicht überschrieben.', 'The destination already exists and will not be overwritten.'],
   download_state: ['Diese Aktion ist im aktuellen Zustand nicht möglich. Liste aktualisieren.', 'This action is unavailable in the current state. Refresh the list.'],
+  download_model_import: ['Die Dateien wurden geprüft gespeichert, konnten aber noch nicht in die Modellbibliothek übernommen werden. Erneut versuchen.', 'The files were verified and stored, but could not yet be added to the model library. Retry the download.'],
 };
 function message(error: unknown, language: Language) { return errors[String(error)]?.[language === 'de' ? 0 : 1] ?? hubError(error, language); }
 const statuses: Record<string, [string, string]> = {
