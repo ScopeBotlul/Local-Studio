@@ -2,7 +2,8 @@
 
 - Geändert sind ausschließlich die beiden Windows-`tar.exe`-Starts für Prüfung und Extraktion des bereits hashgeprüften ComfyUI-Archivs. Beide erhalten jetzt `CREATE_NO_WINDOW`; Argumente, Archivprüfung, Zielpfad und Installationsstatus bleiben unverändert.
 - Rust-/Tauri-Compilercheck und Release-Build bestanden. Die in 0.35.2 vollständig geprüfte AMD-Archivdatei, Frontend-, Medien- und Update-Center-Suiten wurden für die reine Prozessfensterkorrektur nicht erneut ausgeführt.
-- Das portable ZIP enthält exakt 80 erlaubte Dateien; 77 Runtime-Dateien entsprechen ihren Manifesten. EXE SHA-256 `5e78c3c7f385d2a496b9227f8e5a18cef93fcee6e1e740582e9e2c4e9c3290bc`, ZIP `a810d275b00470a8908ae5aba3a21dfc23fb94e1b14b35e56f19124421f0b066`, Installer `21702397edc45cf5d8b1b1a17b4f753765c14e3f9d0e47da94bce9dd1ae26cf8`. Signiertes Manifest stimmt mit Version, URLs, Größen, Hashes und eingebettetem öffentlichen Schlüssel überein. Öffentliche Verifikation folgt nach dem Upload.
+- Das portable ZIP enthält exakt 80 erlaubte Dateien; 77 Runtime-Dateien entsprechen ihren Manifesten. EXE SHA-256 `5e78c3c7f385d2a496b9227f8e5a18cef93fcee6e1e740582e9e2c4e9c3290bc`, ZIP `a810d275b00470a8908ae5aba3a21dfc23fb94e1b14b35e56f19124421f0b066`, Installer `21702397edc45cf5d8b1b1a17b4f753765c14e3f9d0e47da94bce9dd1ae26cf8`. Signiertes Manifest stimmt mit Version, URLs, Größen, Hashes und eingebettetem öffentlichen Schlüssel überein.
+- Veröffentlichung: `v0.35.3` ist öffentlich und als Latest markiert. Installer und Portable-ZIP wurden vollständig von GitHub zurückgeladen; alle fünf Asset-Digests, Größen, SHA-256-Werte und die Update-Signatur stimmen. Nachweis: `.artifacts/github-release-verification-0.35.3.json`.
 
 # Releaseprüfung 0.35.2 – 2026-09-26
 

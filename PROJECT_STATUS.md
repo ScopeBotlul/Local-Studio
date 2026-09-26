@@ -1,6 +1,6 @@
-# Version 0.35.3 – unsichtbare ComfyUI-Archivprozesse (2026-09-26)
+# Release 0.35.3 veröffentlicht – unsichtbare ComfyUI-Archivprozesse (2026-09-26)
 
-Die ComfyUI-Installation startete `System32\tar.exe` für Dateilistenprüfung und Extraktion ohne Windows-Erstellungsflag. Dadurch erschien auf dem ROG Ally während der langen Archivverarbeitung ein scheinbar untätiges Konsolenfenster. Beide Prozesse verwenden jetzt denselben `CREATE_NO_WINDOW`-Pfad wie die übrigen lokalen Hilfsprozesse. Phase und Fortschrittszustand bleiben im Einrichtungsdialog sichtbar. Optimierte EXE, Installer, portables Archiv und signierte Update-Metadaten sind erstellt und lokal geprüft. Die Veröffentlichung folgt in diesem Arbeitsgang.
+Die ComfyUI-Installation startete `System32\tar.exe` für Dateilistenprüfung und Extraktion ohne Windows-Erstellungsflag. Dadurch erschien auf dem ROG Ally während der langen Archivverarbeitung ein scheinbar untätiges Konsolenfenster. Beide Prozesse verwenden jetzt denselben `CREATE_NO_WINDOW`-Pfad wie die übrigen lokalen Hilfsprozesse. Phase und Fortschrittszustand bleiben im Einrichtungsdialog sichtbar. Version 0.35.3 ist unter https://github.com/ScopeBotlul/Local-Studio/releases/tag/v0.35.3 öffentlich als Latest verfügbar; Tag `v0.35.3` verweist auf Release-Commit `188c9f0`. Installer und portables Archiv wurden vollständig von GitHub zurückgeladen, und Signatur, Größen, Hashes sowie alle fünf Asset-Digests stimmen.
 
 # Release 0.35.2 veröffentlicht – offizielles AMD-Archiv vollständig geprüft (2026-09-26)
 
