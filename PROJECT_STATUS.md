@@ -1,8 +1,8 @@
-# Release 0.36.5 vorbereitet – verbleibende ComfyUI-RAM-Sperre entfernt (2026-09-26)
+# Release 0.36.5 veröffentlicht – verbleibende ComfyUI-RAM-Sperre entfernt (2026-09-26)
 
 Die in 0.36.4 reduzierte Vorabreserve blieb auf dem ROG Ally zu streng: Bei weniger als ungefähr 1 GiB unmittelbar freiem Windows-RAM wurde der Auftrag weiterhin vor ComfyUI abgewiesen. Das kann bei gemeinsamem CPU-/GPU-Speicher auftreten, obwohl ComfyUI/ROCm noch auslagern kann.
 
-Verwaltete ComfyUI-Aufträge umgehen jetzt ausschließlich die physische RAM-Zulassungsgrenze des gemeinsamen Planers. FIFO-Reihenfolge, maximale Parallelität und GPU-Exklusivität bleiben aktiv. Andere Laufzeiten und der native Bildadapter behalten ihre RAM-Prüfungen. Die direkt betroffenen Bild-Engine- und Ressourcenplaner-Tests, Frontend-Produktionsbuild, optimierter Rust-/Tauri-Build, Installer, portables Archiv und signierte Update-Metadaten sind bestanden. Die Veröffentlichung wird nach der GitHub-Rückprüfung ergänzt.
+Verwaltete ComfyUI-Aufträge umgehen jetzt ausschließlich die physische RAM-Zulassungsgrenze des gemeinsamen Planers. FIFO-Reihenfolge, maximale Parallelität und GPU-Exklusivität bleiben aktiv. Andere Laufzeiten und der native Bildadapter behalten ihre RAM-Prüfungen. Die direkt betroffenen Bild-Engine- und Ressourcenplaner-Tests, Frontend-Produktionsbuild, optimierter Rust-/Tauri-Build, Installer, portables Archiv und signierte Update-Metadaten sind bestanden. Version 0.36.5 ist unter https://github.com/ScopeBotlul/Local-Studio/releases/tag/v0.36.5 öffentlich als Latest verfügbar; Tag `v0.36.5` verweist auf Release-Commit `359b678`. Installer und portables Archiv wurden vollständig von GitHub zurückgeladen, und Signatur, Größen, Hashes sowie alle fünf Asset-Digests stimmen.
 
 # Release 0.36.4 veröffentlicht – RAM-Vorprüfung für ComfyUI korrigiert (2026-09-26)
 
