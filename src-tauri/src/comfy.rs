@@ -506,7 +506,7 @@ impl Comfy {
         let root = root.replace('\'', "''");
         fs::write(
             &self.extra_model_paths,
-            format!("local_studio:\n  base_path: '{root}'\n  checkpoints: '.'\n"),
+            format!("local_studio:\n  checkpoints: '{root}'\n"),
         )
         .map_err(|_| "comfy_storage".into())
     }
@@ -1507,8 +1507,15 @@ mod tests {
         comfy.write_extra_model_paths().unwrap();
         let yaml = fs::read_to_string(config.join("comfy-extra-model-paths.yaml")).unwrap();
         assert!(yaml.contains("local_studio:"));
-        assert!(yaml.contains("Model''s"));
-        assert!(yaml.contains("checkpoints: '.'"));
+        let expected = fs::canonicalize(&models)
+            .unwrap()
+            .to_string_lossy()
+            .trim_start_matches(r"\\?\")
+            .replace('\'', "''");
+        assert_eq!(
+            yaml,
+            format!("local_studio:\n  checkpoints: '{expected}'\n")
+        );
         assert_eq!(
             relative_model_path(&checkpoint, &models).as_deref(),
             Some("hf-download/wai.safetensors")

@@ -1,3 +1,7 @@
+# Release 0.36.9 – direkter ComfyUI-Checkpointpfad (2026-09-26)
+
+Die verwaltete ComfyUI-Engine erhält den Local-Studio-Modellordner nun direkt als absoluten Checkpoint-Suchpfad. Die vorherige Kombination aus `base_path` und `checkpoints: '.'` entfällt. Dadurch kann ComfyUI auch Checkpoints in verschachtelten `hf-…`-Downloadordnern zuverlässig erfassen, ohne Modellgewichte zu kopieren. Der gezielte Rust-Test für Pfaderzeugung, Verschachtelung und Sonderzeichen, Frontend-Produktionsbuild, optimierter Rust-/Tauri-Build, Installer, portables Archiv und signierte Update-Metadaten sind bestanden. Ein echter Generierungslauf auf dem ROG Ally bleibt als Zielgerätetest offen.
+
 # Release 0.36.8 veröffentlicht – ComfyUI-Instanz und Modellreichweite eindeutig (2026-09-26)
 
 Die neue Meldung entstand noch vor dem Workflow: `probe()` stufte den Local-Studio-Checkpoint nur dann als ComfyUI-Modell ein, wenn der laufende Prozess im aktuellen App-Lauf verwaltet wurde. Bei einer bereits auf Port 8188 antwortenden fremden oder überlebenden Instanz fiel die Prüfung auf den nativen NVIDIA-Adapter zurück.

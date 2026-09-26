@@ -1,3 +1,12 @@
+# Releaseprüfung 0.36.9 – 2026-09-26
+
+- Bestanden: gezielter Rust-Test `comfy::tests::managed_comfy_config_exposes_local_studio_checkpoints_without_copying`.
+- Abgedeckt: direkt erzeugter absoluter Checkpoint-Suchpfad, Entfernen des Windows-API-Präfixes `\\?\`, sichere Behandlung eines Apostrophs sowie Auflösung eines Checkpoints in einem verschachtelten `hf-download`-Ordner.
+- Bestanden: TypeScript-/Vite-Produktionsbuild und optimierter Rust-/Tauri-Release-Build.
+- Bestanden: Inno-Installer, portables Archiv, Runtime-Staging und signierte Update-Metadaten; lokale Größen, SHA-256-Werte und Signatur stimmen.
+- Paket-Hashes: Portable ZIP `0625cb80640d14a3359006a7f8d9417c6f34ffbbed05b4c2496a1772e8ef36fc`, Installer `3b1682fc8ed74411af68613539d9f076dc0fc64f45feb073472e68c8d0bfee34`.
+- Noch offen: echter Start und WAI-Illustrious-Generierung mit der verwalteten AMD-ComfyUI-Installation auf dem ROG Ally.
+
 # Releaseprüfung 0.36.8 – 2026-09-26
 
 - `cargo test --manifest-path src-tauri/Cargo.toml comfy::tests`: 6/6 bestanden. Der zusätzliche Pfadnachweis akzeptiert den verschachtelten Local-Studio-Checkpoint und lehnt eine fremde Datei außerhalb der freigegebenen Wurzeln ab.

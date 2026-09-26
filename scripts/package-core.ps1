@@ -42,6 +42,10 @@ Videoschnitt und GIF-Studio. Galerie und Modelle bleiben zentral erreichbar;
 Hugging Face, Downloads, Auftraege und Einstellungen liegen rechts. Die bisherige
 doppelte Studio-Navigation und Breadcrumb-Leiste wurden entfernt.
 
+Neu in 0.36.9: Der Local-Studio-Modellordner wird ComfyUI jetzt als direkter
+absoluter Checkpoint-Suchpfad uebergeben. Dadurch erkennt die verwaltete Engine
+auch Checkpoints in verschachtelten hf-Downloadordnern zuverlaessig.
+
 Neu in 0.36.8: Die Modellbereitschaft wird direkt gegen ComfyUIs tatsaechliche
 Checkpoint-Liste geprueft. Eine fremd gestartete Instanz auf Port 8188 wird in den
 Einstellungen klar als extern angezeigt; sie muss beendet werden, bevor Local
