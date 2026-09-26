@@ -1,8 +1,8 @@
-# Release 0.36.2 vorbereitet – automatische Modellübernahme nach Download (2026-09-26)
+# Release 0.36.2 veröffentlicht – automatische Modellübernahme nach Download (2026-09-26)
 
 Der bislang fehlende Übergang zwischen Downloadverwaltung und Modellbibliothek ist geschlossen. Sobald alle Dateien vollständig übertragen, gehasht und atomar veröffentlicht wurden, untersucht die Bibliothek ausschließlich die ausgewählten lokalen Dateien und trägt erkannte Modelle direkt ein. Die Modellansicht und die Studio-Kataloge lesen denselben SQLite-Bestand. Bereits abgeschlossene Downloads werden beim Start nachgetragen; nicht erkannte Begleitdateien bleiben gespeichert, erzeugen aber keinen falschen Modelleintrag.
 
-Sechs gezielte Download-Integrationstests, TypeScript-/Vite-Produktionsbuild und optimierter Rust-/Tauri-Release-Build sind bestanden. Installer und portables Archiv wurden erzeugt; Paketinhalt, Hashes und signierte Update-Metadaten stimmen. Die Veröffentlichung folgt.
+Sechs gezielte Download-Integrationstests, TypeScript-/Vite-Produktionsbuild und optimierter Rust-/Tauri-Release-Build sind bestanden. Version 0.36.2 ist unter https://github.com/ScopeBotlul/Local-Studio/releases/tag/v0.36.2 öffentlich als Latest verfügbar; Tag `v0.36.2` verweist auf Release-Commit `64c3fbc`. Installer und portables Archiv wurden vollständig von GitHub zurückgeladen, und Signatur, Größen, Hashes sowie alle fünf Asset-Digests stimmen.
 
 # Release 0.36.1 veröffentlicht – Downloadfortschritt in der Titelleiste (2026-09-26)
 
