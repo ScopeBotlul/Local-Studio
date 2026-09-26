@@ -6,7 +6,8 @@
 - `cargo fmt --check` meldet bereits vorhandene Formatabweichungen in mehreren unveränderten Rust-Dateien. Die geänderten Zeilen erzeugen keine zusätzliche gemeldete Abweichung.
 - Bestanden: Frontend-Produktionsbuild, optimierter Rust-/Tauri-Build, Inno-Installer, portables Archiv, Runtime-Staging und lokale Prüfung der signierten Update-Metadaten.
 - Paket-Hashes: Portable ZIP `0d60b4e7a8f012a09fd216ae931946026ce377a5e692f060ff9e365edba3083c`, Installer `971f6125db712477e5282473ae05d57a37fa89ef7e4a561cc7470f84e6709c79`.
-- Noch ausstehend: echter WAI-Illustrious-Lauf auf dem ROG Ally und öffentliche Releaseprüfung.
+- Veröffentlichung: `v0.36.14` ist öffentlich und als Latest markiert. Installer und Portable-ZIP wurden vollständig von GitHub zurückgeladen; alle fünf Asset-Digests, Größen, SHA-256-Werte und die Update-Signatur stimmen. Nachweis: `.artifacts/github-release-verification-0.36.14.json`.
+- Noch ausstehend: echter WAI-Illustrious-Lauf auf dem ROG Ally.
 
 # Releaseprüfung 0.36.13 – 2026-09-26
 
