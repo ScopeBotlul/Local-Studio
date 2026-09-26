@@ -1,8 +1,8 @@
-# Release 0.33.1 gebaut (2026-09-26)
+# Release 0.33.1 veröffentlicht (2026-09-26)
 
 Der ComfyUI-Installationsbutton dient während des laufenden Vorgangs jetzt selbst als Fortschrittsanzeige. Er zeigt die Ermittlung des offiziellen Releases, den echten prozentualen Bytefortschritt, die Prüfsummenprüfung und das Entpacken an. Der Status wird auch während des lang laufenden Desktop-Befehls regelmäßig aktualisiert. Nach erfolgreicher Installation übernimmt Local Studio den Pfad automatisch und startet die eingerichtete Engine wie bereits in 0.33.0 implementiert.
 
-Windows-EXE, Inno-Installer, portables Archiv, Prüfsummen und signierte Update-Metadaten für 0.33.1 wurden erzeugt und lokal bytegenau geprüft.
+Windows-EXE, Inno-Installer, portables Archiv, Prüfsummen und signierte Update-Metadaten für 0.33.1 sind unter https://github.com/ScopeBotlul/Local-Studio/releases/tag/v0.33.1 öffentlich als Latest verfügbar. Tag `v0.33.1` verweist auf Release-Commit `8af7bc4`. Installer und portables Archiv wurden vollständig zurückgeladen; Signatur, Größen, Hashes und alle fünf GitHub-Asset-Digests stimmen.
 
 # Release 0.33.0 veröffentlicht (2026-09-26)
 
