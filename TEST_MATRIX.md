@@ -1,3 +1,11 @@
+# Releaseprüfung 0.35.5 – 2026-09-26
+
+- Reales ROG-Ally-Protokoll ausgewertet: `gfx1103`, ROCm 7.2 und PyTorch 2.9.1 werden erkannt; der Prozess endet beim GPU-Tensor in `aotriton_supported()` mit Windows-Ausnahme `0xC0000005` aus `amdhip64_7.dll`.
+- `cargo test ... comfy::tests`: 4/4 bestanden. Die AMD-Paketerkennung und der daraus folgende sichere Attention-Modus sind abgedeckt; NVIDIA-, Intel- und CPU-Starts erhalten das zusätzliche Argument nicht.
+- Ein zusätzlich angestoßener vollständiger Rust-Lauf bestand 178 Tests und scheiterte bei einem unveränderten Windows-Anmeldespeicher-Test mit `secret_store`; ein Test blieb wie vorgesehen ohne Symlink-Berechtigung ignoriert. Der gezielt erneut ausgeführte ComfyUI-Bereich ist vollständig grün.
+- Ein erneuter Start auf dem ROG Ally bleibt nach Installation dieses Builds auf dem Zielgerät zu prüfen.
+- Frontend-Produktionsbuild und optimierter Rust-/Tauri-Release-Build bestanden. Das portable ZIP enthält exakt 80 erlaubte Dateien; 77 Runtime-Dateien entsprechen ihren Manifesten. EXE SHA-256 `4de5b2e7af4334aa2b1ef1658c65c218568bb4225514f6ef45c761cbe5037cb1`, ZIP `fba850e1649ab5dbb4a9e603f118854c440306cd37bea8d8794fa03dcaee7485`, Installer `e2f75d07be7466810fa4c8f6b14ebbbca884a782e4b5b66ea0d91ca8da954c7e`. Signiertes Manifest stimmt mit Version, URLs, Größen, Hashes und eingebettetem öffentlichen Schlüssel überein. Öffentliche Verifikation folgt nach dem Upload.
+
 # Releaseprüfung 0.35.4 – 2026-09-26
 
 - Portabler Start verwendet jetzt den offiziellen `python.exe -s ComfyUI/main.py --windows-standalone-build`-Modus zusammen mit den bestehenden Loopback-, Port-, Auto-Launch- und API-Node-Grenzen. Ausgabe und Fehlerausgabe gehen ausschließlich in ein lokales 64-KiB-begrenztes Anzeigeprotokoll; der Prozess bleibt an die Windows-Jobgruppe gebunden.

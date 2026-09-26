@@ -42,6 +42,10 @@ Videoschnitt und GIF-Studio. Galerie und Modelle bleiben zentral erreichbar;
 Hugging Face, Downloads, Auftraege und Einstellungen liegen rechts. Die bisherige
 doppelte Studio-Navigation und Breadcrumb-Leiste wurden entfernt.
 
+Neu in 0.35.5: AMD-Portable-Installationen verwenden automatisch den kompatiblen
+Split-Cross-Attention-Modus. Dadurch wird der native AOTriton-Starttest umgangen,
+der auf dem ROG Ally mit gfx1103 in amdhip64_7.dll abstuerzen kann.
+
 Neu in 0.35.4: Portable ComfyUI startet im offiziellen Windows-Standalone-Modus.
 Startausgaben werden lokal protokolliert; ein frueher Absturz wird sofort erkannt
 und das Protokoll kann in den ComfyUI-Einstellungen aufgeklappt werden.

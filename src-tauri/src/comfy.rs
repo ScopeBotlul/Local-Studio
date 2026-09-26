@@ -94,6 +94,9 @@ fn valid_root(path: &Path) -> bool {
         && path.join("python_embeded/python.exe").is_file()
         && path.join("ComfyUI/main.py").is_file()
 }
+fn uses_amd_safe_attention(path: &Path) -> bool {
+    path.join("run_amd_gpu.bat").is_file()
+}
 fn likely_roots(managed_root: &Path) -> Vec<PathBuf> {
     let mut choices = Vec::new();
     choices.push(managed_root.join("ComfyUI_windows_portable"));
@@ -941,11 +944,13 @@ impl Comfy {
         if !valid_root(&root) {
             return Err("comfy_path".into());
         }
-        fs::write(
-            &self.runtime_log,
-            b"Local Studio: ComfyUI runtime\r\n",
-        )
-        .map_err(|_| "comfy_storage")?;
+        let amd_safe_attention = uses_amd_safe_attention(&root);
+        let log_header = if amd_safe_attention {
+            "Local Studio: ComfyUI runtime (AMD compatibility: split cross attention)\r\n"
+        } else {
+            "Local Studio: ComfyUI runtime\r\n"
+        };
+        fs::write(&self.runtime_log, log_header).map_err(|_| "comfy_storage")?;
         if let Ok(mut error) = self.runtime_error.lock() {
             *error = None;
         }
@@ -967,7 +972,14 @@ impl Comfy {
                 "--disable-auto-launch",
                 "--disable-api-nodes",
             ])
-            .stdin(Stdio::null())
+            .stdin(Stdio::null());
+        if amd_safe_attention {
+            // Current AMD Windows builds may terminate inside aotriton_supported()
+            // on APUs such as gfx1103. ComfyUI skips that native probe when the
+            // split attention backend is explicitly selected.
+            command.arg("--use-split-cross-attention");
+        }
+        command
             .stdout(Stdio::from(log.try_clone().map_err(|_| "comfy_storage")?))
             .stderr(Stdio::from(log))
             .env_clear();
@@ -1317,6 +1329,14 @@ mod tests {
             "ComfyUI_windows_portable_nvidia_cu126.7z"
         );
         assert_eq!(package_name("other"), Err("comfy_variant".into()));
+    }
+
+    #[test]
+    fn amd_portable_installations_use_the_safe_attention_backend() {
+        let temp = tempfile::tempdir().unwrap();
+        assert!(!uses_amd_safe_attention(temp.path()));
+        fs::write(temp.path().join("run_amd_gpu.bat"), b"rem official launcher").unwrap();
+        assert!(uses_amd_safe_attention(temp.path()));
     }
 
     #[test]
