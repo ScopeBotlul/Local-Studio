@@ -1,3 +1,9 @@
+# Release 0.36.8 vorbereitet – ComfyUI-Instanz und Modellreichweite eindeutig (2026-09-26)
+
+Die neue Meldung entstand noch vor dem Workflow: `probe()` stufte den Local-Studio-Checkpoint nur dann als ComfyUI-Modell ein, wenn der laufende Prozess im aktuellen App-Lauf verwaltet wurde. Bei einer bereits auf Port 8188 antwortenden fremden oder überlebenden Instanz fiel die Prüfung auf den nativen NVIDIA-Adapter zurück.
+
+Die Bereitschaft wird nun über ComfyUIs tatsächliche `CheckpointLoaderSimple`-Liste geprüft. Pfade außerhalb der beiden freigegebenen Modellwurzeln bleiben ausgeschlossen. Eine extern laufende Instanz wird in Status, Fehlermeldung und Einstellungen klar gekennzeichnet; Local Studio startet seine verwaltete Engine erst, nachdem der fremde Prozess beendet wurde. Sechs gezielte ComfyUI-Tests, Frontend-Produktionsbuild, optimierter Rust-/Tauri-Build, Installer, portables Archiv und signierte Update-Metadaten sind bestanden. Die Veröffentlichung wird nach der GitHub-Rückprüfung ergänzt.
+
 # Release 0.36.7 veröffentlicht – ComfyUI-Workflowwerte aus der laufenden API (2026-09-26)
 
 Die erreichte ComfyUI-API lehnte den Workflow vor der Ausführung ab. Der wahrscheinlich konkrete Auslöser bei einem verschachtelt heruntergeladenen WAI-Checkpoint ist die strikte `CheckpointLoaderSimple`-Auswahlliste: Local Studio erzeugte plattformneutral `unterordner/modell.safetensors`, während ComfyUI unter Windows den Wert `unterordner\modell.safetensors` führt.

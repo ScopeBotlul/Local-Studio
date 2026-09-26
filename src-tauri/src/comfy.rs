@@ -567,7 +567,7 @@ impl Comfy {
             endpoint: ENDPOINT.into(),
             version,
             error: if running {
-                None
+                (!managed && installed).then_some("comfy_external_running".into())
             } else {
                 self.runtime_error
                     .lock()
@@ -988,7 +988,16 @@ impl Comfy {
     }
     pub fn start(&self) -> Result<ComfyStatus> {
         if probe_http().is_ok() {
-            return Ok(self.status());
+            return if self
+                .process
+                .lock()
+                .ok()
+                .is_some_and(|process| process.is_some())
+            {
+                Ok(self.status())
+            } else {
+                Err("comfy_external_running".into())
+            };
         }
         let root = {
             let c = self.config.lock().map_err(|_| "comfy_storage")?;
@@ -1115,7 +1124,30 @@ impl Comfy {
         }
     }
     pub fn checkpoint(&self, path: &Path) -> Option<String> {
-        self.model_relative(path, "checkpoints")
+        let requested = self.checkpoint_candidate(path)?;
+        let info = client(Duration::from_secs(5))
+            .ok()?
+            .get(format!("{ENDPOINT}/object_info/CheckpointLoaderSimple"))
+            .send()
+            .ok()?
+            .error_for_status()
+            .ok()?
+            .json::<Value>()
+            .ok()?;
+        resolve_comfy_option(
+            &info,
+            "CheckpointLoaderSimple",
+            "ckpt_name",
+            &requested,
+        )
+    }
+    pub fn checkpoint_path(&self, path: &Path) -> bool {
+        self.checkpoint_candidate(path).is_some()
+    }
+    fn checkpoint_candidate(&self, path: &Path) -> Option<String> {
+        let root = self.config.lock().ok()?.path.clone().map(PathBuf::from)?;
+        relative_model_path(path, &root.join("ComfyUI/models/checkpoints"))
+            .or_else(|| relative_model_path(path, &self.external_checkpoints))
     }
     pub fn model_folder(&self, folder: &str) -> Option<PathBuf> {
         if !matches!(
@@ -1141,8 +1173,7 @@ impl Comfy {
         if let Some(relative) = relative_model_path(path, &root.join("ComfyUI/models").join(folder)) {
             return Some(relative);
         }
-        let managed = self.process.lock().ok().is_some_and(|process| process.is_some());
-        (folder == "checkpoints" && managed)
+        (folder == "checkpoints")
             .then(|| relative_model_path(path, &self.external_checkpoints))
             .flatten()
     }
@@ -1482,7 +1513,12 @@ mod tests {
             relative_model_path(&checkpoint, &models).as_deref(),
             Some("hf-download/wai.safetensors")
         );
+        assert_eq!(
+            comfy.checkpoint_candidate(&checkpoint).as_deref(),
+            Some("hf-download/wai.safetensors")
+        );
         assert!(relative_model_path(&checkpoint, &config).is_none());
+        assert!(!comfy.checkpoint_path(&config.join("foreign.safetensors")));
     }
 
     #[test]

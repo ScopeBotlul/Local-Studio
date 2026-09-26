@@ -661,15 +661,19 @@ impl ImageEngine {
         result
     }
     pub fn probe(&self, path: &str) -> ImageProbe {
-        if !path.is_empty() && self.comfy.checkpoint(Path::new(path)).is_some() {
+        if !path.is_empty() && self.comfy.checkpoint_path(Path::new(path)) {
+            let checkpoint_ready = self.comfy.checkpoint(Path::new(path)).is_some();
             let model = fs::canonicalize(path)
                 .ok()
                 .and_then(|p| model_parts(&p).ok());
             let hardware = crate::hardware::discover();
-            let missing = model
+            let mut missing = model
                 .as_ref()
                 .map(|(_, m)| m.clone())
                 .unwrap_or_else(|| vec!["image_structure".into()]);
+            if !checkpoint_ready {
+                missing.push("comfy_checkpoint_unavailable".into());
+            }
             return ImageProbe {
                 ready: missing.is_empty(),
                 family: missing.is_empty().then_some("SDXL".into()),
