@@ -144,6 +144,13 @@ pub(crate) fn valid_dimensions(width: u32, height: u32) -> bool {
         && height % 64 == 0
         && u64::from(width) * u64::from(height) <= 4_194_304
 }
+fn admission_ram(runtime: &str, model_bytes: u64) -> u64 {
+    if runtime.starts_with("ComfyUI") {
+        512 * 1024 * 1024
+    } else {
+        model_bytes.saturating_add(1024 * 1024 * 1024)
+    }
+}
 pub(crate) fn validate(request: &ImageRequest) -> Result<()> {
     if let Some(reference) = &request.reference {
         reference::validate(reference, request.width, request.height)?;
@@ -718,7 +725,7 @@ impl ImageEngine {
                 .acquire(
                     &job.id,
                     "image",
-                    job.model_bytes.saturating_add(1024 * 1024 * 1024),
+                    admission_ram(&job.runtime, job.model_bytes),
                     true,
                     &cancel,
                 )
@@ -1342,6 +1349,18 @@ mod tests {
     fn missing_runtime_never_claims_ready() {
         let dir = tempfile::tempdir().unwrap();
         assert!(runtime_files(dir.path()).is_err());
+    }
+    #[test]
+    fn comfy_admission_does_not_require_checkpoint_size_as_free_system_ram() {
+        let model = 7 * 1024 * 1024 * 1024;
+        assert_eq!(
+            admission_ram("ComfyUI · local HTTP API", model),
+            512 * 1024 * 1024
+        );
+        assert_eq!(
+            admission_ram("stable-diffusion.cpp · Vulkan", model),
+            8 * 1024 * 1024 * 1024
+        );
     }
 }
 

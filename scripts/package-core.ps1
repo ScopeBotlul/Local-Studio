@@ -42,6 +42,11 @@ Videoschnitt und GIF-Studio. Galerie und Modelle bleiben zentral erreichbar;
 Hugging Face, Downloads, Auftraege und Einstellungen liegen rechts. Die bisherige
 doppelte Studio-Navigation und Breadcrumb-Leiste wurden entfernt.
 
+Neu in 0.36.4: ComfyUI-Auftraege werden auf PCs mit gemeinsamem CPU-/GPU-Speicher
+nicht mehr wegen der Dateigroesse des Checkpoints vorzeitig abgewiesen. Local Studio
+reserviert eine kleine Arbeitsreserve und laesst ComfyUI/ROCm den tatsaechlichen
+Speicherbedarf verwalten. Die serielle GPU-Ausfuehrung bleibt aktiv.
+
 Neu in 0.36.3: Die von Local Studio verwaltete ComfyUI-Engine erhaelt den lokalen
 Modellordner als zusaetzlichen Checkpoint-Pfad. Heruntergeladene SDXL-Modelle wie
 WAI Illustrious laufen dadurch auch ueber das AMD-ROCm-Paket, ohne Kopie der Gewichte.

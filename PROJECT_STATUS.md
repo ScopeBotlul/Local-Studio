@@ -1,3 +1,9 @@
+# Release 0.36.4 vorbereitet – RAM-Vorprüfung für ComfyUI korrigiert (2026-09-26)
+
+Die gemeinsame Ressourcenplanung hat bisher für jeden Bildauftrag die vollständige Checkpoint-Dateigröße plus 1 GiB als freien System-RAM verlangt. Zusammen mit der allgemeinen 512-MiB-Sicherheitsreserve wurden WAI Illustrious und ähnlich große Checkpoints auf dem ROG Ally deshalb bereits vor dem ComfyUI-Start abgewiesen.
+
+Für ComfyUI reserviert Local Studio nun 512 MiB Arbeits-RAM und behält die vorhandene allgemeine Reserve sowie die serielle GPU-Sperre bei. ComfyUI/ROCm verwaltet den tatsächlichen gemeinsamen CPU-/GPU-Speicher und kann bei einer real zu großen Konfiguration eine konkrete Laufzeitmeldung liefern. Der native Adapter bleibt unverändert streng. Die direkt betroffenen Bild-Engine- und Ressourcenplaner-Tests, der Frontend-Produktionsbuild, der optimierte Rust-/Tauri-Build, Installer, portables Archiv und die signierten Update-Metadaten sind bestanden. Die Veröffentlichung wird nach der GitHub-Rückprüfung ergänzt.
+
 # Release 0.36.3 veröffentlicht – Local-Studio-Modelle in ComfyUI (2026-09-26)
 
 Die falsche NVIDIA-Sperre bei einem heruntergeladenen WAI-Illustrious-Checkpoint entstand durch einen Laufzeitwechsel: Das Modell lag im Local-Studio-Modellordner, während ComfyUI ausschließlich seinen eigenen Checkpointordner kannte. Die Prüfung fiel deshalb auf den nativen `stable-diffusion.cpp`-Vulkan-Adapter zurück, dessen aktueller Pfad NVIDIA voraussetzt.
