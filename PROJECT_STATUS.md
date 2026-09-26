@@ -1,3 +1,11 @@
+# Release 0.33.0 veröffentlicht (2026-09-26)
+
+Version 0.33.0 integriert die Installation von ComfyUI Portable in den Einrichtungsdialog. Local Studio bietet die offiziellen Pakete für NVIDIA, NVIDIA CUDA 12.6, AMD und Intel an, zeigt Download und Installation im vorhandenen Download-Menü und speichert den eingerichteten Engine-Pfad automatisch. Mit **Nach Installation suchen** kann eine bestehende portable Installation in typischen lokalen Ordnern gefunden werden; die manuelle Auswahl bleibt verfügbar.
+
+Der Download wird ausschließlich aus dem offiziellen ComfyUI-GitHub-Release auf erwarteten GitHub-Auslieferungsservern angenommen. Größe und SHA-256-Digest stammen aus der Release-API; Hash, Archivpfade, Reparse Points und die erwartete Portable-Struktur werden vor der Übernahme geprüft. Custom Nodes und zusätzliche Modellabhängigkeiten werden nicht automatisch installiert.
+
+Windows-EXE, Installer, portables Archiv, Prüfsummen und signierte Update-Metadaten sind unter https://github.com/ScopeBotlul/Local-Studio/releases/tag/v0.33.0 öffentlich als Latest verfügbar. Tag `v0.33.0` verweist auf Release-Commit `d4f2421`. Installer und portables Archiv wurden vollständig von GitHub zurückgeladen; Update-Signatur, Größen, lokale Hashes und alle fünf GitHub-Asset-Digests stimmen. Ein vollständiger ComfyUI-Download mit anschließender Inferenz bleibt als End-to-End-Prüfung offen.
+
 # Release 0.32.0 veröffentlicht (2026-09-26)
 
 Version 0.32.0 entfernt auf ausdrücklichen Nutzerwunsch die lokale 18+-Sperre vollständig aus Oberfläche und öffentlicher Desktop-IPC. Altersabfrage, PIN/Passwort, Neustartsperre, gesperrte Platzhalter und Backend-Abbrüche sind entfernt. Alte Kennzeichnungsfelder bleiben ausschließlich zur Formatkompatibilität lesbar und haben keine Sperrwirkung. 18+-Angaben von Hugging Face und Civitai bleiben als reine Metadaten beziehungsweise Suchfilter sichtbar.

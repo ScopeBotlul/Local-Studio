@@ -1,3 +1,12 @@
+# Releaseprüfung 0.33.0 – 2026-09-26
+
+- Frontend: `npm.cmd run build` bestanden. Der direkte Test der Downloadübersicht bestand 2/2 Tests; bestehende Restzeitberechnung und Zustandsdarstellung bleiben intakt.
+- Rust/Tauri: `scripts/desktop.ps1 check` bestanden. Die zwei neuen ComfyUI-Tests für die feste Paket-Allowlist und gegen ausbrechende bzw. absolute Archivpfade bestanden.
+- Offizielle Quelle: GitHub-Release `ComfyUI v0.37.0` stellte am Prüftag alle vier erwarteten Windows-Pakete mit plausibler Größe und SHA-256-Digest bereit. Es wurde dabei keine Paketdatei geladen.
+- Releasepakete: optimierte EXE und Inno-Installer erfolgreich gebaut. Das portable ZIP enthält 80 erlaubte Dateien; alle 77 Runtime-Dateien stimmen mit ihren Manifesten überein. EXE SHA-256 `41f7a2852104affd980a485195bc97bcf7c0b61f9a83b810ea9eb5e5416684da`, ZIP `300d28d9dda2e820bdaa5300127b461f89f478a116b1c27e9beb6d50840c4664`, Installer `634698d95674ff3c40c31452bbcee8c9cffc4090b65ff0077b92a6541d5507a1`.
+- Veröffentlichung: `v0.33.0` ist öffentlich, kein Entwurf und keine Vorabversion und als Latest markiert. Installer und Portable-ZIP wurden vollständig von GitHub zurückgeladen; alle fünf Asset-Digests, Größen, SHA-256-Werte und die Update-Signatur stimmen. Nachweis: `.artifacts/github-release-verification-0.33.0.json`.
+- Offen: Ein echter Mehrgigabyte-Download, Entpacken des vollständigen Pakets mit Windows `tar.exe`, Start der frisch installierten Engine und reale Bildinferenz wurden nicht Ende-zu-Ende ausgeführt. Unveränderte Galerie-, Projekt-, Assistent- und Installer-Installations-/Deinstallationssuiten wurden nicht wiederholt.
+
 # Releaseprüfung 0.32.0 – 2026-09-26
 
 - Frontend: `npm.cmd run build` bestanden; 15 Testdateien mit 57/57 Tests bestanden. Darin zehn Tests für die automatische Startprüfung: einmalige verzögerte Prüfung, automatisches Öffnen bei verfügbarem Update, bereits bekannter Updatezustand, Warten auf andere Dialoge, Abbruch/Unmount, deaktivierte Einstellung und Netzwerkfehler.
