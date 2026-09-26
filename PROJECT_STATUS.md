@@ -647,3 +647,11 @@ Als Nächstes stehen die noch offenen M0-Punkte und anschließend M1 gemäß `PL
 - Fortschritt, Datenmenge, Geschwindigkeit und ungefähre Restzeit; Warteschlange, Prüfung und Übernahme haben eigene Statusangaben ohne erfundene Restzeiten. Updategeschwindigkeit wird aus tatsächlichen Byte-Differenzen zwischen Statusabfragen berechnet.
 - Abfragen laufen nur bei geöffneter Übersicht, ohne Überlappung; verspätete Antworten nach Schließen/Privacy-Neumount werden verworfen. Fehler werden angezeigt und automatisch erneut abgefragt.
 - Escape, Schließen, erneuter Symbolklick und Außenklick schließen die Übersicht; „Alle Downloads“ öffnet die bestehende Verwaltung. Bestehende modale Dialoge werden nicht überlagert. Kein neuer Installer/Release erstellt.
+
+## 2026-09-26 – Kompakte Haupt- und Create-Navigation
+
+- Die Hauptnavigation liegt als schmale, zentrierte Leiste am oberen Fensterrand. `Chat`, `Create`, Galerie und Modelle bilden die primären Arbeitsbereiche; Hugging Face, Downloads, Aufträge und Einstellungen bleiben rechts direkt erreichbar.
+- Das App-Logo links öffnet die Startseite. Der vorhandene Kompaktmodus reduziert bei wenig Platz automatisch Logo- und Aktionsbeschriftungen, während die zentralen Arbeitsbereiche sichtbar bleiben.
+- `Create` öffnet eine zweite, kontextbezogene Werkzeugleiste für Bild erstellen, Bild bearbeiten, Video bearbeiten und GIF erstellen. Die vorhandenen vier Studios und ihre Zustände werden weiterverwendet; es wurden keine funktionslosen Einträge ergänzt.
+- Die frühere Breadcrumb-Leiste und der doppelte Studio-Umschalter im Seiteninhalt wurden entfernt, damit mehr Höhe für Canvas und Editoren verfügbar ist.
+- Tastaturwechsel zwischen den Create-Werkzeugen mit Pfeiltasten sowie Pos1/Ende bleibt erhalten. Kein neuer Installer oder Release wurde für diese reine Quelländerung erstellt.

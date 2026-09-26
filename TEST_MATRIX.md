@@ -689,3 +689,11 @@ ZIP-Inhalt/CRC, Anleitung, EXE-Identität und Prüfsummen geprüft. Vollständig
 - `node scripts/check-download-overview.mjs`: bestanden, isolierter Headless Edge mit echten React-/WindowFrame-Komponenten und simulierten IPC-Antworten. Mehrere Downloads, aktive Filterung, Fortschritt/Restzeit, Prüfung, Abschlussentfernung, Stoppen des Pollings, Escape/Fokusrückgabe, Außenklick, Symbol-Toggle, Navigation, Leer-/Fehlerzustand und 150%-Zoom; App-Update inkl. initial unbekannter Geschwindigkeit, Byte-Differenzmessung und Abschluss.
 - Nach erstem Testlauf Fokus-Rückgabe nach Escape korrigiert; abschließender Browserlauf bestanden. Bericht: `.artifacts/download-overview-browser.json`.
 - Keine echten Netzwerk-Downloads, Rust-, Inferenz- oder Installertests wiederholt; Backend und Downloadtransport unverändert. Native Desktop-Abnahme dieser neuen Übersicht steht noch aus.
+
+## 2026-09-26 – Navigation (gezielte Prüfung)
+
+- `npm.cmd run build`: bestanden; TypeScript und Vite-Produktionsbuild erfolgreich. Die bereits bekannte Warnung zur Größe des Hauptbundles bleibt bestehen.
+- `npm.cmd test -- --run`: 14 Testdateien und 54 Frontendtests bestanden.
+- `git diff --check`: bestanden.
+- Geprüft wurden Frontend-Kompilierung und bestehende direkte Frontend-Abhängigkeiten. Rust-, Inferenz-, Netzwerk-, Installer- und Updateprüfungen wurden nicht wiederholt, da diese Bereiche unverändert sind.
+- Eine native visuelle Abnahme der neuen Navigation bei verschiedenen Fensterbreiten steht noch aus.
