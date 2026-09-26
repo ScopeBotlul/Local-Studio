@@ -6,6 +6,7 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   --accent: #4b9f91;
+  --accent-ink: #102421;
   --ui-scale: 1;
   --bg: #111416;
   --sidebar: #171b1d;
@@ -100,7 +101,7 @@ svg { flex-shrink: 0; }
 .brand { display: flex; align-items: center; gap: 11px; margin: 0 13px 35px; font-size: 18px; font-weight: 650; letter-spacing: -.55px; }
 .brand span:not(.logo):not(.logo span) { display: block; font-size: 10px; letter-spacing: .5px; color: var(--muted); font-weight: 400; margin-top: 3px; }
 .logo { display: inline-flex; width: 43px; height: 43px; border-radius: 12px; background: var(--accent); align-items: center; justify-content: center; gap: 3px; box-shadow: inset 0 1px 0 #ffffff2b; flex-shrink: 0; }
-.logo > span { width: 4px; background: #102623; border-radius: 2px; height: 19px; transform: skewY(-25deg); }
+.logo > span { width: 4px; background: var(--accent-ink); border-radius: 2px; height: 19px; transform: skewY(-25deg); }
 .logo > span:nth-child(2) { height: 25px; }
 .logo > span:nth-child(3) { height: 14px; }
 .logo-small { width: 31px; height: 33px; border-radius: 8px; gap: 2.5px; }
@@ -133,7 +134,7 @@ svg { flex-shrink: 0; }
 .panel-kicker { font-size: 11px; color: var(--accent); display: flex; align-items: center; gap: 8px; margin-bottom: 22px; }
 .welcome-panel h2 { font-size: 24px; letter-spacing: -.6px; font-weight: 500; max-width: calc(100% - 70px); margin-bottom: 12px; }.welcome-panel > p { font-size: 12px; line-height: 1.8; max-width: 76%; margin-bottom: 19px; position: relative; z-index: 1; }
 .hash-note { display: block; color: var(--faint); max-width: 82%; line-height: 1.6; font-size: 10px; margin-top: 15px; }.welcome-graphic { position: absolute; right: 18px; top: 88px; width: 95px; height: 122px; display: flex; align-items: center; flex-direction: column; gap: 14px; color: color-mix(in srgb, var(--accent) 45%, var(--border)); transform: rotate(-5deg); }.welcome-graphic code { font-size: 10px; letter-spacing: 3px; }.graphic-line { position: absolute; top: 36px; width: 90px; height: 1px; background: var(--accent); opacity: .5; }
-.button { display: inline-flex; justify-content: center; align-items: center; gap: 9px; font-size: 12px; font-weight: 550; border-radius: 6px; padding: 10px 14px; min-height: 37px; border: 1px solid transparent; text-decoration: none; white-space: nowrap; }.button.primary { color: #102421; background: var(--accent); border-color: color-mix(in srgb, var(--accent) 85%, white); }.button.primary:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 85%, white); }.button.secondary { color: var(--text); background: var(--panel-raised); border-color: var(--border); }.button.secondary:hover:not(:disabled) { border-color: var(--faint); }
+.button { display: inline-flex; justify-content: center; align-items: center; gap: 9px; font-size: 12px; font-weight: 550; border-radius: 6px; padding: 10px 14px; min-height: 37px; border: 1px solid transparent; text-decoration: none; white-space: nowrap; }.button.primary { color: var(--accent-ink); background: var(--accent); border-color: color-mix(in srgb, var(--accent) 85%, white); }.button.primary:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 85%, white); }.button.secondary { color: var(--text); background: var(--panel-raised); border-color: var(--border); }.button.secondary:hover:not(:disabled) { border-color: var(--faint); }
 .icon-button { display: inline-flex; align-items: center; justify-content: center; border: none; color: var(--muted); background: transparent; border-radius: 5px; width: 31px; height: 31px; flex-shrink: 0; }.icon-button:hover:not(:disabled) { color: var(--text); background: var(--panel-raised); }
 .text-button { background: transparent; color: var(--muted); border: 0; display: inline-flex; align-items: center; gap: 7px; padding: 3px 0; font-size: 11px; }.text-button:hover { color: var(--accent); }
 .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 15px; }.section-heading h2 { font-size: 13px; font-weight: 600; }

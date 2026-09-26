@@ -130,9 +130,6 @@ impl ImageEngine {
         if !probe.ready {
             return Err(format!("image_not_ready: {}", probe.missing.join(", ")));
         }
-        if !request.loras.is_empty() && !probe.runtime.starts_with("ComfyUI") {
-            return Err("image_lora_runtime".into());
-        }
         let digest = sha(&mut model, Some(&self.stopped), |_| {})?;
         Ok((probe, model, extensions, digest))
     }

@@ -19,8 +19,8 @@
 .window-controls button:hover{background:var(--panel-raised)}
 .window-controls .window-close:hover{background:#c42b1c;color:#fff}
 .window-titlebar button:active{transform:none}
-.window-content{flex:1;min-height:0;position:relative}
-.window-content .app-shell{height:calc((100vh - 36px) / var(--ui-scale))}
+.window-content{flex:1;min-height:0;position:relative;overflow:hidden}
+.window-content .app-shell{width:100%;height:calc((100vh - 36px) / var(--ui-scale));zoom:var(--ui-scale)}
 .window-content .connection-screen{min-height:0;height:100%}
 .window-error{position:fixed;right:16px;top:44px;z-index:200;background:var(--panel);border:1px solid var(--danger);border-radius:8px;padding:12px;max-width:70vw;overflow-wrap:anywhere;display:flex;gap:12px}
 .window-error button{background:none;border:0}

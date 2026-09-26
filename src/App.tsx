@@ -50,6 +50,7 @@ import { api, inDesktop } from './api';
 import { clampScale, errorMessage, fileName, formatBytes, formatDate, initialLanguage, isActiveJob, ZOOM_STEP } from './helpers';
 import { translations, type Translations } from './i18n';
 import type { AppSnapshot, HardwareInfo, Job, Language, Settings, StoragePaths } from './types';
+import { accentInk, applyAccentWindowIcon } from './window-icon';
 
 type Page = 'home' | 'studio' | 'models' | 'downloads' | 'jobs' | 'gallery' | 'hub' | 'assistant' | 'settings';
 type JobFilter = 'all' | 'active' | 'finished';
@@ -226,10 +227,17 @@ export default function App() {
     const theme = snapshot?.settings.theme ?? 'system';
     root.dataset.theme = theme;
     root.lang = language;
-    root.style.setProperty('--accent', snapshot?.settings.accentColor ?? '#4b9f91');
+    const accent = snapshot?.settings.accentColor ?? '#4b9f91';
+    root.style.setProperty('--accent', accent);
+    root.style.setProperty('--accent-ink', accentInk(accent));
     root.style.setProperty('--ui-scale', String(snapshot?.settings.uiScale ?? 1));
     root.style.colorScheme = theme === 'system' ? 'light dark' : theme;
   }, [snapshot?.settings.theme, snapshot?.settings.accentColor, snapshot?.settings.uiScale, language]);
+
+  useEffect(() => {
+    if (!inDesktop()) return;
+    void applyAccentWindowIcon(snapshot?.settings.accentColor ?? '#4b9f91').catch(reportError);
+  }, [snapshot?.settings.accentColor, reportError]);
 
   useEffect(() => { if (!toast) return; const timer = setTimeout(() => setToast(''), 3200); return () => clearTimeout(timer); }, [toast]);
 

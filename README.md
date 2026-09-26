@@ -1,5 +1,7 @@
 # Local Studio
 
+Version 0.36.16 korrigiert die **Oberflächenskalierung**, färbt das laufende Windows-Fenstericon passend zum Akzent und unterstützt **LoRAs über die Vulkan-Engine auf AMD-/Intel-Handhelds**. [Änderungen und Grenzen](docs/RELEASE_0.36.16.md).
+
 Version 0.25.0 ergänzt **Bild-zu-Bild, maskiertes Inpainting, Bildstapel, Ressourcensteuerung, sichere Modellverschiebung, Modellupdates und lokale Messwerte/Präferenzen**. Dazu kommen Windows-Infobereich, optionale Hardwareanzeige und Systemakzent. [Bedienung](docs/IMAGE_REFERENCES.md), [Änderungen und Grenzen](docs/RELEASE_0.25.0.md). Der gesamte Masterprompt ist weiterhin in Arbeit; [vollständiger Anforderungsabgleich](REQUIREMENTS_STATUS.md).
 
 Version 0.24.0 ergänzt **lokalen DE/EN-Chat mit echten Studio-Werkzeugen und automatische Untertitel aus Ton/Video**. Qwen und Whisper laufen in eigenen CPU-Prozessen; Modelle werden ausdrücklich ausgewählt und heruntergeladen. [Einrichtung, Bedienung und Grenzen](docs/ASSISTANT.md).

@@ -34,7 +34,7 @@ export const imageApi = {
   saveWorkspace: (workspace: ImageWorkspace) => invoke<void>('image_workspace_save', { workspace }),
   recover: () => invoke<WorkspaceSnapshot>('image_recover'),
   discard: (id: string) => invoke<void>('image_discard', { id }),
-  probe: (path:string,backend:ImageBackend='auto',needsComfy=false,needsNative=false) => invoke<ImageProbe>('image_probe', { path, backend, needsComfy, needsNative }),
+  probe: (path:string,backend:ImageBackend='auto',hasLoras=false,needsNative=false) => invoke<ImageProbe>('image_probe', { path, backend, hasLoras, needsNative }),
   jobs: () => invoke<ImageJob[]>('image_jobs'),
   generate: (request: ImageRequest) => invoke<ImageJob>('image_generate', { request }),
   cancel: (id: string) => invoke<void>('image_cancel', { id }),
@@ -88,9 +88,9 @@ const errors: Record<string, [string, string]> = {
   comfy_model_path: ['Das Modell muss im Ordner ComfyUI\\models\\checkpoints liegen.', 'The model must be inside ComfyUI\\models\\checkpoints.'],
   comfy_reference: ['Referenzbild und Inpainting verwenden vorerst die bisherige Bildengine.', 'Reference image and inpainting currently use the existing image engine.'],
   image_lora: ['Maximal acht LoRAs mit einer Stärke von -2 bis 2 auswählen.', 'Select up to eight LoRAs with a strength from -2 to 2.'],
-  image_lora_path: ['LoRAs müssen im Ordner ComfyUI\\models\\loras liegen.', 'LoRAs must be inside ComfyUI\\models\\loras.'],
+  image_lora_path: ['Die LoRA-Datei ist nicht erreichbar oder gesperrt.', 'The LoRA file is unavailable or locked.'],
   image_lora_changed: ['Eine ausgewählte LoRA-Datei wurde seit dem Einreihen verändert.', 'A selected LoRA file changed after the job was queued.'],
-  image_lora_runtime: ['LoRAs benötigen die laufende ComfyUI-Engine.', 'LoRAs require the running ComfyUI engine.'],
+  image_lora_stage: ['Die LoRA konnte nicht sicher für den Vulkan-Worker bereitgestellt werden.', 'The LoRA could not be staged safely for the Vulkan worker.'],
 };
 export function imageError(value: unknown, de: boolean) {
   const message = String(value);

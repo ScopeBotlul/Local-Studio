@@ -1,3 +1,12 @@
+# Releaseprüfung 0.36.16 – 2026-09-27
+
+- `npm.cmd test -- --run src/window-icon.test.ts src/helpers.test.ts src/model-classification.test.ts`: 18/18 bestanden. Geprüft sind Akzentkontrast, Skalierungsgrenzen und bestehende Bildmaß-/Modellklassifizierung.
+- `cargo test --manifest-path src-tauri/Cargo.toml image_engine`: 29/29 bestanden. Der neue Fall bestätigt bytegenaues Bereitstellen einer lokalen LoRA unter neutralem Namen, korrektes Prompt-Tag, anschließendes Entfernen und die unveränderten Queue-/Recovery-/Referenzpfade.
+- `scripts/desktop.ps1 check` sowie der optimierte Tauri-/Frontend-Build sind bestanden. `cargo fmt --check` meldet weiterhin bereits vorhandene Formatabweichungen in mehreren unveränderten Rust-Dateien; der Compilercheck ist sauber.
+- Echte isolierte Release-App: 3/3 gezielte Prüfungen bestanden. WebView2 misst vollständige Fensterbreite und -höhe bei 75 und 125 Prozent, Canvas und Navigation bleiben sichtbar, dunkler Akzent erhält weißen Logokontrast, der Laufzeiticon-Aufruf erzeugt keinen IPC-Fehler und eine erkannte LoRA bleibt bei ausdrücklich gewählter Vulkan-Engine auswählbar. Nachweis: `.artifacts/native-1790461940958/report.json`; visuelle 125-%-Abnahme: `.artifacts/native-1790461737663/release36-scaled-lora.png`.
+- Paketprüfung bestanden: Portable-ZIP mit 80 erlaubten Dateien und allen vier Runtime-Manifsten, Installer, Prüfsummen und signierte Update-Metadaten. Portable SHA-256 `0b38032935603ec45f0b83c8e7b3eaa0652521a28e0093334c71eb53aa9eb427`; Installer SHA-256 `ee127f977a769408a236d57faa17a00826d84f96f867ee8ecb9de95dd33dbd1f`.
+- Abgrenzung: Ein echter Vulkan-LoRA-Lauf auf dem ROG Ally/Xbox Ally wurde nicht ausgeführt. Ein zusätzlich angestoßener breiter älterer Studio-Prüflauf erzeugte zwar ein reales 640×960-Bild, scheiterte anschließend aber im unveränderten Galerie-Speicherpfad des isolierten Testprofils mit `gallery_path`; dieser breite Lauf wird nicht als bestanden gewertet und begründet keine neue Galerieaussage.
+
 # Releaseprüfung 0.36.15 – 2026-09-26
 
 - Bestanden: 28 gezielte Rust-Tests für Bildengine, Warteschlange, Referenzen, Recovery, PNG-Prüfung sowie neue Engine-Serialisierung und Vulkan-Geräteauswahl. Alte Requests ohne `engine` laden als `auto`; NVIDIA, AMD und Intel werden aus der echten `--list-devices`-Ausgabe gewählt.

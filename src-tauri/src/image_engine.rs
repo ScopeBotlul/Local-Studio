@@ -6,7 +6,7 @@ use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::{
     fs::{self, File, OpenOptions},
-    io::{Read, Write},
+    io::{Read, Seek, SeekFrom, Write},
     path::{Path, PathBuf},
     process::{Command, Stdio},
     sync::{
@@ -514,6 +514,83 @@ fn png_bytes(path: &Path, width: u32, height: u32) -> Result<Vec<u8>> {
     Ok(bytes)
 }
 
+struct StagedLoras {
+    directory: PathBuf,
+    files: Vec<PathBuf>,
+}
+impl Drop for StagedLoras {
+    fn drop(&mut self) {
+        for file in self.files.iter().rev() {
+            let _ = fs::remove_file(file);
+        }
+        let _ = fs::remove_dir(&self.directory);
+    }
+}
+
+fn stage_native_loras(
+    job_directory: &Path,
+    request: &ImageRequest,
+    sources: &mut [File],
+    cancel: &AtomicBool,
+) -> Result<Option<StagedLoras>> {
+    if request.loras.is_empty() {
+        return Ok(None);
+    }
+    if request.loras.len() != sources.len() {
+        return Err("image_lora_stage".into());
+    }
+    let directory = job_directory.join(format!("native-loras-{}", uuid::Uuid::new_v4()));
+    fs::create_dir(&directory).map_err(|_| "image_lora_stage")?;
+    let mut staged = StagedLoras {
+        directory,
+        files: Vec::with_capacity(sources.len()),
+    };
+    for (index, source) in sources.iter_mut().enumerate() {
+        source
+            .seek(SeekFrom::Start(0))
+            .map_err(|_| "image_lora_stage")?;
+        let path = staged
+            .directory
+            .join(format!("local-studio-{}.safetensors", index + 1));
+        let mut target = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&path)
+            .map_err(|_| "image_lora_stage")?;
+        staged.files.push(path);
+        let mut buffer = vec![0; 1024 * 1024];
+        loop {
+            if cancel.load(Ordering::Relaxed) {
+                return Err("image_cancelled".into());
+            }
+            let read = source.read(&mut buffer).map_err(|_| "image_lora_stage")?;
+            if read == 0 {
+                break;
+            }
+            target
+                .write_all(&buffer[..read])
+                .map_err(|_| "image_lora_stage")?;
+        }
+        target.sync_all().map_err(|_| "image_lora_stage")?;
+    }
+    Ok(Some(staged))
+}
+
+fn native_lora_prompt(request: &ImageRequest) -> String {
+    let mut prompt = request.prompt.clone();
+    if !request.loras.is_empty() {
+        prompt.push('\n');
+        for (index, lora) in request.loras.iter().enumerate() {
+            prompt.push_str(&format!(
+                "<lora:local-studio-{}:{}>",
+                index + 1,
+                lora.strength
+            ));
+        }
+    }
+    prompt
+}
+
 fn job_directory(job: &ImageJob, legacy: &Path) -> Result<PathBuf> {
     if uuid::Uuid::parse_str(&job.id)
         .map(|v| v.to_string())
@@ -760,26 +837,19 @@ impl ImageEngine {
         &self,
         path: &str,
         engine: ImageBackend,
-        needs_comfy: bool,
+        _has_loras: bool,
         needs_native: bool,
     ) -> ImageProbe {
-        if needs_comfy && engine == ImageBackend::Vulkan {
-            let mut probe = self.native_probe(path);
-            probe.ready = false;
-            probe.missing.push("image_lora_runtime".into());
-            return probe;
-        }
         if needs_native && engine == ImageBackend::Comfy {
             let mut probe = self.comfy_probe(path);
             probe.ready = false;
             probe.missing.push("comfy_reference".into());
             return probe;
         }
-        match (engine, needs_comfy, needs_native) {
-            (_, true, _) => self.comfy_probe(path),
-            (_, _, true) | (ImageBackend::Vulkan, _, _) => self.native_probe(path),
-            (ImageBackend::Comfy, _, _) => self.comfy_probe(path),
-            (ImageBackend::Auto, _, _) => self.automatic_probe(path),
+        match (engine, needs_native) {
+            (_, true) | (ImageBackend::Vulkan, _) => self.native_probe(path),
+            (ImageBackend::Comfy, _) => self.comfy_probe(path),
+            (ImageBackend::Auto, _) => self.automatic_probe(path),
         }
     }
     fn update(&self, id: &str, save: bool, change: impl FnOnce(&mut ImageJob)) -> Result<()> {
@@ -805,7 +875,7 @@ impl ImageEngine {
         directory: PathBuf,
         cancel: Arc<AtomicBool>,
         _model_pin: File,
-        _extension_pins: Vec<File>,
+        mut extension_pins: Vec<File>,
     ) -> Result<()> {
         let mut started = Instant::now();
         let mut peak_memory = None;
@@ -899,8 +969,17 @@ impl ImageEngine {
             let backend = job.device.split('\t').next().ok_or("image_gpu")?;
             let mut cmd = command(&self.runtime);
             let _reference_pins = reference::run_inputs(request, &directory, &mut cmd)?;
+            let staged_loras =
+                stage_native_loras(&directory, request, &mut extension_pins, &cancel)?;
+            let runtime_prompt = if staged_loras.is_some() {
+                let path = directory.join("runtime-prompt.txt");
+                fs::write(&path, native_lora_prompt(request)).map_err(|_| "image_storage")?;
+                path
+            } else {
+                directory.join("prompt.txt")
+            };
             cmd.args(["-m", &request.model_path, "--prompt-file"])
-                .arg(directory.join("prompt.txt"))
+                .arg(runtime_prompt)
                 .arg("--negative-prompt-file")
                 .arg(directory.join("negative.txt"))
                 .args([
@@ -930,6 +1009,11 @@ impl ImageEngine {
                 .arg(&output)
                 .stdout(Stdio::piped())
                 .stderr(Stdio::piped());
+            if let Some(staged) = &staged_loras {
+                cmd.arg("--lora-model-dir")
+                    .arg(&staged.directory)
+                    .args(["--lora-apply-mode", "auto"]);
+            }
             if cancel.load(Ordering::Relaxed) {
                 return Err("image_cancelled".into());
             }
@@ -1282,7 +1366,7 @@ impl ImageEngine {
 pub async fn image_probe(
     path: String,
     backend: ImageBackend,
-    needs_comfy: bool,
+    has_loras: bool,
     needs_native: bool,
     state: tauri::State<'_, Arc<ImageEngine>>,
 ) -> Result<ImageProbe> {
@@ -1290,7 +1374,7 @@ pub async fn image_probe(
     let privacy_result = (async {
         let image_engine = state.inner().clone();
         tauri::async_runtime::spawn_blocking(move || {
-            image_engine.probe(&path, backend, needs_comfy, needs_native)
+            image_engine.probe(&path, backend, has_loras, needs_native)
         })
             .await
             .map_err(|_| "image_storage".into())
@@ -1500,6 +1584,39 @@ mod tests {
         legacy.remove("engine");
         let decoded: ImageRequest = serde_json::from_value(legacy.into()).unwrap();
         assert_eq!(decoded.engine, ImageBackend::Auto);
+    }
+    #[test]
+    fn native_loras_are_staged_with_neutral_names_and_cleaned_up() {
+        let directory = tempfile::tempdir().unwrap();
+        let source_path = directory.path().join("user-name.safetensors");
+        fs::write(&source_path, b"checked lora bytes").unwrap();
+        let mut request = request();
+        request.prompt = "portrait".into();
+        request.loras = vec![ImageLora {
+            path: source_path.to_string_lossy().into(),
+            strength: 0.75,
+            sha256: None,
+        }];
+        let mut sources = vec![File::open(&source_path).unwrap()];
+        let staged = stage_native_loras(
+            directory.path(),
+            &request,
+            &mut sources,
+            &AtomicBool::new(false),
+        )
+            .unwrap()
+            .unwrap();
+        let staged_directory = staged.directory.clone();
+        assert_eq!(
+            fs::read(staged.directory.join("local-studio-1.safetensors")).unwrap(),
+            b"checked lora bytes"
+        );
+        assert_eq!(
+            native_lora_prompt(&request),
+            "portrait\n<lora:local-studio-1:0.75>"
+        );
+        drop(staged);
+        assert!(!staged_directory.exists());
     }
 }
 
