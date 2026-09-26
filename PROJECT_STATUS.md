@@ -1,8 +1,8 @@
-# Release 0.36.8 vorbereitet – ComfyUI-Instanz und Modellreichweite eindeutig (2026-09-26)
+# Release 0.36.8 veröffentlicht – ComfyUI-Instanz und Modellreichweite eindeutig (2026-09-26)
 
 Die neue Meldung entstand noch vor dem Workflow: `probe()` stufte den Local-Studio-Checkpoint nur dann als ComfyUI-Modell ein, wenn der laufende Prozess im aktuellen App-Lauf verwaltet wurde. Bei einer bereits auf Port 8188 antwortenden fremden oder überlebenden Instanz fiel die Prüfung auf den nativen NVIDIA-Adapter zurück.
 
-Die Bereitschaft wird nun über ComfyUIs tatsächliche `CheckpointLoaderSimple`-Liste geprüft. Pfade außerhalb der beiden freigegebenen Modellwurzeln bleiben ausgeschlossen. Eine extern laufende Instanz wird in Status, Fehlermeldung und Einstellungen klar gekennzeichnet; Local Studio startet seine verwaltete Engine erst, nachdem der fremde Prozess beendet wurde. Sechs gezielte ComfyUI-Tests, Frontend-Produktionsbuild, optimierter Rust-/Tauri-Build, Installer, portables Archiv und signierte Update-Metadaten sind bestanden. Die Veröffentlichung wird nach der GitHub-Rückprüfung ergänzt.
+Die Bereitschaft wird nun über ComfyUIs tatsächliche `CheckpointLoaderSimple`-Liste geprüft. Pfade außerhalb der beiden freigegebenen Modellwurzeln bleiben ausgeschlossen. Eine extern laufende Instanz wird in Status, Fehlermeldung und Einstellungen klar gekennzeichnet; Local Studio startet seine verwaltete Engine erst, nachdem der fremde Prozess beendet wurde. Sechs gezielte ComfyUI-Tests, Frontend-Produktionsbuild, optimierter Rust-/Tauri-Build, Installer, portables Archiv und signierte Update-Metadaten sind bestanden. Version 0.36.8 ist unter https://github.com/ScopeBotlul/Local-Studio/releases/tag/v0.36.8 öffentlich als Latest verfügbar; Tag `v0.36.8` verweist auf Release-Commit `72e3f5c`. Installer und portables Archiv wurden vollständig von GitHub zurückgeladen, und Signatur, Größen, Hashes sowie alle fünf Asset-Digests stimmen.
 
 # Release 0.36.7 veröffentlicht – ComfyUI-Workflowwerte aus der laufenden API (2026-09-26)
 
