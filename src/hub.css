@@ -32,6 +32,8 @@
 .hub-files td, .hub-files th { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--line); }.hub-files th { position: sticky; top: 0; background: var(--panel-raised); color: var(--muted); }
 .hub-files td:first-child { overflow-wrap: anywhere; }.hub-files td:last-child { white-space: nowrap; width: 120px; color: var(--muted); }.hub-files small { display: block; font-size: 10px; color: var(--faint); margin-top: 5px; }
 .hub-card { margin-top: 24px; }.hub-card summary { cursor: pointer; font-size: 13px; }.hub-card pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 520px; overflow: auto; background: var(--field); padding: 18px; font: 12px/1.7 Consolas, monospace; color: var(--muted); border-radius: 7px; }
+.civitai-models .hub-filter-support { display:flex; align-items:flex-start; gap:8px; }
+.civitai-version { border-top:1px solid var(--line); padding:16px 0; }.civitai-version > summary { justify-content:space-between; }.civitai-version > summary span { margin-left:auto; color:var(--muted); }.civitai-version .hub-files { margin-top:14px; }.civitai-version td:last-child { width:120px; }.civitai-version .button { white-space:nowrap; }
 @media (max-width: 1120px) { .hub-model { flex-wrap: wrap; }.hub-model .button { margin-left: 57px; }.hub-token-field { flex-wrap: wrap; }.hub-token-field input { min-width: 180px; }.hub-revision { flex-wrap: wrap; } }
 
 .hf-hub-tabs { margin-bottom: 20px; }

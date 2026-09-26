@@ -4,6 +4,7 @@ export interface DownloadItem {
   id: string; repo: string; revision: string; license: string | null; task: string | null; files: DownloadFile[];
   destination: string; partialDirectory: string; status: string; priority: number; totalBytes: number; downloadedBytes: number;
   bytesPerSecond: number; error: string | null; createdAt: string; verifyOnly: boolean;
+  source?: string; sourceUrl?: string | null;
 }
 export interface DownloadPlan { id: string; download: DownloadItem; additionalBytes: number; availableBytes: number; }
 export const downloads = {

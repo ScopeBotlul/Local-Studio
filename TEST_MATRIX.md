@@ -1,3 +1,15 @@
+# Releaseprüfung 0.31.0 – 2026-09-26
+
+- `npm.cmd test -- --run`: 55/55 Frontendtests in 15 Dateien bestanden. Neu geprüft wird die strenge Direktdownload-Zulassung für primäre Safetensors-Dateien mit SHA-256 und zwei erfolgreichen Civitai-Scans.
+- `npm.cmd run build`: TypeScript und Vite-Produktionsfrontend bestanden. Bestehende Warnung zum JavaScript-Chunk über 500 kB.
+- `scripts/desktop.ps1 check`: Rust-Compilercheck mit Tauri-ACL-Generierung bestanden.
+- Gezielte Rusttests: 6/6 Civitai-/Danbooru-Tests und 10/10 Download-, Hash-, Pause-, Resume-, Abbruch- und Recovery-Tests bestanden. Keine vollständige unveränderte Rustsuite wiederholt.
+- Live-Metadatenprüfung: öffentlicher Civitai-Endpunkt lieferte Modell, Version, primäre Safetensors-Datei, Größe, SHA-256 und offizielle Downloadadresse im erwarteten Format. Der erste Download-Redirect wurde nur als Header gelesen und führte auf den fest zugelassenen Civitai-R2-Host; keine Modelldatei wurde geladen.
+- Exakte Release-EXE in isoliertem Profil: 4/4 gezielte native Prüfungen bestanden. ComfyUI-Statusbefehl ist im lokalen Hauptfenster erlaubt; echte Civitai-Suche und Modelldetail über typisierte IPC; Civitai-Quelle, Filter und Treffer in der Modellbibliothek; keine unbehandelten Frontendfehler. Bericht: `.artifacts/native-1790387302103/report.json`.
+- Release-Build: optimierte Tauri-EXE, vier vorhandene geprüfte Runtime-Ordner und Inno-Installer erfolgreich erzeugt.
+- Paketprüfung: EXE, Installer und ZIP stimmen bytegenau; ZIP enthält exakt 80 erlaubte Dateien. Alle 77 Runtime-Dateien entsprechen ihren Manifesten. EXE SHA-256 `13954ab46c06e97013e7bbf4bfcec83201c6c63d3c088bf12062c6c3dec5eef7`, Installer `d19db9070dce055d5dc4011aec03afddf473f63021d6a345386a09137d5821ed`, ZIP `56fcd62d131d7f8d25ed49f0c4f50522b2acb01f7a0af2b6609bfc679ced2219`. Nachweis: `.artifacts/package-bytes-verification-0.31.0.json`.
+- Offen: kein mehrgigabytegroßer echter Civitai-Download, kein geschützter/API-Key-Download, keine echte ComfyUI-Inferenz und keine Installation/Deinstallation des finalen Setups. Die Windows-Dateien sind nicht Authenticode-signiert.
+
 # Releaseprüfung 0.30.0 – 2026-09-26
 
 - `npm.cmd run build`: bestanden; finale Version 0.30.0, TypeScript und Vite-Produktionsfrontend. Bestehende Bundlegrößenwarnung.

@@ -1,5 +1,6 @@
 import { DownloadSelection } from './DownloadsPage';
 import LocalModels from './LocalModels';
+import CivitaiModels from './CivitaiModels';
 import HfBrowserPanel from './HfBrowserPanel';
 import { useEffect, useRef, useState } from 'react';
 import { ArrowRight, Box, CheckCircle2, ExternalLink, LoaderCircle, Search, ShieldCheck, UserRound, X } from 'lucide-react';
@@ -13,7 +14,8 @@ import type { Language } from './types';
 export default function HubPage({ language, mode, showModels, initialRepo, showDownloads, showImage }: { language: Language; mode: 'hub' | 'models'; showModels: (repo?: string) => void; initialRepo?: string | null; showDownloads: () => void; showImage: (path: string) => void }) {
   const t = hubText(language);
   const [website, setWebsite] = useState(false);
-  const [localModels, setLocalModels] = useState(false);
+  const [modelSource, setModelSource] = useState<'huggingface'|'civitai'|'local'>('huggingface');
+  const localModels = modelSource === 'local';
   const [auth, setAuth] = useState<HfAuthStatus | null>(null);
   const [error, setError] = useState<unknown>('');
   const [busy, setBusy] = useState(false);
@@ -94,9 +96,9 @@ export default function HubPage({ language, mode, showModels, initialRepo, showD
   const working = <LoaderCircle size={16} className="spin" />;
 
   return <div className="page hub-page">
-    <header className="page-heading"><div><div className="eyebrow">HUGGING FACE · HUB</div><h1>{mode === 'hub' ? (website ? 'Hugging Face' : t.account) : t.models}</h1><p>{mode === 'hub' ? (website ? (auth?.pending ? t.pending : t.websiteHint) : t.intro) : t.modelsIntro}</p></div><span className="pill"><ShieldCheck size={14} />{auth?.account ? `@${auth.account.username}` : t.anonymous}</span></header>
+    <header className="page-heading"><div><div className="eyebrow">{mode==='models'?(language==='de'?'MODELLBIBLIOTHEK':'MODEL LIBRARY'):'HUGGING FACE · HUB'}</div><h1>{mode === 'hub' ? (website ? 'Hugging Face' : t.account) : t.models}</h1><p>{mode === 'hub' ? (website ? (auth?.pending ? t.pending : t.websiteHint) : t.intro) : t.modelsIntro}</p></div>{mode==='hub'&&<span className="pill"><ShieldCheck size={14} />{auth?.account ? `@${auth.account.username}` : t.anonymous}</span>}</header>
     {errorCode && <div className="notice warning" role="alert">{hubError(errorCode, language)}</div>}
-    {mode === 'models' && <div className="segmented local-model-tabs"><button className={!localModels ? 'active' : ''} onClick={() => setLocalModels(false)}>Hugging Face</button><button className={localModels ? 'active' : ''} onClick={() => setLocalModels(true)}>{language === 'de' ? 'Lokal gespeichert' : 'Stored locally'}</button></div>}
+    {mode === 'models' && <div className="segmented local-model-tabs"><button className={modelSource==='huggingface' ? 'active' : ''} onClick={() => setModelSource('huggingface')}>Hugging Face</button><button className={modelSource==='civitai' ? 'active' : ''} onClick={() => setModelSource('civitai')}>Civitai</button><button className={modelSource==='local' ? 'active' : ''} onClick={() => setModelSource('local')}>{language === 'de' ? 'Lokal gespeichert' : 'Stored locally'}</button></div>}
     {mode === 'hub' && <div className="segmented hf-hub-tabs"><button aria-pressed={!website} className={!website ? 'active' : ''} onClick={() => setWebsite(false)}>{language === 'de' ? 'App-Konto' : 'App account'}</button><button aria-pressed={website} className={website ? 'active' : ''} onClick={() => setWebsite(true)}>{language === 'de' ? 'Website im Studio' : 'Website in Studio'}</button></div>}
     {mode === 'hub' && website && auth?.pending && <div className="hub-login-pending" role="status">{working}<span>{t.pending}</span><button className="button secondary" onClick={() => void hubApi.cancelLogin().then(setAuth).catch(setError)}>{t.cancel}</button></div>}
     {mode === 'hub' ? website ? <HfBrowserPanel language={language} signingIn={!!auth?.pending} onModel={repo => showModels(repo)} /> : <>
@@ -114,13 +116,13 @@ export default function HubPage({ language, mode, showModels, initialRepo, showD
         }}><label className="field-label" htmlFor="hf-token">{t.token}</label><div className="hub-token-field"><input id="hf-token" type="password" autoComplete="off" spellCheck={false} value={token} maxLength={2048} disabled={busy || !!auth?.pending} onChange={event => setToken(event.target.value)} /><button className="button secondary" disabled={busy || !!auth?.pending || !token.trim()}>{busy ? working : <ShieldCheck size={16} />}{t.tokenSubmit}</button></div></form><button className="text-button" disabled={busy} onClick={() => open('tokens')}>{t.manageTokens}<ExternalLink size={14} /></button></details>}
       </section>
       <section className="panel hub-website"><h2>{t.models}</h2><p>{t.emptyStart}</p><button className="button primary" onClick={() => showModels()}><Search size={16} />{t.search}<ArrowRight size={16} /></button><hr /><p>{t.websiteHint}</p><button className="button secondary" disabled={busy} onClick={() => setWebsite(true)}>{t.website}<ExternalLink size={15} /></button></section>
-    </> : localModels ? <LocalModels language={language} showImage={showImage} /> : <>
+    </> : modelSource==='local' ? <LocalModels language={language} showImage={showImage} /> : modelSource==='civitai' ? <CivitaiModels language={language} onQueued={showDownloads}/> : <>
       <form className="panel hub-search" onSubmit={event => { event.preventDefault(); void search(); }}>
         <div className="hub-category-filters" role="group" aria-label={language==='de'?'Modellbereich':'Model category'}>{hubCategories.map(value=><button type="button" key={value} disabled={busy} aria-pressed={category===value} onClick={()=>{setCategory(value);editQuery('task',taskForCategory(value,query.task));}}>{hubCategoryLabels[value][language==='de'?0:1]}</button>)}</div>
         <label className="field-label" htmlFor="hf-query">{t.searchLabel}</label><div className="hub-search-input"><input id="hf-query" value={query.search} maxLength={200} disabled={busy} onChange={event => editQuery('search', event.target.value)} placeholder="Qwen, SDXL, Wan, Whisper …" /><button className="button primary" disabled={busy}>{busy ? working : <Search size={16} />}{t.search}</button></div>
         <div className="hub-filters"><label>{t.task}<select value={query.task} disabled={busy} onChange={event => editQuery('task', event.target.value)}>{category==='all'&&<option value="">{t.allTasks}</option>}{tasksForCategory(category).map(task=><option key={task.id} value={task.id}>{task.label[language==='de'?0:1]}</option>)}</select></label><label>{t.sort}<select value={query.sort} disabled={busy} onChange={event => editQuery('sort', event.target.value)}>{[['downloads', t.downloads], ['likes', t.likes], ['lastModified', t.recent], ['trendingScore', t.trending]].map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label></div>
         <p className="hub-filter-support" role="status">{hubTaskSupport(query.task,language==='de')}</p>
-        <button type="button" className="text-button" disabled={busy} onClick={()=>setLocalModels(true)}>{language==='de'?'Lokal gespeicherte Modelle prüfen':'Check locally stored models'}<ArrowRight size={14}/></button>
+        <button type="button" className="text-button" disabled={busy} onClick={()=>setModelSource('local')}>{language==='de'?'Lokal gespeicherte Modelle prüfen':'Check locally stored models'}<ArrowRight size={14}/></button>
       </form>
       <p className="hub-hint">{t.unsupported} {t.downloadPlanned}</p>
       {detail ? <section className="panel hub-detail" aria-label={t.details}>

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-civitai-download-plan"
+description = "Enables the civitai_download_plan command without any pre-configured scope."
+commands.allow = ["civitai_download_plan"]
+
+[[permission]]
+identifier = "deny-civitai-download-plan"
+description = "Denies the civitai_download_plan command without any pre-configured scope."
+commands.deny = ["civitai_download_plan"]

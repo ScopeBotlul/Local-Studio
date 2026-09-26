@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-civitai-browser-hide"
+description = "Enables the civitai_browser_hide command without any pre-configured scope."
+commands.allow = ["civitai_browser_hide"]
+
+[[permission]]
+identifier = "deny-civitai-browser-hide"
+description = "Denies the civitai_browser_hide command without any pre-configured scope."
+commands.deny = ["civitai_browser_hide"]

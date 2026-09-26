@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-civitai-browser-state"
+description = "Enables the civitai_browser_state command without any pre-configured scope."
+commands.allow = ["civitai_browser_state"]
+
+[[permission]]
+identifier = "deny-civitai-browser-state"
+description = "Denies the civitai_browser_state command without any pre-configured scope."
+commands.deny = ["civitai_browser_state"]

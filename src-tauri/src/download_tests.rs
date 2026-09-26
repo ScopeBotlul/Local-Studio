@@ -132,6 +132,8 @@ fn fixture(dir: &Path, server: &Server, data: &[u8]) -> (Arc<Downloads>, Downloa
         error: None,
         created_at: crate::database::now(),
         verify_only: false,
+        source: "huggingface".into(),
+        source_url: None,
         test_url: Some(server.url.clone()),
     };
     manager.state.lock().unwrap().plans.insert(

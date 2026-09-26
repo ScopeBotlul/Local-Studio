@@ -48,6 +48,13 @@ pub struct Download {
     pub error: Option<String>,
     pub created_at: String,
     pub verify_only: bool,
+    #[serde(default = "huggingface_source")]
+    pub source: String,
+    #[serde(default)]
+    pub source_url: Option<String>,
+}
+fn huggingface_source() -> String {
+    "huggingface".into()
 }
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -149,7 +156,7 @@ fn within(root: &Path, relative: &str) -> Result<PathBuf> {
     }
     Ok(path)
 }
-fn transfer_host(url: &Url) -> bool {
+fn transfer_host(url: &Url, source: &str) -> bool {
     #[cfg(test)]
     if url.scheme() == "http" && url.host_str() == Some("127.0.0.1") {
         return true;
@@ -159,16 +166,27 @@ fn transfer_host(url: &Url) -> bool {
         && url.username().is_empty()
         && url.password().is_none()
         && url.host_str().is_some_and(|host| {
-            host == "huggingface.co"
-                || host.ends_with(".huggingface.co")
-                || host == "hf.co"
-                || host.ends_with(".hf.co")
+            if source == "civitai" {
+                host == "civitai.com"
+                    || host.ends_with(".civitai.com")
+                    || host == "civitaiusercontent.com"
+                    || host.ends_with(".civitaiusercontent.com")
+                    || host == "civitai-delivery-worker-prod.5ac0637cfd0766c97916cefa3764fbdf.r2.cloudflarestorage.com"
+            } else {
+                host == "huggingface.co"
+                    || host.ends_with(".huggingface.co")
+                    || host == "hf.co"
+                    || host.ends_with(".hf.co")
+            }
         })
 }
-fn resolve_url(job: &Download, file: &DownloadFile) -> Url {
+fn resolve_url(job: &Download, file: &DownloadFile) -> Result<Url> {
     #[cfg(test)]
     if let Some(url) = &job.test_url {
-        return Url::parse(url).unwrap();
+        return Url::parse(url).map_err(|_| "download_redirect".into());
+    }
+    if let Some(url) = &job.source_url {
+        return Url::parse(url).map_err(|_| "download_redirect".into());
     }
     let mut url = Url::parse(hub::ORIGIN).unwrap();
     {
@@ -181,7 +199,7 @@ fn resolve_url(job: &Download, file: &DownloadFile) -> Url {
             path.push(part);
         }
     }
-    url
+    Ok(url)
 }
 fn range_start(value: &str, offset: u64, size: u64) -> bool {
     value
@@ -199,18 +217,19 @@ async fn response(
     mut url: Url,
     offset: u64,
     token: Option<&str>,
+    source: &str,
     cancel: &mut watch::Receiver<bool>,
 ) -> Result<reqwest::Response> {
     for _ in 0..10 {
         stopped(cancel)?;
-        if !transfer_host(&url) {
+        if !transfer_host(&url, source) {
             return Err("download_redirect".into());
         }
         let mut request = http.get(url.clone()).header("Accept-Encoding", "identity");
         if offset > 0 {
             request = request.header("Range", format!("bytes={offset}-"));
         }
-        if url.host_str() == Some("huggingface.co") {
+        if source == "huggingface" && url.host_str() == Some("huggingface.co") {
             if let Some(token) = token {
                 request = request.bearer_auth(token);
             }
@@ -424,6 +443,8 @@ impl Downloads {
                 error: None,
                 created_at: crate::database::now(),
                 verify_only: false,
+                source: "huggingface".into(),
+                source_url: None,
             },
         };
         let mut state = self.state.lock().map_err(|_| "internal")?;
@@ -439,6 +460,81 @@ impl Downloads {
                     &Path::new(&plan.download.destination).join(&f.path),
                 )?;
             }
+        }
+        state.plans.insert(id, (Instant::now(), plan.clone()));
+        Ok(plan)
+    }
+    pub fn plan_civitai(
+        &self,
+        repo: String,
+        revision: String,
+        file: DownloadFile,
+        url: String,
+        destination_root: PathBuf,
+        downloads_root: PathBuf,
+        restricted: bool,
+    ) -> Result<Plan> {
+        if !valid_file(&file.path) || file.size == 0 || file.sha256.is_none() {
+            return Err("download_unknown_hash".into());
+        }
+        let parsed = Url::parse(&url).map_err(|_| "download_redirect")?;
+        if !transfer_host(&parsed, "civitai")
+            || parsed.host_str() != Some("civitai.com")
+            || !parsed.path().starts_with("/api/download/models/")
+        {
+            return Err("download_redirect".into());
+        }
+        directory(&destination_root)?;
+        directory(&downloads_root)?;
+        let destination_root =
+            fs::canonicalize(destination_root).map_err(|_| "download_storage")?;
+        let downloads_root = fs::canonicalize(downloads_root).map_err(|_| "download_storage")?;
+        let total = file.size;
+        let additional = total.checked_mul(2).ok_or("download_size")?;
+        let available = fs2::available_space(&destination_root)
+            .map_err(|_| "download_storage")?
+            .min(fs2::available_space(&downloads_root).map_err(|_| "download_storage")?);
+        if available < additional.saturating_add(64 * 1024 * 1024) {
+            return Err("download_space".into());
+        }
+        let id = uuid::Uuid::new_v4().to_string();
+        let destination = destination_root.join(format!("civitai-{revision}"));
+        let plan = Plan {
+            id: id.clone(),
+            additional_bytes: additional,
+            available_bytes: available,
+            download: Download {
+                id: id.clone(),
+                repo,
+                revision,
+                license: None,
+                task: Some("Civitai".into()),
+                files: vec![file],
+                destination: destination.to_string_lossy().into(),
+                partial_directory: downloads_root.join(&id).to_string_lossy().into(),
+                status: "queued".into(),
+                priority: 0,
+                total_bytes: total,
+                downloaded_bytes: 0,
+                #[cfg(test)]
+                test_url: None,
+                bytes_per_second: 0,
+                error: None,
+                created_at: crate::database::now(),
+                verify_only: false,
+                source: "civitai".into(),
+                source_url: Some(url),
+            },
+        };
+        if restricted {
+            crate::privacy::register_model(&destination.join(&plan.download.files[0].path))?;
+        }
+        let mut state = self.state.lock().map_err(|_| "internal")?;
+        state
+            .plans
+            .retain(|_, (at, _)| at.elapsed() < Duration::from_secs(600));
+        if state.plans.len() >= 64 {
+            return Err("download_plan_limit".into());
         }
         state.plans.insert(id, (Instant::now(), plan.clone()));
         Ok(plan)
@@ -693,9 +789,10 @@ impl Downloads {
                     .map_err(|_| "internal")??;
                 let mut reply = response(
                     &http,
-                    resolve_url(job, &job.files[index]),
+                    resolve_url(job, &job.files[index])?,
                     offset,
                     token.as_ref().map(|t| t.as_str()),
+                    &job.source,
                     cancel,
                 )
                 .await?;
@@ -904,10 +1001,20 @@ mod tests {
             "https://evil.test/x",
             "https://hf.co:444/x",
         ] {
-            assert!(!transfer_host(&Url::parse(url).unwrap()));
+            assert!(!transfer_host(&Url::parse(url).unwrap(), "huggingface"));
         }
         assert!(transfer_host(
-            &Url::parse("https://cas-bridge.xethub.hf.co/file?signature=opaque").unwrap()
+            &Url::parse("https://cas-bridge.xethub.hf.co/file?signature=opaque").unwrap(),
+            "huggingface"
+        ));
+        assert!(transfer_host(
+            &Url::parse("https://civitai.com/api/download/models/42").unwrap(),
+            "civitai"
+        ));
+        assert!(transfer_host(&Url::parse("https://civitai-delivery-worker-prod.5ac0637cfd0766c97916cefa3764fbdf.r2.cloudflarestorage.com/model/1/file.safetensors?signature=opaque").unwrap(), "civitai"));
+        assert!(!transfer_host(
+            &Url::parse("https://civitai.com.evil.test/api/download/models/42").unwrap(),
+            "civitai"
         ));
     }
     #[test]

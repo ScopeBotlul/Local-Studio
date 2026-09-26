@@ -91,13 +91,67 @@ pub struct ImageInfo {
     resources: Vec<Resource>,
 }
 
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ModelSummary {
+    id: u64,
+    name: String,
+    kind: String,
+    nsfw: bool,
+    creator: String,
+    downloads: u64,
+    rating: Option<f64>,
+    tags: Vec<String>,
+    latest_version: Option<String>,
+    base_model: Option<String>,
+    credit_required: bool,
+    commercial_use: String,
+    derivatives_allowed: bool,
+    different_license_allowed: bool,
+}
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SearchResult {
+    models: Vec<ModelSummary>,
+    next_cursor: Option<String>,
+}
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ModelFile {
+    id: u64,
+    name: String,
+    size_bytes: u64,
+    sha256: Option<String>,
+    format: Option<String>,
+    pickle_scan: Option<String>,
+    virus_scan: Option<String>,
+    primary: bool,
+    download_url: Option<String>,
+}
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ModelVersion {
+    id: u64,
+    name: String,
+    base_model: Option<String>,
+    published_at: Option<String>,
+    trained_words: Vec<String>,
+    files: Vec<ModelFile>,
+}
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ModelDetail {
+    model: ModelSummary,
+    versions: Vec<ModelVersion>,
+}
+
 fn client() -> Result<Client> {
     Client::builder()
         .no_proxy()
         .redirect(reqwest::redirect::Policy::none())
         .connect_timeout(Duration::from_secs(5))
         .timeout(Duration::from_secs(20))
-        .user_agent("Local-Studio/0.28")
+        .user_agent("Local-Studio/0.31")
         .build()
         .map_err(|_| "civitai_network".into())
 }
@@ -255,11 +309,212 @@ fn danbooru_tags(id: u64) -> Result<String> {
         serde_json::from_slice(&limited(response, 1024 * 1024)?).map_err(|_| "tag_response")?;
     danbooru_tag_text(&value, id)
 }
-fn api_json(path: &str) -> Result<Value> {
+fn api_json_limit(path: &str, limit: u64) -> Result<Value> {
     let url = format!("{API}/{path}");
     let response = client()?.get(url).send().map_err(|_| "civitai_network")?;
-    serde_json::from_slice(&limited(response, 2 * 1024 * 1024)?)
-        .map_err(|_| "civitai_response".into())
+    serde_json::from_slice(&limited(response, limit)?).map_err(|_| "civitai_response".into())
+}
+fn api_json(path: &str) -> Result<Value> {
+    api_json_limit(path, 2 * 1024 * 1024)
+}
+
+fn clean(value: Option<&str>, limit: usize) -> String {
+    value
+        .unwrap_or("")
+        .chars()
+        .filter(|c| !c.is_control())
+        .take(limit)
+        .collect()
+}
+fn summary(value: &Value) -> Option<ModelSummary> {
+    let version = value["modelVersions"].as_array().and_then(|v| v.first());
+    Some(ModelSummary {
+        id: value["id"].as_u64()?,
+        name: clean(value["name"].as_str(), 200),
+        kind: clean(value["type"].as_str(), 80),
+        nsfw: value["nsfw"].as_bool().unwrap_or(false),
+        creator: clean(
+            value.pointer("/creator/username").and_then(Value::as_str),
+            100,
+        ),
+        downloads: value
+            .pointer("/stats/downloadCount")
+            .and_then(Value::as_u64)
+            .unwrap_or(0),
+        rating: value.pointer("/stats/rating").and_then(Value::as_f64),
+        tags: value["tags"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(Value::as_str)
+            .take(12)
+            .map(|v| clean(Some(v), 80))
+            .collect(),
+        latest_version: version
+            .and_then(|v| v["name"].as_str())
+            .map(|v| clean(Some(v), 160)),
+        base_model: version
+            .and_then(|v| v["baseModel"].as_str())
+            .map(|v| clean(Some(v), 100)),
+        credit_required: !value["allowNoCredit"].as_bool().unwrap_or(false),
+        commercial_use: clean(value["allowCommercialUse"].as_str(), 40),
+        derivatives_allowed: value["allowDerivatives"].as_bool().unwrap_or(false),
+        different_license_allowed: value["allowDifferentLicense"].as_bool().unwrap_or(false),
+    })
+}
+fn model_file(value: &Value) -> Option<ModelFile> {
+    let name = clean(value["name"].as_str(), 180);
+    if name.is_empty() || !crate::downloads::valid_file(&name) {
+        return None;
+    }
+    let sha256 = value
+        .pointer("/hashes/SHA256")
+        .and_then(Value::as_str)
+        .filter(|v| v.len() == 64 && v.bytes().all(|c| c.is_ascii_hexdigit()))
+        .map(|v| v.to_ascii_lowercase());
+    Some(ModelFile {
+        id: value["id"].as_u64()?,
+        name,
+        size_bytes: value["sizeKB"]
+            .as_f64()
+            .map(|v| (v * 1024.0) as u64)
+            .filter(|v| *v > 0)?,
+        sha256,
+        format: value
+            .pointer("/metadata/format")
+            .and_then(Value::as_str)
+            .map(|v| clean(Some(v), 60)),
+        pickle_scan: value["pickleScanResult"]
+            .as_str()
+            .map(|v| clean(Some(v), 40)),
+        virus_scan: value["virusScanResult"]
+            .as_str()
+            .map(|v| clean(Some(v), 40)),
+        primary: value["primary"].as_bool().unwrap_or(false),
+        download_url: value["downloadUrl"]
+            .as_str()
+            .filter(|url| url.starts_with("https://civitai.com/api/download/models/"))
+            .map(str::to_owned),
+    })
+}
+fn model_version(value: &Value) -> Option<ModelVersion> {
+    Some(ModelVersion {
+        id: value["id"].as_u64()?,
+        name: clean(value["name"].as_str(), 160),
+        base_model: value["baseModel"].as_str().map(|v| clean(Some(v), 100)),
+        published_at: value["publishedAt"].as_str().map(|v| clean(Some(v), 50)),
+        trained_words: value["trainedWords"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(Value::as_str)
+            .take(100)
+            .map(|v| clean(Some(v), 120))
+            .collect(),
+        files: value["files"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(model_file)
+            .take(32)
+            .collect(),
+    })
+}
+fn search_models(
+    query: &str,
+    kind: &str,
+    base_model: &str,
+    sort: &str,
+    period: &str,
+    cursor: &str,
+    include_nsfw: bool,
+) -> Result<SearchResult> {
+    if query.len() > 160
+        || kind.len() > 40
+        || base_model.len() > 100
+        || cursor.len() > 300
+        || [query, kind, base_model, cursor]
+            .iter()
+            .any(|v| v.chars().any(char::is_control))
+    {
+        return Err("civitai_query".into());
+    }
+    let allowed_kind = [
+        "",
+        "Checkpoint",
+        "LORA",
+        "VAE",
+        "Controlnet",
+        "Upscaler",
+        "TextualInversion",
+    ];
+    let allowed_sort = ["Highest Rated", "Most Downloaded", "Newest"];
+    let allowed_period = ["AllTime", "Year", "Month", "Week", "Day"];
+    if !allowed_kind.contains(&kind)
+        || !allowed_sort.contains(&sort)
+        || !allowed_period.contains(&period)
+    {
+        return Err("civitai_query".into());
+    }
+    if include_nsfw && crate::privacy::locked() {
+        return Err("privacy_locked".into());
+    }
+    let mut url = Url::parse(&format!("{API}/models")).map_err(|_| "civitai_network")?;
+    {
+        let mut pairs = url.query_pairs_mut();
+        pairs
+            .append_pair("limit", "30")
+            .append_pair("sort", sort)
+            .append_pair("period", period)
+            .append_pair("nsfw", if include_nsfw { "true" } else { "false" });
+        if !query.trim().is_empty() {
+            pairs.append_pair("query", query.trim());
+        }
+        if !kind.is_empty() {
+            pairs.append_pair("types", kind);
+        }
+        if !base_model.trim().is_empty() {
+            pairs.append_pair("baseModels", base_model.trim());
+        }
+        if !cursor.is_empty() {
+            pairs.append_pair("cursor", cursor);
+        }
+    }
+    let response = client()?.get(url).send().map_err(|_| "civitai_network")?;
+    let value: Value = serde_json::from_slice(&limited(response, 4 * 1024 * 1024)?)
+        .map_err(|_| "civitai_response")?;
+    let models = value["items"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(summary)
+        .filter(|m| include_nsfw || !m.nsfw)
+        .take(30)
+        .collect();
+    let next_cursor = value
+        .pointer("/metadata/nextCursor")
+        .and_then(Value::as_str)
+        .map(|v| clean(Some(v), 300))
+        .filter(|v| !v.is_empty());
+    Ok(SearchResult {
+        models,
+        next_cursor,
+    })
+}
+fn model_detail(id: u64) -> Result<ModelDetail> {
+    let value = api_json_limit(&format!("models/{id}"), 8 * 1024 * 1024)?;
+    let model = summary(&value).ok_or("civitai_response")?;
+    if model.nsfw && crate::privacy::locked() {
+        return Err("privacy_locked".into());
+    }
+    let versions = value["modelVersions"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(model_version)
+        .take(50)
+        .collect();
+    Ok(ModelDetail { model, versions })
 }
 fn version(id: u64) -> Result<Resource> {
     let value = api_json(&format!("model-versions/{id}"))?;
@@ -547,6 +802,110 @@ pub async fn civitai_lora_search(query: String, base_model: String) -> Result<Ve
         .map_err(|_| "civitai_network")?
 }
 #[tauri::command]
+pub async fn civitai_model_search(
+    query: String,
+    kind: String,
+    base_model: String,
+    sort: String,
+    period: String,
+    cursor: String,
+    include_nsfw: bool,
+) -> Result<SearchResult> {
+    tauri::async_runtime::spawn_blocking(move || {
+        search_models(
+            &query,
+            &kind,
+            &base_model,
+            &sort,
+            &period,
+            &cursor,
+            include_nsfw,
+        )
+    })
+    .await
+    .map_err(|_| "civitai_network")?
+}
+#[tauri::command]
+pub async fn civitai_model_detail(id: u64) -> Result<ModelDetail> {
+    tauri::async_runtime::spawn_blocking(move || model_detail(id))
+        .await
+        .map_err(|_| "civitai_network")?
+}
+#[tauri::command]
+pub async fn civitai_download_plan(
+    model_id: u64,
+    version_id: u64,
+    file_id: u64,
+    manager: State<'_, Arc<crate::downloads::Downloads>>,
+    core: State<'_, Arc<Core>>,
+    comfy: State<'_, Arc<crate::comfy::Comfy>>,
+) -> Result<crate::downloads::Plan> {
+    let manager = manager.inner().clone();
+    let core = core.inner().clone();
+    let comfy = comfy.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let detail = model_detail(model_id)?;
+        let version = detail
+            .versions
+            .into_iter()
+            .find(|v| v.id == version_id)
+            .ok_or("civitai_version")?;
+        let file = version
+            .files
+            .into_iter()
+            .find(|f| f.id == file_id && f.primary)
+            .ok_or("civitai_file")?;
+        if file.sha256.is_none()
+            || !file
+                .format
+                .as_deref()
+                .is_some_and(|v| v.eq_ignore_ascii_case("SafeTensor"))
+            || !file
+                .virus_scan
+                .as_deref()
+                .is_some_and(|v| v.eq_ignore_ascii_case("Success"))
+            || !file
+                .pickle_scan
+                .as_deref()
+                .is_some_and(|v| v.eq_ignore_ascii_case("Success"))
+        {
+            return Err("civitai_file_unsafe".into());
+        }
+        let folder = match detail.model.kind.as_str() {
+            "Checkpoint" => "checkpoints",
+            "LORA" => "loras",
+            "VAE" => "vae",
+            "Controlnet" => "controlnet",
+            "Upscaler" => "upscale_models",
+            "TextualInversion" => "embeddings",
+            _ => return Err("civitai_type_unsupported".into()),
+        };
+        let paths = core.storage_paths()?;
+        let destination = comfy
+            .model_folder(folder)
+            .unwrap_or_else(|| PathBuf::from(&paths.models).join("civitai").join(folder));
+        let source = file.download_url.clone().ok_or("civitai_download")?;
+        manager.plan_civitai(
+            format!("Civitai/{}", detail.model.name),
+            version_id.to_string(),
+            crate::downloads::DownloadFile {
+                path: file.name,
+                size: file.size_bytes,
+                sha256: file.sha256,
+                git_sha1: None,
+                downloaded: 0,
+                actual_sha256: None,
+            },
+            source,
+            destination,
+            PathBuf::from(paths.downloads),
+            detail.model.nsfw,
+        )
+    })
+    .await
+    .map_err(|_| "internal")?
+}
+#[tauri::command]
 pub async fn danbooru_post_tags(url: String) -> Result<String> {
     if crate::privacy::locked() {
         return Err("privacy_locked".into());
@@ -823,5 +1182,35 @@ mod tests {
             lora_search(&"x".repeat(121), "").unwrap_err(),
             "civitai_query"
         );
+    }
+
+    #[test]
+    fn model_search_rejects_unknown_filters_before_network() {
+        assert_eq!(
+            search_models("x", "Executable", "", "Newest", "AllTime", "", false).unwrap_err(),
+            "civitai_query"
+        );
+        assert_eq!(
+            search_models(&"x".repeat(161), "", "", "Newest", "AllTime", "", false).unwrap_err(),
+            "civitai_query"
+        );
+    }
+
+    #[test]
+    fn model_metadata_keeps_only_bounded_safe_file_facts() {
+        let value = serde_json::json!({"id":9,"name":"Example","type":"LORA","nsfw":false,"allowNoCredit":false,"allowCommercialUse":"Image","allowDerivatives":true,"allowDifferentLicense":false,"creator":{"username":"author"},"stats":{"downloadCount":12,"rating":4.5},"tags":["style"],"modelVersions":[{"id":7,"name":"v1","baseModel":"SDXL 1.0","files":[{"id":3,"name":"style.safetensors","sizeKB":1024.0,"primary":true,"metadata":{"format":"SafeTensor"},"hashes":{"SHA256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},"virusScanResult":"Success","pickleScanResult":"Success","downloadUrl":"https://civitai.com/api/download/models/7"}]}]});
+        let item = summary(&value).unwrap();
+        assert_eq!(item.kind, "LORA");
+        assert_eq!(item.base_model.as_deref(), Some("SDXL 1.0"));
+        assert!(item.credit_required);
+        assert_eq!(item.commercial_use, "Image");
+        assert!(item.derivatives_allowed);
+        assert!(!item.different_license_allowed);
+        let version = model_version(&value["modelVersions"][0]).unwrap();
+        let file = &version.files[0];
+        assert_eq!(file.size_bytes, 1024 * 1024);
+        assert!(file.primary);
+        assert_eq!(file.format.as_deref(), Some("SafeTensor"));
+        assert!(file.sha256.is_some());
     }
 }

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-civitai-model-search"
+description = "Enables the civitai_model_search command without any pre-configured scope."
+commands.allow = ["civitai_model_search"]
+
+[[permission]]
+identifier = "deny-civitai-model-search"
+description = "Denies the civitai_model_search command without any pre-configured scope."
+commands.deny = ["civitai_model_search"]

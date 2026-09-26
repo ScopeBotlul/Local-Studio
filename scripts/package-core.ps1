@@ -42,6 +42,13 @@ Videoschnitt und GIF-Studio. Galerie und Modelle bleiben zentral erreichbar;
 Hugging Face, Downloads, Auftraege und Einstellungen liegen rechts. Die bisherige
 doppelte Studio-Navigation und Breadcrumb-Leiste wurden entfernt.
 
+Neu in 0.31.0: Civitai-Modellsuche direkt in der Modellbibliothek mit Typ,
+Basisfamilie, Sortierung, Zeitraum, Versionen, Dateigroessen und Scanstatus.
+Oeffentliche, primaere Safetensors-Dateien mit SHA-256 und erfolgreichen Civitai-
+Scans koennen ueber die Downloadwarteschlange in passende ComfyUI-Ordner oder den
+lokalen Modellordner geladen werden. Geschuetzte/API-Key-Downloads bleiben offen.
+Fehlende Desktop-Berechtigungen fuer ComfyUI, GIF, Civitai und Danbooru behoben.
+
 Neu in 0.29.0: portable ComfyUI-Erkennung, Einrichtung, lokaler Start und SDXL-
 Bildauftraege ueber 127.0.0.1. LoRAs im Studio auswaehlen und gewichten.
 Rechte Studiogalerie mit gemeinsamem Speicherordner, zufaellige Seeds und Strg+F

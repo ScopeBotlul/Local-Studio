@@ -242,6 +242,22 @@ impl Comfy {
     pub fn checkpoint(&self, path: &Path) -> Option<String> {
         self.model_relative(path, "checkpoints")
     }
+    pub fn model_folder(&self, folder: &str) -> Option<PathBuf> {
+        if !matches!(
+            folder,
+            "checkpoints" | "loras" | "vae" | "controlnet" | "upscale_models" | "embeddings"
+        ) {
+            return None;
+        }
+        let root = self.config.lock().ok()?.path.clone().map(PathBuf::from)?;
+        if !valid_root(&root) {
+            return None;
+        }
+        let models = root.join("ComfyUI/models").join(folder);
+        fs::create_dir_all(&models).ok()?;
+        model_library::no_links(&models).ok()?;
+        fs::canonicalize(models).ok()
+    }
     fn model_relative(&self, path: &Path, folder: &str) -> Option<String> {
         if probe_http().is_err() {
             return None;

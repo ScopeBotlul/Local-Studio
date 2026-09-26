@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-civitai-lora-search"
+description = "Enables the civitai_lora_search command without any pre-configured scope."
+commands.allow = ["civitai_lora_search"]
+
+[[permission]]
+identifier = "deny-civitai-lora-search"
+description = "Denies the civitai_lora_search command without any pre-configured scope."
+commands.deny = ["civitai_lora_search"]

@@ -1,3 +1,9 @@
+# Release 0.31.0 vorbereitet (2026-09-26)
+
+Version 0.31.0 integriert die Civitai-Modellsuche in die Modellbibliothek. Suche, Filter, Versionen, Dateigrößen, SHA-256- und Scanstatus sind sichtbar; geeignete öffentliche Safetensors-Dateien können über die vorhandene Warteschlange in passende ComfyUI- oder lokale Modellordner geladen werden. Die bislang fehlenden Tauri-Berechtigungen für ComfyUI, GIF-Studio, Civitai und Danbooru sind für das lokale Hauptfenster ergänzt.
+
+Der optimierte Windows-Build, Installer und das portable Archiv sind erstellt. 55 Frontendtests, sechs Civitai-Rusttests, zehn Downloadtests, Compilercheck und ein nativer Lauf der exakten Release-EXE sind bestanden. Die native Prüfung hat eine echte öffentliche Civitai-Suche samt Modelldetail sowie den zuvor blockierten ComfyUI-Statusbefehl ausgeführt. Paketbytes und alle vier Runtime-Manifeste stimmen. Veröffentlichung und öffentliche Rückprüfung folgen nach dem Release-Commit.
+
 # Release 0.30.0 veröffentlicht (2026-09-26)
 
 Version 0.30.0 enthält die neue kompakte Hauptnavigation und die kontextbezogene Create-Leiste für Bildgenerierung, Bildeditor, Videoschnitt und GIF-Studio. Die finale Windows-EXE, der Installer, die portable ZIP, Prüfsummen und signierten Update-Metadaten sind unter https://github.com/ScopeBotlul/Local-Studio/releases/tag/v0.30.0 öffentlich als neuester Release verfügbar. Tag und Release verweisen auf Commit `94a7a97`.

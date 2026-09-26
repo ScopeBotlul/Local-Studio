@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-civitai-image-info"
+description = "Enables the civitai_image_info command without any pre-configured scope."
+commands.allow = ["civitai_image_info"]
+
+[[permission]]
+identifier = "deny-civitai-image-info"
+description = "Denies the civitai_image_info command without any pre-configured scope."
+commands.deny = ["civitai_image_info"]
