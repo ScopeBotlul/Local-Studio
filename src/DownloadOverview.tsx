@@ -21,6 +21,21 @@ export function downloadEta(remaining:number, speed:number, de:boolean):string {
 }
 
 interface Entry {id:string; name:string; status:string; total:number; received:number; speed:number}
+export interface DownloadProgressInput {total:number; received:number}
+export interface CombinedDownloadProgress {count:number; determinate:boolean; percent:number}
+
+export function combinedDownloadProgress(entries:DownloadProgressInput[]):CombinedDownloadProgress|null {
+  if (!entries.length) return null;
+  if (entries.some(entry=>!Number.isFinite(entry.total)||entry.total<=0))
+    return {count:entries.length,determinate:false,percent:0};
+  const total=entries.reduce((sum,entry)=>sum+entry.total,0);
+  const received=entries.reduce((sum,entry)=>{
+    const value=Number.isFinite(entry.received)?entry.received:0;
+    return sum+Math.max(0,Math.min(value,entry.total));
+  },0);
+  return {count:entries.length,determinate:true,percent:Math.max(0,Math.min(100,received/total*100))};
+}
+
 const labels:Record<string,[string,string]> = {
   queued:['Wartet auf Start','Waiting to start'], downloading:['Wird heruntergeladen','Downloading'],
   resolving:['Offizielles Release wird ermittelt','Resolving official release'],
@@ -34,7 +49,7 @@ export default function DownloadOverview({language, disabled=false, onOpenDownlo
   const [loaded,setLoaded] = useState(false), [error,setError] = useState(false);
   const dialog = useRef<HTMLDialogElement>(null), button = useRef<HTMLButtonElement>(null);
   useEffect(() => {
-    if (!shown) return;
+    if (disabled) {setEntries([]);setLoaded(false);setError(false);return;}
     let live=true, timer:ReturnType<typeof setTimeout>;
     let previous:{version:string; bytes:number; at:number}|null=null;
     const refresh = async () => {
@@ -54,11 +69,11 @@ export default function DownloadOverview({language, disabled=false, onOpenDownlo
         rows.push({id:'comfyui-install',name:'ComfyUI Portable',status:s.phase,total:s.totalBytes,received:s.receivedBytes,speed:s.bytesPerSecond});
       }
       setEntries(rows); setLoaded(true); setError(models.status==='rejected'||update.status==='rejected'||comfy.status==='rejected');
-      timer=setTimeout(()=>void refresh(),1000);
+      timer=setTimeout(()=>void refresh(),shown?1000:1800);
     };
     void refresh();
     return () => {live=false;clearTimeout(timer);};
-  },[shown]);
+  },[disabled,shown]);
   useEffect(() => {
     const element=dialog.current;
     if (shown) element?.showModal(); else element?.close();
@@ -68,10 +83,19 @@ export default function DownloadOverview({language, disabled=false, onOpenDownlo
   function toggle() {
     if (shown) {close();return;}
     if (document.querySelector('dialog[open],[aria-modal="true"]')) return;
-    setEntries([]);setLoaded(false);setError(false);setShown(true);
+    setShown(true);
   }
+  const overall=combinedDownloadProgress(entries);
+  const progressLabel=overall
+    ? overall.determinate
+      ? de?`${overall.count} laufende Downloads, ${Math.floor(overall.percent)} Prozent`:`${overall.count} active downloads, ${Math.floor(overall.percent)} percent`
+      : de?`${overall.count} laufende Downloads, Fortschritt wird ermittelt`:`${overall.count} active downloads, estimating progress`
+    : de?'Laufende Downloads':'Active downloads';
   return <>
-    {menuHost && createPortal(<button ref={button} type="button" className="window-download-button" title={de?'Laufende Downloads':'Active downloads'} aria-label={de?'Laufende Downloads':'Active downloads'} aria-haspopup="dialog" aria-expanded={shown} aria-controls="download-overview" disabled={disabled} onClick={toggle}><Download size={17}/></button>,menuHost)}
+    {menuHost && createPortal(<button ref={button} type="button" className="window-download-button" title={progressLabel} aria-label={progressLabel} aria-haspopup="dialog" aria-expanded={shown} aria-controls="download-overview" disabled={disabled} onClick={toggle}>
+      <Download size={17}/>
+      {overall && <span className={`window-download-progress${overall.determinate?'':' indeterminate'}`} aria-hidden="true"><span style={overall.determinate?{width:`${overall.percent}%`}:undefined}/></span>}
+    </button>,menuHost)}
     <dialog id="download-overview" ref={dialog} className="download-overview" aria-labelledby="download-overview-title" onCancel={()=>setShown(false)} onClose={()=>{setShown(false);queueMicrotask(()=>button.current?.focus());}} onClick={e=>{if(e.target===e.currentTarget){const r=e.currentTarget.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)close();}}}>
       <div className="download-overview-heading"><h2 id="download-overview-title">{de?'Laufende Downloads':'Active downloads'}</h2><button autoFocus type="button" className="icon-button" aria-label={de?'Schließen':'Close'} onClick={close}><X size={18}/></button></div>
       <div className="download-overview-list">

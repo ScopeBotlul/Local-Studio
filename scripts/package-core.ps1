@@ -42,6 +42,11 @@ Videoschnitt und GIF-Studio. Galerie und Modelle bleiben zentral erreichbar;
 Hugging Face, Downloads, Auftraege und Einstellungen liegen rechts. Die bisherige
 doppelte Studio-Navigation und Breadcrumb-Leiste wurden entfernt.
 
+Neu in 0.36.1: Unter dem Download-Symbol zeigt eine schmale Leiste den gemeinsamen
+Fortschritt aller laufenden Downloads in der eingestellten Akzentfarbe. Downloads
+mit bekannter Groesse werden nach Bytes zusammengefasst; bei unbekannter Groesse
+zeigt die Leiste einen laufenden Status.
+
 Neu in 0.36.0: Unter Hilfe > Fehler melden erstellt Local Studio einen vollstaendigen
 bereinigten Diagnosebericht mit App-Einstellungen, Hardware, Komponentenstatus und
 begrenzten Logs. Tokens, Prompts, Medien und persoenliche Pfade bleiben ausgeschlossen.

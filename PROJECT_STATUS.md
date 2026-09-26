@@ -1,3 +1,9 @@
+# Release 0.36.1 vorbereitet – Downloadfortschritt in der Titelleiste (2026-09-26)
+
+Unter dem kompakten Download-Symbol zeigt eine schmale Leiste den gemeinsamen Fortschritt aller laufenden Downloads in der eingestellten Akzentfarbe. Bekannte Downloadgrößen werden nach übertragenen Bytes gewichtet zusammengefasst. Sobald ein laufender Schritt noch keine Gesamtgröße meldet, wechselt die Leiste in einen laufenden unbestimmten Zustand. Die Statusabfrage läuft dafür auch bei geschlossenem Downloadfenster in einem reduzierten Intervall weiter.
+
+Sechs gezielte Komponententests, TypeScript-/Vite-Produktionsbuild und optimierter Rust-/Tauri-Release-Build sind bestanden. Installer und portables Archiv wurden erzeugt; Paketinhalt, Hashes und signierte Update-Metadaten stimmen. Die Veröffentlichung folgt.
+
 # Release 0.36.0 veröffentlicht – lokaler Diagnosebericht und GitHub-Fehlermeldung (2026-09-26)
 
 Unter **Hilfe → Fehler melden …** steht ein neuer echter Diagnoseablauf bereit. Er sammelt App-Version und Installationsmodus, sämtliche nicht geheimen Local-Studio-Einstellungen, Windows-/CPU-/RAM-/GPU-/Treiber-/Laufwerksinformationen, aggregierte Auftragszustände, ComfyUI- und Update-Status sowie begrenzte lokale Start- und App-Protokolle. Vor dem Speichern ist der vollständige Bericht sichtbar.
