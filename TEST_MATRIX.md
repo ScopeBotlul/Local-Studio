@@ -5,6 +5,7 @@
 - Abgrenzung: Das Low-Memory-Profil gilt nur für erkannte AMD-Pakete bei höchstens 16 GB Gesamtspeicher; größere AMD-Systeme und NVIDIA bleiben unverändert.
 - Bestanden: Frontend-Produktionsbuild, optimierter Rust-/Tauri-Build, Inno-Installer, portables Archiv, Runtime-Staging und signierte Update-Metadaten.
 - Paket-Hashes: Portable ZIP `cb915237fb4265da3e0bd3448bec0f05e0c5e674eddbe9e596bce6aa5ba41196`, Installer `f4897b1c098be070cf0dfbbdf72cb6e4a5a9e79520a80fa5d9b9fff07f9637ca`.
+- Veröffentlichung: `v0.36.12` ist öffentlich und als Latest markiert. Installer und Portable-ZIP wurden vollständig von GitHub zurückgeladen; alle fünf Asset-Digests, Größen, SHA-256-Werte und die Update-Signatur stimmen. Nachweis: `.artifacts/github-release-verification-0.36.12.json`.
 - Noch offen: echter WAI-Illustrious-Lauf auf dem ROG Ally; CPU-Textencoding und konservatives Speichermanagement können die Generierung verlangsamen.
 
 # Releaseprüfung 0.36.11 – 2026-09-26
