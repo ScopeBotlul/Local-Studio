@@ -1,3 +1,9 @@
+# Release 0.30.0 vorbereitet (2026-09-26)
+
+Version 0.30.0 enthält die neue kompakte Hauptnavigation und die kontextbezogene Create-Leiste für Bildgenerierung, Bildeditor, Videoschnitt und GIF-Studio. Die finale Windows-EXE, der Installer, die portable ZIP, Prüfsummen und signierten Update-Metadaten sind erstellt. Die Veröffentlichung auf GitHub folgt nach Commit und Upload.
+
+Gezielte Abnahme: 54/54 Frontendtests bestanden. Die exakte paketierte EXE bestand 16/16 native Prüfungen in einem isolierten Profil, einschließlich direktem Create-Navigationstest und Tastaturwechsel; keine unbehandelten Frontendfehler. Paket und vier Runtime-Verzeichnisse wurden bytegenau geprüft. Unveränderte Rust-, KI-, Netzwerk- und Installer-Lebenszyklustests wurden nicht allein wegen der Navigationsänderung wiederholt.
+
 # Release 0.29.0 veröffentlicht (2026-09-26)
 
 Version 0.29.0 ist als finale Windows-EXE, Installer und portable ZIP gebaut und unter https://github.com/ScopeBotlul/Local-Studio/releases/tag/v0.29.0 öffentlich als neuester Release verfügbar. Der Tag verweist auf Release-Commit `2e3b38a`. Der isolierte native Lauf der exakten Release-EXE bestand 15/15 Prüfungen; Paketinhalt, Runtime-Hashes, Installeridentität und Prüfsummen sind bestätigt. Die Update-Metadaten sind mit dem vorhandenen Ed25519-Schlüssel signiert. Installer, portables Archiv, Prüfsummen, `update.json` und `update.sig` wurden vollständig von GitHub zurückgeladen und stimmen mit den lokalen Paketen überein.

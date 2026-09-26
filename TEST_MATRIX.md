@@ -1,3 +1,14 @@
+# Releaseprüfung 0.30.0 – 2026-09-26
+
+- `npm.cmd run build`: bestanden; finale Version 0.30.0, TypeScript und Vite-Produktionsfrontend. Bestehende Bundlegrößenwarnung.
+- `npm.cmd test -- --run`: 54/54 Frontendtests in 14 Dateien bestanden.
+- Release-Build: optimierte Tauri-EXE, vier vorhandene geprüfte Runtime-Ordner und Inno-Installer erfolgreich erzeugt.
+- Exakte portable Release-EXE in isoliertem Profil: **16/16 native Prüfungen bestanden**. Der neue direkte Test öffnet Create, bestätigt alle vier Studios, wechselt per Pfeiltaste und öffnet anschließend wieder die Bildgenerierung. Start, Einrichtung, Settings, Jobworker, Persistenz, Recovery und sicherer Exit bestanden ebenfalls; keine unbehandelten Frontendfehler. Bericht: `.artifacts/native-1790385187221/report.json`.
+- Visuelle Prüfung des nativen Screenshots `02-create-navigation.png`: Hauptnavigation und zweite Create-Leiste sind vollständig sichtbar, aktive Bereiche klar markiert und Bildstudio/Canvas/Galerie ohne Überlagerung angeordnet.
+- Paketprüfung: EXE, Installer und ZIP stimmen bytegenau; ZIP enthält exakt 80 erlaubte Dateien. Alle 77 Runtime-Dateien entsprechen ihren Manifesten. Installer SHA-256 `ea65a0686bfd5dfb912d25d308dea7c23f192296f9aee5957fe40c3d8e53bd92`, ZIP SHA-256 `83cc76d683ba73f7739dc4abb9a559721fedd7290d1979d25785ce440b8ea316`. Nachweis: `.artifacts/package-bytes-verification-0.30.0.json`.
+- Signaturprüfung: `node scripts/verify-release.mjs` bestätigt den bestehenden Ed25519-Schlüssel, Version, URLs, Größen und SHA-256 beider Pakete. Keine Authenticode-Signatur.
+- Nicht wiederholt: vollständige Rustsuite, echte ComfyUI-Inferenz, Live-Civitai-/Danbooru-Aufrufe sowie Installer-Installation/-Deinstallation. Diese Bereiche sind gegenüber 0.29.0 unverändert; dessen vorhandene Nachweise werden nicht als neue 0.30.0-Prüfung ausgegeben.
+
 # Öffentlicher Updatekanal 0.28.0 geprüft (2026-09-19)
 
 `node scripts/verify-published-release.mjs` erfolgreich: neuester öffentlicher Release ist v0.28.0, kein Entwurf/Prerelease. Ed25519-Signatur des öffentlichen Manifests gültig. Installer und portable ZIP vollständig öffentlich heruntergeladen; Größen und SHA256 stimmen mit Manifest und lokalen Paketen überein. Alle fünf GitHub-Asset-Digests stimmen ebenfalls. Nachweis: .artifacts/github-release-verification-0.28.0.json. Release-Tag zeigt auf f1e850a66d1a5ba110f25e3329a0760167be6840. Keine erneuten Funktionstests oder Builds nötig.

@@ -150,6 +150,19 @@ try {
   assert.equal(snapshot.settings.setupComplete, true);
   record('First-run setup through real UI');
 
+  await page.getByRole('button', { name: 'Create', exact: true }).click();
+  const createNav = page.getByRole('navigation', { name: /Create-Werkzeuge|Create tools/ });
+  await createNav.waitFor();
+  const createButtons = createNav.getByRole('button');
+  assert.equal(await createButtons.count(), 4);
+  await createButtons.nth(0).focus();
+  await page.keyboard.press('ArrowRight');
+  assert.equal(await createButtons.nth(1).getAttribute('aria-current'), 'page');
+  await createButtons.nth(0).click();
+  await page.getByLabel(/Bildidee|Image prompt/, { exact: true }).waitFor();
+  await page.screenshot({ path: path.join(artifactRoot, '02-create-navigation.png') });
+  record('Create navigation exposes image, editor, video and GIF studios with keyboard switching');
+
   await page.getByRole('button', { name: /Einstellungen|Settings/, exact: true }).first().click();
   await page.getByLabel(/Sprache|Language/, { exact: true }).selectOption('en');
   await page.getByLabel(/Design|Theme/, { exact: true }).selectOption('dark');

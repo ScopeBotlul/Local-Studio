@@ -36,6 +36,12 @@ Die Website-Anmeldung ist separat; ihre Cookies liegen im eigenen WebView-Profil
 App-Tokens werden nicht in Website-Cookies umgewandelt. Modellseiten lassen sich
 über In Local Studio öffnen an die Modellansicht übergeben.
 
+Neu in 0.30.0: kompakte zentrierte Hauptnavigation nach Arbeitsbereichen.
+Create oeffnet eine zweite Werkzeugleiste fuer Bildgenerierung, Bildbearbeitung,
+Videoschnitt und GIF-Studio. Galerie und Modelle bleiben zentral erreichbar;
+Hugging Face, Downloads, Auftraege und Einstellungen liegen rechts. Die bisherige
+doppelte Studio-Navigation und Breadcrumb-Leiste wurden entfernt.
+
 Neu in 0.29.0: portable ComfyUI-Erkennung, Einrichtung, lokaler Start und SDXL-
 Bildauftraege ueber 127.0.0.1. LoRAs im Studio auswaehlen und gewichten.
 Rechte Studiogalerie mit gemeinsamem Speicherordner, zufaellige Seeds und Strg+F
