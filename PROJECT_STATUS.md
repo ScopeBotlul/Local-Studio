@@ -1,8 +1,8 @@
-# Release 0.36.7 vorbereitet – ComfyUI-Workflowwerte aus der laufenden API (2026-09-26)
+# Release 0.36.7 veröffentlicht – ComfyUI-Workflowwerte aus der laufenden API (2026-09-26)
 
 Die erreichte ComfyUI-API lehnte den Workflow vor der Ausführung ab. Der wahrscheinlich konkrete Auslöser bei einem verschachtelt heruntergeladenen WAI-Checkpoint ist die strikte `CheckpointLoaderSimple`-Auswahlliste: Local Studio erzeugte plattformneutral `unterordner/modell.safetensors`, während ComfyUI unter Windows den Wert `unterordner\modell.safetensors` führt.
 
-Local Studio liest nun vor jedem Workflow die exakten zulässigen Checkpoint-, LoRA-, Sampler- und Scheduler-Werte aus den lokalen `object_info`-Endpunkten, vergleicht Pfadtrenner normalisiert und sendet den originalen ComfyUI-Wert. Unbekannte Checkpoints erhalten eine eigene Meldung. Andere begrenzte Ablehnungsantworten landen lokal in Auftragsdetails und ComfyUI-Protokoll. Sechs gezielte ComfyUI-Tests, Frontend-Produktionsbuild, optimierter Rust-/Tauri-Build, Installer, portables Archiv und signierte Update-Metadaten sind bestanden. Die Veröffentlichung wird nach der GitHub-Rückprüfung ergänzt.
+Local Studio liest nun vor jedem Workflow die exakten zulässigen Checkpoint-, LoRA-, Sampler- und Scheduler-Werte aus den lokalen `object_info`-Endpunkten, vergleicht Pfadtrenner normalisiert und sendet den originalen ComfyUI-Wert. Unbekannte Checkpoints erhalten eine eigene Meldung. Andere begrenzte Ablehnungsantworten landen lokal in Auftragsdetails und ComfyUI-Protokoll. Sechs gezielte ComfyUI-Tests, Frontend-Produktionsbuild, optimierter Rust-/Tauri-Build, Installer, portables Archiv und signierte Update-Metadaten sind bestanden. Version 0.36.7 ist unter https://github.com/ScopeBotlul/Local-Studio/releases/tag/v0.36.7 öffentlich als Latest verfügbar; Tag `v0.36.7` verweist auf Release-Commit `735b11e`. Installer und portables Archiv wurden vollständig von GitHub zurückgeladen, und Signatur, Größen, Hashes sowie alle fünf Asset-Digests stimmen.
 
 # Release 0.36.6 veröffentlicht – alte Auftragsfehler vom aktuellen Formular getrennt (2026-09-26)
 
