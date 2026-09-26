@@ -6,6 +6,7 @@
 - `node scripts/check-update-dialog.mjs`: 5/5 Browser-Szenarien in Edge bestanden. Geprüft wurden beide Update-Spalten, eine gemeinsame automatische Einstellung, die explizite ComfyUI-Updater-Aktion, Local-Studio-Download nur einmal, Abbruch, Integritätsfehler und der portable GitHub-Pfad.
 - Ein echtes ComfyUI-Update und eine anschließende Inferenz wurden nicht ausgeführt. Die automatische Prüfung installiert weder Local Studio noch ComfyUI und aktualisiert keine Custom Nodes.
 - Releasepakete: optimierte EXE und Inno-Installer erfolgreich gebaut. Portable ZIP mit 80 erlaubten Dateien und 77 geprüften Runtime-Dateien. EXE SHA-256 `6cf74645a92f5c44ec685237748de1e032068a5ea5366bcb3b69a6aef9d584ff`, ZIP `a5ad9ca3c2cfd3a3efc133f4404314cf65e5ad359924ac6ae169eda4079a62ab`, Installer `5f54e4a8dce98c4d508c1bf0d0ba8f9209f2be47522c23b834bbb459e73e7643`. Update-Manifest und Signatur stimmen mit Version, URLs, Größen, Hashes und eingebettetem öffentlichen Schlüssel überein.
+- Veröffentlichung: `v0.34.0` ist öffentlich und als Latest markiert. Installer und Portable-ZIP wurden vollständig von GitHub zurückgeladen; alle fünf Asset-Digests, Größen, SHA-256-Werte und die Update-Signatur stimmen. Nachweis: `.artifacts/github-release-verification-0.34.0.json`.
 
 # Releaseprüfung 0.33.1 – 2026-09-26
 
