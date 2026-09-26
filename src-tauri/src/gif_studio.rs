@@ -67,9 +67,6 @@ fn create(
     let restricted = paths
         .iter()
         .any(|path| crate::privacy::media(Path::new(path)));
-    if restricted && crate::privacy::locked() {
-        return Err("privacy_locked".into());
-    }
     let first = source(Path::new(&paths[0]))?;
     let (width, height) = (first.width(), first.height());
     if width == 0

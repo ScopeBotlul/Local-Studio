@@ -1,4 +1,3 @@
-import {PrivacyGate} from "./Privacy";
 import { useEffect, useState } from 'react';
 import { FolderOpen, LoaderCircle, X } from 'lucide-react';
 import type { useProject } from './useProject';
@@ -19,7 +18,6 @@ export default function ProjectPanel({ shortcuts,maxUndo,controller: c, language
   const asset = p?.assets.find(a => a.id === selected);
   const url = p && asset ? `http://project.localhost/${p.id}/${asset.id}` : '';
   const locked = disabled || c.busy || !c.ready;
-  if(p?.locked)return <section className="project-details-page"><button className="button secondary" onClick={onClose}>{de?'Zurück zum Arbeitsbereich':'Back to workspace'}</button><PrivacyGate de={de}/></section>;
   return <section className="project-panel project-details-page" data-file-drop="project" aria-label={de ? 'Projekt' : 'Project'}>
     {editing&&p&&<ImageEditor key={editing.id} entry={{name:editing.name,path:editing.name,fileId:editing.id,thumbnailVersion:editing.sha256}} rootId={p.id} de={de} shortcuts={shortcuts} maxUndo={maxUndo} project={{query:{id:p.id,assetId:editing.id,sha256:editing.sha256},operations:editing.edit??[]}} onSaveProject={c.saveEdit} onClose={()=>setEditing(null)}/>}
     <div className="project-details-heading"><h2><FolderOpen size={17}/> {de?'Projektmedien und Details':'Project media and details'}{p?` · ${p.name}${!p.recovery&&(p.dirty||changed)?' *':''}`:''}</h2>{c.busy&&<LoaderCircle className="spin" size={17}/>}<button className="button secondary" onClick={onClose}>{de?'Zurück zum Arbeitsbereich':'Back to workspace'}</button></div>

@@ -456,9 +456,6 @@ fn search_models(
     {
         return Err("civitai_query".into());
     }
-    if include_nsfw && crate::privacy::locked() {
-        return Err("privacy_locked".into());
-    }
     let mut url = Url::parse(&format!("{API}/models")).map_err(|_| "civitai_network")?;
     {
         let mut pairs = url.query_pairs_mut();
@@ -504,9 +501,6 @@ fn search_models(
 fn model_detail(id: u64) -> Result<ModelDetail> {
     let value = api_json_limit(&format!("models/{id}"), 8 * 1024 * 1024)?;
     let model = summary(&value).ok_or("civitai_response")?;
-    if model.nsfw && crate::privacy::locked() {
-        return Err("privacy_locked".into());
-    }
     let versions = value["modelVersions"]
         .as_array()
         .into_iter()
@@ -677,9 +671,6 @@ fn info(id: u64) -> Result<ImageInfo> {
     ids.truncate(16);
     let resources = ids.into_iter().filter_map(|id| version(id).ok()).collect();
     let nsfw = image["nsfwLevel"].as_str().unwrap_or("Unknown").to_string();
-    if !matches!(nsfw.as_str(), "None" | "Unknown") && crate::privacy::locked() {
-        return Err("privacy_locked".into());
-    }
     Ok(ImageInfo {
         id,
         prompt: meta["prompt"]
@@ -907,9 +898,6 @@ pub async fn civitai_download_plan(
 }
 #[tauri::command]
 pub async fn danbooru_post_tags(url: String) -> Result<String> {
-    if crate::privacy::locked() {
-        return Err("privacy_locked".into());
-    }
     tauri::async_runtime::spawn_blocking(move || danbooru_tags(danbooru_id(&url)?))
         .await
         .map_err(|_| "tag_network")?
@@ -957,9 +945,6 @@ pub async fn civitai_browser_mount(
     browser: State<'_, CivitaiBrowser>,
 ) -> Result<BrowserState> {
     local(&caller)?;
-    if crate::privacy::locked() {
-        return Err("privacy_locked".into());
-    }
     if uuid::Uuid::parse_str(&owner).is_err() {
         return Err("browser_owner".into());
     }
@@ -1075,12 +1060,6 @@ pub fn civitai_browser_state(
     browser: State<'_, CivitaiBrowser>,
 ) -> Result<BrowserState> {
     local(&caller)?;
-    if crate::privacy::locked() {
-        if let Some(view) = caller.app_handle().get_webview(LABEL) {
-            let _ = view.hide();
-        }
-        return Err("privacy_locked".into());
-    }
     current(&caller, &browser)
 }
 #[tauri::command]
@@ -1091,9 +1070,6 @@ pub async fn civitai_browser_action(
     browser: State<'_, CivitaiBrowser>,
 ) -> Result<()> {
     local(&caller)?;
-    if crate::privacy::locked() {
-        return Err("privacy_locked".into());
-    }
     let _operation = browser.operations.lock().map_err(|_| "internal")?;
     if browser.owner.lock().map_err(|_| "internal")?.as_deref() != Some(&owner) {
         return Err("browser_owner".into());

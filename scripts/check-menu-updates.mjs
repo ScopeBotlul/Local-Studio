@@ -16,6 +16,9 @@ export async function checkMenuUpdates({getPage,invoke,artifactRoot,record,pid})
   if(label)throw Error('Menu item missing: '+label);return result;
  }
  await until(async()=>{try{return (await menu()).length===4;}catch{return false;}});
+ assert.equal(await page.getByRole('button',{name:/18+.*Locked|18+.*Gesperrt/}).count(),0);
+ await assert.rejects(invoke('privacy_status'));
+ record('Removed 18+ lock has no UI control and no public desktop command');
  const menus=await menu();assert.deepEqual(menus.map(m=>m.text),['File','Edit','View','Help']);assert(!menus[1].children.find(n=>n.text.startsWith('Undo')).enabled);
  await menu('New project …');await page.getByRole('dialog',{name:'New project',exact:true}).waitFor();await page.getByRole('dialog',{name:'New project',exact:true}).getByLabel('Project name',{exact:true}).fill('Menu project');await page.getByRole('dialog',{name:'New project',exact:true}).getByRole('button',{name:'Create project',exact:true}).click();await until(async()=>(await invoke('project_snapshot'))?.name==='Menu project');
  await page.evaluate(()=>{const original=window.fetch;window.menuPaths={save:'',open:'',confirm:'Ok'};window.fetch=(input,options)=>{const u=new URL(typeof input==='string'?input:input.url);const k=decodeURIComponent(u.pathname);if(u.hostname==='ipc.localhost'&&['/plugin:dialog|save','/plugin:dialog|open','/plugin:dialog|message'].includes(k)){const value=k.endsWith('save')?window.menuPaths.save:k.endsWith('open')?window.menuPaths.open:window.menuPaths.confirm;return Promise.resolve(new Response(JSON.stringify(value),{headers:{'Content-Type':'application/json','Tauri-Response':'ok'}}));}return original.call(window,input,options);};});

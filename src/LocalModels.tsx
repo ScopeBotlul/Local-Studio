@@ -1,4 +1,4 @@
-import {ModelPrivacy} from "./Privacy";
+
 import { useEffect, useRef, useState } from 'react';
 import { confirm, open } from '@tauri-apps/plugin-dialog';
 import { invoke } from '@tauri-apps/api/core';
@@ -138,7 +138,7 @@ export default function LocalModels({ language, showImage }: { language: Languag
       </details>
       <div className="hub-actions">{entry.format === 'safetensors' && entry.profile?.support === 'preflight' && entry.status === 'checked' && <button className="button primary" onClick={() => showImage(entry.path)}>{de ? 'Im Studio prüfen' : 'Check in Studio'}</button>}<button className="button secondary" disabled={busy || running} onClick={() => void act(() => invoke('model_library_recheck', { id: entry.id }))}><RefreshCw size={14} />{de ? 'Erneut prüfen' : 'Recheck'}</button><button className="text-button" disabled={busy || running} title={de ? 'Entfernt nur den Listeneintrag; die Dateien bleiben erhalten.' : 'Removes only the list entry; files are kept.'} onClick={() => void act(() => invoke('model_library_forget', { id: entry.id }))}>{de ? 'Aus Liste entfernen' : 'Remove from list'}</button><button className="text-button danger" disabled={busy||running||!entry.files.length||['missing','unavailable','changed'].includes(entry.status)} onClick={()=>void deleteModel(entry)}><Trash2 size={14}/>{de?'Dateien löschen':'Delete files'}</button></div>
       {entry.discovery === 'model' && <button className="button secondary" disabled={busy || running || !['checked', 'recognized'].includes(entry.status)} onClick={() => setMoveModel(entry)}>{de ? 'Dateien verschieben' : 'Move files'}</button>}
-      {entry.discovery==='model'&&<ModelPrivacy path={entry.path} de={de}/>}<details><summary>{de ? 'Erfasste Dateien' : 'Recorded files'} ({entry.files.length})</summary><ul className="download-file-list">{entry.files.map(file => <li key={file.path}><span className="download-path">{displayPath(file.path)}</span><span>{formatGigabytes(file.size, language)}</span></li>)}</ul></details>
+      <details><summary>{de ? 'Erfasste Dateien' : 'Recorded files'} ({entry.files.length})</summary><ul className="download-file-list">{entry.files.map(file => <li key={file.path}><span className="download-path">{displayPath(file.path)}</span><span>{formatGigabytes(file.size, language)}</span></li>)}</ul></details>
     </article>)}</div>
     {pages > 1 && <div className="hub-actions"><button className="button secondary" disabled={currentPage === 0} onClick={() => setPage(currentPage - 1)}>{de ? 'Zurück' : 'Previous'}</button><span>{de ? 'Seite' : 'Page'} {currentPage + 1} / {pages}</span><button className="button secondary" disabled={currentPage + 1 >= pages} onClick={() => setPage(currentPage + 1)}>{de ? 'Weiter' : 'Next'}</button></div>}
     <h2 className="local-download-heading">{de ? 'Über Local Studio heruntergeladen' : 'Downloaded through Local Studio'}</h2>

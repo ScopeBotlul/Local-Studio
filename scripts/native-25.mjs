@@ -1,4 +1,3 @@
-import {checkPrivacy26} from './check-privacy26.mjs';
 import {checkStudio27} from './check-studio27.mjs';
 import {checkUi28} from './check-ui28.mjs';
 import {checkCore25} from './check-core25.mjs';
@@ -8,9 +7,10 @@ import {checkCreative25} from './check-creative25.mjs';
 import {checkAi24} from './check-ai24.mjs';
 import {checkMenuUpdates} from './check-menu-updates.mjs';
 import {checkCivitai31} from './check-civitai31.mjs';
-const suites={ui28:checkUi28,studio27:checkStudio27,privacy:checkPrivacy26,core:checkCore25,references:checkReference25,models:checkUpdatesBench25,editors:checkCreative25,ai:checkAi24,menu:checkMenuUpdates,civitai:checkCivitai31};
+import {checkRelease32} from './check-release32.mjs';
+const suites={release32:checkRelease32,ui28:checkUi28,studio27:checkStudio27,core:checkCore25,references:checkReference25,models:checkUpdatesBench25,editors:checkCreative25,ai:checkAi24,menu:checkMenuUpdates,civitai:checkCivitai31};
 const suite=suites[process.argv[2]];
-if(!suite)throw Error('Usage: node scripts/native-25.mjs core|references|models|editors|ai|menu|civitai');
+if(!suite)throw Error('Usage: node scripts/native-25.mjs release32|core|references|models|editors|ai|menu|civitai');
 // Runs the real Windows executable with an isolated database and WebView2 profile.
 // CDP is enabled only for this child process, never in normal app configuration.
 import { chromium } from '@playwright/test';

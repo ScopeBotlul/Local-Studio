@@ -546,9 +546,6 @@ impl Projects {
         let version = digest(&mut input)?;
         let mut z = archive(&mut input)?;
         let m = read_manifest(&mut z)?;
-        if crate::privacy::locked() && (m.restricted || m.assets.iter().any(|a| a.restricted)) {
-            return Err("privacy_locked".into());
-        }
         let mut p = create(recovery, m.name, m.request)?;
         p.restricted = m.restricted;
         p.creative = m.creative;

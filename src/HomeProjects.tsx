@@ -11,7 +11,7 @@ export default function HomeProjects({controller:c,de,disabled,workspaceRecovery
  const rows=[...(current?[{key:`active:${current.id}`,name:current.name,path:current.path,available:true,active:true,openedAt:0}]:[]),...c.recent.filter(p=>p.path!==current?.path).map(p=>({...p,key:p.path,active:false}))];
  const chosen=rows.find(row=>row.key===selected)??rows.find(row=>row.available);
  const locked=disabled||c.busy||!c.ready;
- const cannotCreate=locked||workspaceRecovery||!!current?.recovery||!!current?.locked;
+ const cannotCreate=locked||workspaceRecovery||!!current?.recovery;
  async function openSelected(){if(!chosen||!chosen.available||locked)return;if(chosen.active){onOpened();return;}if(chosen.path&&await c.openPath(chosen.path))onOpened();}
  return <section className="panel home-projects" aria-labelledby="home-projects-title">
   <div className="section-heading"><div><h2 id="home-projects-title">{de?'Projekte':'Projects'}</h2><p className="hub-hint">{de?'Aktuelles Projekt und zuletzt geöffnete Projektdateien.':'Current project and recently opened project files.'}</p></div><FolderOpen size={23}/></div>

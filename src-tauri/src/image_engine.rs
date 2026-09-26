@@ -519,23 +519,6 @@ fn job_directory(job: &ImageJob, legacy: &Path) -> Result<PathBuf> {
 }
 
 impl ImageEngine {
-    pub(crate) fn protect_known_jobs(&self) -> Result<()> {
-        let mut s = self.state.lock().map_err(|_| "image_storage")?;
-        for n in 0..s.jobs.len() {
-            if crate::privacy::request(&s.jobs[n].request) {
-                s.jobs[n].restricted = true;
-                let job = &s.jobs[n];
-                crate::privacy::protect_path(&job_directory(job, &self.config)?)?;
-                if let Some(path) = &job.saved_path {
-                    if Path::new(path).is_file() {
-                        crate::privacy::mark(Path::new(path))?;
-                    }
-                }
-                persist(&s, job)?;
-            }
-        }
-        Ok(())
-    }
     pub fn new_with_comfy(
         config: &Path,
         runtime: PathBuf,

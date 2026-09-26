@@ -58,13 +58,6 @@ impl AiEngine {
                 .transpose()?
                 .unwrap_or(false))
     }
-    pub(crate) fn protect_chat(&self) -> Result<()> {
-        if self.privacy_chat()? {
-            self.chat_update(|s| s.restricted = true)?;
-        }
-        Ok(())
-    }
-
     fn chat_update(&self, change: impl FnOnce(&mut ChatState)) -> Result<ChatState> {
         let mut s = self.chat.lock().map_err(err)?;
         change(&mut s);
@@ -339,12 +332,6 @@ fn run_tool(
     catalog: &gallery::GalleryCatalog,
     images: &ImageEngine,
 ) -> Result<(Value, Option<ImageRequest>)> {
-    if crate::privacy::locked()
-        && crate::privacy::has_protected()
-        && !matches!(name, "get_hardware" | "list_models" | "search_gallery")
-    {
-        return Err("privacy_locked".into());
-    }
     match name {
         "get_hardware" => {
             let _: Empty = serde_json::from_value(args).map_err(|_| "ai_tool_arguments")?;
@@ -433,9 +420,6 @@ pub fn assistant_send(
     catalog: tauri::State<'_, Arc<gallery::GalleryCatalog>>,
     images: tauri::State<'_, Arc<ImageEngine>>,
 ) -> Result<()> {
-    if crate::privacy::locked() && engine.privacy_chat()? {
-        return Err("privacy_locked".into());
-    }
     if text.trim().is_empty()
         || text.len() > 8000
         || text.contains('\0')

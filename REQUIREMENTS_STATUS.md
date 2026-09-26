@@ -58,10 +58,10 @@ Arbeitsauftrag: alle verbleibenden Anforderungen aus dem unveränderten Masterpr
 | 52 | Startverhalten | Teilweise vorhanden | Vollständige Abnahme offen; SPEC §52 bleibt verbindlich |
 | 53 | Crash Recovery | Teilweise vorhanden | Vollständige Abnahme offen; SPEC §53 bleibt verbindlich |
 | 54 | Temporärdaten | Teilweise vorhanden | Vollständige Abnahme offen; SPEC §54 bleibt verbindlich |
-| 55 | 18+-Modus | Implementiert | 0.26.0: Altersbestätigung, PIN/Passwort, gesalzene Ableitung, Versuchsbremse, Neustartsperre; Nachweise in TEST_MATRIX.md |
-| 56 | 18+-Modelle in Studio | Implementiert für vorhandene Adapter | 0.26.0: Modelle sichtbar, Arbeitsbereich/Prompts gesperrt, neue private Aufträge verweigert, laufende Generierungen weiter aktiv |
-| 57 | 18+-Galerie | Implementiert für vorhandene Herkunftspfade | 0.26.0: geschützte Vorschau/Metadaten, Kopien/Varianten/Exporte/Projektformat 5; Erweiterungsadapter später einbinden |
-| 58 | 18+-Analyse | Teilweise | 0.26.0: private Galerie-Suchergebnisse und vorhandene Analyse-/Assistentenzugriffe gesperrt; visueller Index/semantische Suche selbst weiterhin offen |
+| 55 | 18+-Modus | Auf Nutzerwunsch entfernt | 0.32.0: Altersabfrage, PIN/Passwort, Neustartsperre, UI und öffentliche IPC entfernt; alte Sperrdaten werden ignoriert |
+| 56 | 18+-Modelle in Studio | Nur Metadaten | 0.32.0: Anbieterkennzeichnungen bleiben sichtbar, sperren Modell, Prompt und Generierung aber nicht mehr |
+| 57 | 18+-Galerie | Sperre entfernt | 0.32.0: vorhandene Formatfelder bleiben kompatibel; Vorschau, Metadaten, Kopien und Projekte werden nicht mehr gesperrt |
+| 58 | 18+-Analyse | Sperre entfernt | 0.32.0: keine zugangsbasierten Filter im Assistenten oder in der Galerie; Inhaltsanalyse bleibt eigenständiger Zukunftsumfang |
 | 59 | IMAGE – Generierung | Teilweise vorhanden | 0.25: reale SDXL-Referenzen, Bild-zu-Bild, Inpainting, Stapel/Seeds und CPU-VAE; LoRA/ControlNet/VAE-Austausch offen |
 | 60 | Bildeditor | Teilweise vorhanden | Vollständige Abnahme offen; SPEC §60 bleibt verbindlich |
 | 61 | Bildeditor – Transformation | Teilweise vorhanden | Vollständige Abnahme offen; SPEC §61 bleibt verbindlich |

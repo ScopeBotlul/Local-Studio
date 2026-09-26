@@ -42,6 +42,14 @@ Videoschnitt und GIF-Studio. Galerie und Modelle bleiben zentral erreichbar;
 Hugging Face, Downloads, Auftraege und Einstellungen liegen rechts. Die bisherige
 doppelte Studio-Navigation und Breadcrumb-Leiste wurden entfernt.
 
+Neu in 0.32.0: Ist die automatische Update-Suche aktiv, erscheint bei einem
+verfuegbaren Release selbststaendig der Update-Dialog mit Abbrechen und Update
+installieren. Andere geoeffnete Dialoge werden abgewartet. Die bisherige lokale
+18+-Sperre samt Altersabfrage, PIN/Passwort, Neustartsperre, gesperrten Ansichten
+und Desktop-IPC wurde entfernt. Alte Kennzeichnungen bleiben lesbar, haben aber
+keine Sperrwirkung mehr. 18+-Angaben in Modellkatalogen sind nur Metadaten und
+Suchfilter.
+
 Neu in 0.31.0: Civitai-Modellsuche direkt in der Modellbibliothek mit Typ,
 Basisfamilie, Sortierung, Zeitraum, Versionen, Dateigroessen und Scanstatus.
 Oeffentliche, primaere Safetensors-Dateien mit SHA-256 und erfolgreichen Civitai-

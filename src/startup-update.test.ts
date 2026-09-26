@@ -23,6 +23,15 @@ describe('automatic startup update notification',()=>{
   const s=setup();s.canShow.mockReturnValue(false);await vi.advanceTimersByTimeAsync(16000);expect(s.onAvailable).not.toHaveBeenCalled();
   s.canShow.mockReturnValue(true);await vi.advanceTimersByTimeAsync(500);expect(s.onAvailable).toHaveBeenCalledTimes(1);s.stop();
  });
+ it('opens directly when an earlier check already found an update',async()=>{
+  const s=setup();s.status.mockResolvedValue(state('available'));
+  await vi.advanceTimersByTimeAsync(15000);
+  expect(s.check).not.toHaveBeenCalled();expect(s.onAvailable).toHaveBeenCalledTimes(1);s.stop();
+ });
+ it('does not open later after the app cancels while another dialog is visible',async()=>{
+  const s=setup();s.canShow.mockReturnValue(false);await vi.advanceTimersByTimeAsync(15000);s.stop();
+  s.canShow.mockReturnValue(true);await vi.advanceTimersByTimeAsync(1000);expect(s.onAvailable).not.toHaveBeenCalled();
+ });
  it('does not check after the setting is disabled before the timer',async()=>{
   const s=setup();s.stop();await vi.advanceTimersByTimeAsync(20000);expect(s.check).not.toHaveBeenCalled();
  });

@@ -42,7 +42,6 @@ export const imageApi = {
 };
 
 const errors: Record<string, [string, string]> = {
-  privacy_locked:['Bitte zuerst den 18+-Bereich entsperren.','Unlock the 18+ area first.'],
   image_mask:['Die Maske muss ein undurchsichtiges PNG mit gleichen RGB-Grauwerten und mindestens einem hellen Bereich sein. Weiß wird bearbeitet, Schwarz bleibt erhalten.','The mask must be an opaque grayscale PNG with at least one non-black area. White is edited, black is preserved.'],
   resource_memory:['Nicht genug freier RAM. Andere Modelle entladen und erneut versuchen.','Not enough available RAM. Unload other models and try again.'],
   resource_timeout:['Zu lange auf Ressourcen gewartet. Den Auftrag bei Bedarf erneut einreihen.','Resource wait timed out. Queue the job again if needed.'],
