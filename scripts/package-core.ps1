@@ -42,6 +42,13 @@ Videoschnitt und GIF-Studio. Galerie und Modelle bleiben zentral erreichbar;
 Hugging Face, Downloads, Auftraege und Einstellungen liegen rechts. Die bisherige
 doppelte Studio-Navigation und Breadcrumb-Leiste wurden entfernt.
 
+Neu in 0.35.0: ComfyUI kann im Update-Center nach bewusstem Klick direkt
+aktualisiert werden. Local Studio beendet eine selbst gestartete Engine, fuehrt
+den offiziellen stabilen Core-Updater mit der eingebetteten Python-Laufzeit aus
+und startet die Engine danach wieder. Fortschritt und lokales Protokoll bleiben
+sichtbar. Erforderliche Core-Abhaengigkeiten duerfen angepasst werden; Custom
+Nodes werden nicht aktualisiert. Laufende Bildauftraege sperren das Update.
+
 Neu in 0.34.0: Das Update-Center zeigt Local Studio und ComfyUI in zwei Bereichen.
 Die gemeinsame automatische Startpruefung sucht fuer beide nach neuen Versionen,
 installiert aber nichts ohne Nutzeraktion. ComfyUI verwendet den offiziellen

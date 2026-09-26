@@ -1,3 +1,11 @@
+# Version 0.35.0 – direktes ComfyUI-Update vorbereitet (2026-09-26)
+
+Das Update-Center kann den offiziellen stabilen Core-Updater einer portablen ComfyUI-Installation jetzt direkt nach einem bewussten Klick ausführen. Eine von Local Studio gestartete Engine wird vorher beendet und danach wieder gestartet. Währenddessen zeigt der Dialog den laufenden Zustand und das lokale Updater-Protokoll; parallele Bildaufträge und extern gestartete Instanzen werden abgewiesen.
+
+Der Updater läuft mit der eingebetteten Python-Laufzeit und dem zur Installation gehörenden offiziellen `update.py`. Der Prozess ist an den Lebenszyklus von Local Studio gebunden und auf 30 Minuten begrenzt. Erforderliche ComfyUI-Core-Abhängigkeiten können durch den offiziellen Updater angepasst werden. Custom Nodes werden nicht aktualisiert. Die automatische Startprüfung installiert weiterhin nichts ohne Nutzeraktion.
+
+Gezielte Quellprüfungen für Frontend, Update-Dialog, Rust/Tauri und ComfyUI sind bestanden. Optimierte EXE, Inno-Installer, portables Archiv, Prüfsummen und signierte Update-Metadaten wurden erstellt und lokal vollständig geprüft. Ein reales Update der persönlichen ComfyUI-Installation und eine anschließende Inferenz wurden nicht ausgeführt. Die Veröffentlichung folgt in diesem Arbeitsgang.
+
 # Release 0.34.0 veröffentlicht (2026-09-26)
 
 Das Update-Center zeigt Local Studio und ComfyUI jetzt in getrennten Spalten. Die vorhandene Einstellung für die automatische Startprüfung gilt für beide: Sie prüft die signierten Local-Studio-Metadaten und das offizielle ComfyUI-GitHub-Release und öffnet das Center, wenn mindestens eine neue Version vorliegt. Eine Installation startet nie allein durch die Suche.

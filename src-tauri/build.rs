@@ -9,6 +9,7 @@ fn main() {
             "comfy_dismiss",
             "comfy_download",
             "comfy_update_check",
+            "comfy_update",
             "comfy_open_updater",
             "gif_create",
             "civitai_image_info",

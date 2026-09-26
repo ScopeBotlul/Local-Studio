@@ -1,3 +1,12 @@
+# Releaseprüfung 0.35.0 – 2026-09-26
+
+- Geändert sind der direkte ComfyUI-Updater, seine explizite Tauri-Berechtigung, Status-/Loganzeige und die Sperre gegen parallele Bildaufträge. Unveränderte KI-, Galerie-, Medien- und Installer-Suiten werden nicht allein wegen dieses Updates wiederholt.
+- `npm.cmd run build`: bestanden. `npm.cmd test -- src/startup-update.test.ts src/download-overview.test.ts`: 14/14 Tests bestanden.
+- `node scripts/check-update-dialog.mjs`: 5/5 Browser-Szenarien in Edge bestanden. Der neue Fall prüft den bewussten direkten ComfyUI-Start, genau einen IPC-Aufruf, laufenden Status, sichtbares Log, gesperrtes Schließen und den Abschlusszustand. Local-Studio-Download, Abbruch, Integritätsfehler und portabler Downloadpfad bleiben abgedeckt.
+- `scripts/desktop.ps1 check`: Rust-/Tauri-Compilercheck einschließlich generierter `comfy_update`-ACL bestanden. `cargo test --manifest-path src-tauri/Cargo.toml comfy::tests`: 3/3 bestehende ComfyUI-Sicherheits-/Datenparsertests bestanden.
+- Der echte offizielle Updater wurde nicht gegen die persönliche ComfyUI-Installation ausgeführt; ebenso keine anschließende Inferenz. Der Pfad darf nach bewusstem Klick erforderliche ComfyUI-Core-Abhängigkeiten verändern, aktualisiert aber keine Custom Nodes. Automatische Prüfung und App-Start installieren weiterhin nichts.
+- Release-Build bestanden. Das portable ZIP enthält exakt 80 erlaubte Dateien; 77 Runtime-Dateien entsprechen ihren Manifesten. EXE SHA-256 `70f73a8e60ad8c8a7fd1f3ce8b3d2a07cfba7f2a017caa0c017ee6e0317872de`, ZIP `800198cd94192975591377c307c63f971dd308b730a6953d0ea3a1cc9ddffed7`, Installer `4659051cf7ce2e82f3007e86bb99d4b16c0b3ba39b447ed8e3c4edabab2e99de`. Signiertes Manifest stimmt mit eingebettetem öffentlichen Schlüssel, Version, URLs, Größen und Hashes überein. Öffentliche GitHub-Verifikation folgt nach Upload.
+
 # Releaseprüfung 0.34.0 – 2026-09-26
 
 - `npm.cmd run build`: bestanden. `npm.cmd test -- src/startup-update.test.ts src/download-overview.test.ts`: 14/14 Tests bestanden; neu sind gemeinsame automatische Local-Studio-/ComfyUI-Prüfung, Benachrichtigung bei einem ComfyUI-Update und das Überspringen der Netzwerkprüfung ohne Installation.

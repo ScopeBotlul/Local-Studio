@@ -32,6 +32,7 @@ export default function UpdateDialog({de,version,automatic,onAutomatic,onInstall
   finally{if(live.current)setComfyActing(false);}
  }
  function close(){
+  if(comfy?.update.phase==='updating')return;
   installRequested.current=false;
   if(pending.current||status?.phase==='downloading')void updateApi.cancel().catch(()=>{});
   live.current=false;
@@ -74,12 +75,12 @@ export default function UpdateDialog({de,version,automatic,onAutomatic,onInstall
    </section>
    <section className="update-column">
     <h3>ComfyUI</h3>
-    {!comfy?.installed?<p>{t('ComfyUI ist nicht eingerichtet.','ComfyUI is not configured.')}</p>:<><p>{t('Installierte Version','Installed version')}: {comfy.update.installedVersion??comfy.version??t('Unbekannt','Unknown')}</p>{comfy.update.phase==='current'&&<p role="status">{t('Aktuelle Version installiert.','Latest version installed.')}</p>}{comfy.update.phase==='checking'&&<p role="status">{t('Offizielles ComfyUI-Release wird geprüft …','Checking the official ComfyUI release …')}</p>}{comfy.update.latestVersion&&<p><strong>{t('Verfügbare Version','Available version')}: {comfy.update.latestVersion}</strong></p>}{comfyOffered&&<p>{t('Der offizielle portable Updater wird geöffnet. Starte dort das normale ComfyUI-Update; Custom Nodes werden nicht automatisch aktualisiert.','The official portable updater folder will open. Start the regular ComfyUI update there; custom nodes are not updated automatically.')}</p>}</>}
+    {!comfy?.installed?<p>{t('ComfyUI ist nicht eingerichtet.','ComfyUI is not configured.')}</p>:<><p>{t('Installierte Version','Installed version')}: {comfy.update.installedVersion??comfy.version??t('Unbekannt','Unknown')}</p>{comfy.update.phase==='current'&&<p role="status">{t('Aktuelle Version installiert.','Latest version installed.')}</p>}{comfy.update.phase==='checking'&&<p role="status">{t('Offizielles ComfyUI-Release wird geprüft …','Checking the official ComfyUI release …')}</p>}{comfy.update.latestVersion&&<p><strong>{t('Verfügbare Version','Available version')}: {comfy.update.latestVersion}</strong></p>}{comfyOffered&&<p>{t('Local Studio beendet die verwaltete Engine, führt den offiziellen stabilen Core-Updater aus und startet ComfyUI danach neu. Dabei können erforderliche ComfyUI-Kernabhängigkeiten angepasst werden; Custom Nodes werden nicht aktualisiert.','Local Studio stops the managed engine, runs the official stable core updater and restarts ComfyUI. Required ComfyUI core dependencies may be adjusted; custom nodes are not updated.')}</p>}{comfy.update.phase==='updating'&&<><p role="status">{t('ComfyUI wird direkt aktualisiert …','Updating ComfyUI directly …')}</p><progress aria-label={t('ComfyUI-Update läuft','ComfyUI update in progress')}/>{comfy.update.log&&<pre className="update-notes comfy-update-log">{comfy.update.log}</pre>}</>}</>}
     {(comfyErrorText||comfy?.update.error)&&<p className="notice warning" role="alert">{comfyErrorText||comfyError(comfy?.update.error,de)}</p>}
-    <div className="update-column-actions">{comfy?.installed&&<button className="button secondary" disabled={comfyActing||comfy.update.phase==='checking'} onClick={()=>void comfyAction(comfyApi.checkUpdate)}>{t('Erneut prüfen','Check again')}</button>}{comfyOffered&&<button className="button primary" disabled={comfyActing} onClick={()=>void comfyAction(comfyApi.openUpdater)}>{t('Offiziellen Updater öffnen','Open official updater')}</button>}</div>
+    <div className="update-column-actions">{comfy?.installed&&<button className="button secondary" disabled={comfyActing||['checking','updating'].includes(comfy.update.phase)} onClick={()=>void comfyAction(comfyApi.checkUpdate)}>{t('Erneut prüfen','Check again')}</button>}{(comfyOffered||comfy?.update.phase==='updating')&&<button className="button primary" disabled={comfyActing||comfy.update.phase==='updating'} onClick={()=>void comfyAction(comfyApi.update)}>{comfy.update.phase==='updating'?t('Update läuft …','Updating …'):t('Jetzt aktualisieren','Update now')}</button>}</div>
    </section>
   </div>
-  <div className="image-dialog-actions"><button className="button secondary" onClick={close}>{t('Schließen','Close')}</button></div>
+  <div className="image-dialog-actions"><button className="button secondary" disabled={comfy?.update.phase==='updating'} onClick={close}>{t('Schließen','Close')}</button></div>
   <p className="hub-hint">{t('Beide Prüfungen verbinden sich mit GitHub. Medien, Prompts und Modelldateien werden nicht übertragen. Updates werden nie allein durch die automatische Suche installiert.','Both checks connect to GitHub. Media, prompts and model files are not sent. Automatic checking never installs updates by itself.')}</p>
  </dialog>;
 }

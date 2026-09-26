@@ -12,6 +12,7 @@
     "allow-comfy-dismiss",
     "allow-comfy-download",
     "allow-comfy-update-check",
+    "allow-comfy-update",
     "allow-comfy-open-updater",
     "allow-gif-create",
     "allow-civitai-image-info",

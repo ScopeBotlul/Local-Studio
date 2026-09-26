@@ -24,12 +24,18 @@ try{
  await expect(page.getByRole('heading',{name:'Local Studio',exact:true})).toBeVisible();
  await expect(page.getByRole('heading',{name:'ComfyUI',exact:true})).toBeVisible();
  await expect(page.getByText('Beim Start automatisch nach Updates für Local Studio und ComfyUI suchen')).toBeVisible();
- await page.getByRole('button',{name:'Offiziellen Updater öffnen',exact:true}).click();
- expect(await page.evaluate(()=>window.updateFixture.calls.includes('comfy_open_updater'))).toBe(true);
+ await page.getByRole('button',{name:'Jetzt aktualisieren',exact:true}).click();
+ await page.clock.runFor(500);
+ await expect(page.getByRole('progressbar',{name:'ComfyUI-Update läuft'})).toBeVisible();
+ await expect(page.getByText('pulling latest changes')).toBeVisible();
+ expect(await page.evaluate(()=>window.updateFixture.calls.filter(c=>c==='comfy_update').length)).toBe(1);
+ await expect(page.getByRole('button',{name:'Schließen',exact:true})).toBeDisabled();
+ await page.evaluate(()=>window.updateFixture.finishComfy());
+ await expect(page.getByText('Aktuelle Version installiert.')).toBeVisible();
  await page.getByRole('button',{name:'Schließen',exact:true}).click();
  await expect(page.getByRole('dialog')).toHaveCount(0);
  expect(await page.evaluate(()=>window.updateFixture.calls.includes('update_download'))).toBe(false);
- passed.push('Two-column update center uses one automatic setting and opens the official ComfyUI updater only on action');
+ passed.push('Direct ComfyUI update is explicit, reports progress and blocks closing until completion');
 
  await mount();
  await page.getByRole('button',{name:'Update installieren',exact:true}).dblclick();

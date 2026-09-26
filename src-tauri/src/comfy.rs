@@ -9,11 +9,11 @@ use sha2::{Digest, Sha256};
 use std::{
     collections::VecDeque,
     fs,
-    io::{Read, Write},
+    io::{Read, Seek, SeekFrom, Write},
     path::{Path, PathBuf},
     process::{Child, Command, Stdio},
     sync::{
-        atomic::{AtomicBool, Ordering},
+        atomic::{AtomicBool, AtomicUsize, Ordering},
         Arc, Mutex,
     },
     time::{Duration, Instant},
@@ -61,6 +61,7 @@ pub struct ComfyUpdateStatus {
     installed_version: Option<String>,
     latest_version: Option<String>,
     error: Option<String>,
+    log: Option<String>,
 }
 struct Process {
     child: Child,
@@ -73,6 +74,15 @@ pub struct Comfy {
     process: Mutex<Option<Process>>,
     install: Mutex<ComfyInstallStatus>,
     update: Mutex<ComfyUpdateStatus>,
+    update_log: PathBuf,
+    active_generations: AtomicUsize,
+}
+
+struct ActiveGeneration<'a>(&'a AtomicUsize);
+impl Drop for ActiveGeneration<'_> {
+    fn drop(&mut self) {
+        self.0.fetch_sub(1, Ordering::SeqCst);
+    }
 }
 
 fn valid_root(path: &Path) -> bool {
@@ -230,14 +240,27 @@ fn version_from_root(root: &Path) -> Option<String> {
     }
     let text = std::str::from_utf8(&bytes).ok()?;
     for line in text.lines() {
-        let Some(rest) = line.trim().strip_prefix("__version__") else { continue };
-        let Some(rest) = rest.trim_start().strip_prefix('=') else { continue };
+        let Some(rest) = line.trim().strip_prefix("__version__") else {
+            continue;
+        };
+        let Some(rest) = rest.trim_start().strip_prefix('=') else {
+            continue;
+        };
         let value = rest.trim().trim_matches(['\'', '"']);
         if parse_version(value).is_ok() {
             return Some(value.into());
         }
     }
     None
+}
+fn log_tail(path: &Path) -> Option<String> {
+    let mut file = fs::File::open(path).ok()?;
+    let length = file.metadata().ok()?.len();
+    file.seek(SeekFrom::Start(length.saturating_sub(64 * 1024)))
+        .ok()?;
+    let mut bytes = Vec::new();
+    file.take(64 * 1024).read_to_end(&mut bytes).ok()?;
+    Some(String::from_utf8_lossy(&bytes).into_owned())
 }
 fn release_client() -> Result<Client> {
     Client::builder()
@@ -358,6 +381,7 @@ fn extracted_root(stage: &Path) -> Option<PathBuf> {
 impl Comfy {
     pub fn new(config_dir: &Path) -> Result<Arc<Self>> {
         let config_path = config_dir.join("comfy.json");
+        let update_log = config_dir.join("comfy-update.log");
         let data_root = if config_dir
             .file_name()
             .is_some_and(|name| name.eq_ignore_ascii_case("config"))
@@ -391,6 +415,8 @@ impl Comfy {
                 phase: "idle".into(),
                 ..Default::default()
             }),
+            update_log,
+            active_generations: AtomicUsize::new(0),
         });
         this.save()?;
         Ok(this)
@@ -412,7 +438,10 @@ impl Comfy {
         let managed = self.process.lock().ok().is_some_and(|p| p.is_some());
         let response = probe_http();
         let config = self.config.lock().map(|c| c.clone()).unwrap_or_default();
-        let installed = config.path.as_ref().is_some_and(|p| valid_root(Path::new(p)));
+        let installed = config
+            .path
+            .as_ref()
+            .is_some_and(|p| valid_root(Path::new(p)));
         let version = response
             .as_ref()
             .ok()
@@ -422,9 +451,17 @@ impl Comfy {
             })
             .and_then(Value::as_str)
             .map(str::to_owned)
-            .or_else(|| config.path.as_ref().and_then(|p| version_from_root(Path::new(p))));
+            .or_else(|| {
+                config
+                    .path
+                    .as_ref()
+                    .and_then(|p| version_from_root(Path::new(p)))
+            });
         let mut update = self.update.lock().map(|s| s.clone()).unwrap_or_default();
         update.installed_version = version.clone();
+        if update.phase == "updating" {
+            update.log = log_tail(&self.update_log);
+        }
         ComfyStatus {
             installed,
             path: config.path,
@@ -439,6 +476,9 @@ impl Comfy {
         }
     }
     pub fn check_update(&self) -> Result<ComfyStatus> {
+        if self.update.lock().map_err(|_| "comfy_storage")?.phase == "updating" {
+            return Err("comfy_update_busy".into());
+        }
         let current = self.status();
         if !current.installed {
             return Err("comfy_missing".into());
@@ -451,6 +491,7 @@ impl Comfy {
                 installed_version: Some(installed.clone()),
                 latest_version: None,
                 error: None,
+                log: None,
             };
         }
         let result: Result<()> = (|| {
@@ -463,7 +504,11 @@ impl Comfy {
                 .map_err(|_| "comfy_update_network")?
                 .json()
                 .map_err(|_| "comfy_update_network")?;
-            let latest = release.tag_name.strip_prefix('v').ok_or("comfy_version")?.to_string();
+            let latest = release
+                .tag_name
+                .strip_prefix('v')
+                .ok_or("comfy_version")?
+                .to_string();
             let newer = parse_version(&latest)? > parse_version(&installed)?;
             let mut update = self.update.lock().map_err(|_| "comfy_storage")?;
             update.phase = if newer { "available" } else { "current" }.into();
@@ -478,6 +523,172 @@ impl Comfy {
             return Err(error);
         }
         Ok(self.status())
+    }
+    fn run_update_pass(
+        &self,
+        python: &Path,
+        script: &Path,
+        repository: &Path,
+        second: bool,
+    ) -> Result<()> {
+        let update_dir = script.parent().ok_or("comfy_update_files")?;
+        verify_tree(python)?;
+        verify_tree(script)?;
+        model_library::no_links(repository).map_err(|_| "comfy_update_files")?;
+        let log = fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&self.update_log)
+            .map_err(|_| "comfy_storage")?;
+        let mut command = Command::new(python);
+        command
+            .current_dir(update_dir)
+            .arg("-s")
+            .arg(script)
+            .arg(repository)
+            .arg("--stable")
+            .stdin(Stdio::null())
+            .stdout(Stdio::from(log.try_clone().map_err(|_| "comfy_storage")?))
+            .stderr(Stdio::from(log))
+            .env_clear();
+        if second {
+            command.arg("--skip_self_update");
+        }
+        for key in [
+            "SystemRoot",
+            "WINDIR",
+            "TEMP",
+            "TMP",
+            "LOCALAPPDATA",
+            "APPDATA",
+            "USERPROFILE",
+            "HTTP_PROXY",
+            "HTTPS_PROXY",
+            "NO_PROXY",
+            "SSL_CERT_FILE",
+        ] {
+            if let Some(value) = std::env::var_os(key) {
+                command.env(key, value);
+            }
+        }
+        crate::hardware::hide_console(&mut command);
+        let mut child = command.spawn().map_err(|_| "comfy_update_start")?;
+        let _group = ProcessGroup::attach(&child).map_err(|_| "comfy_update_start")?;
+        let deadline = Instant::now() + Duration::from_secs(30 * 60);
+        loop {
+            if let Some(status) = child.try_wait().map_err(|_| "comfy_update_failed")? {
+                return if status.success() {
+                    Ok(())
+                } else {
+                    Err("comfy_update_failed".into())
+                };
+            }
+            if Instant::now() >= deadline {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err("comfy_update_timeout".into());
+            }
+            std::thread::sleep(Duration::from_millis(200));
+        }
+    }
+    pub fn update_comfy(&self) -> Result<ComfyStatus> {
+        let current = self.status();
+        if !current.installed {
+            return Err("comfy_missing".into());
+        }
+        if current.running && !current.managed {
+            return Err("comfy_update_external_running".into());
+        }
+        let root = self
+            .config
+            .lock()
+            .map_err(|_| "comfy_storage")?
+            .path
+            .clone()
+            .map(PathBuf::from)
+            .ok_or("comfy_missing")?;
+        if !valid_root(&root) {
+            return Err("comfy_path".into());
+        }
+        let python = root.join("python_embeded/python.exe");
+        let repository = root.join("ComfyUI");
+        let update_dir = root.join("update");
+        let script = update_dir.join("update.py");
+        if !script.is_file() {
+            return Err("comfy_update_files".into());
+        }
+        {
+            let mut update = self.update.lock().map_err(|_| "comfy_storage")?;
+            if update.phase != "available" {
+                return Err("comfy_update_state".into());
+            }
+            update.phase = "updating".into();
+            update.error = None;
+            update.log = None;
+        }
+        if self.active_generations.load(Ordering::SeqCst) != 0 {
+            if let Ok(mut update) = self.update.lock() {
+                update.phase = "available".into();
+            }
+            return Err("comfy_update_busy".into());
+        }
+        if fs::write(
+            &self.update_log,
+            b"Local Studio: official ComfyUI stable update\r\n",
+        )
+        .is_err()
+        {
+            if let Ok(mut update) = self.update.lock() {
+                update.phase = "error".into();
+                update.error = Some("comfy_storage".into());
+            }
+            return Err("comfy_storage".into());
+        }
+        let restart = current.managed && current.running;
+        if restart {
+            self.stop();
+        }
+        let result: Result<String> = (|| {
+            self.run_update_pass(&python, &script, &repository, false)?;
+            let replacement = update_dir.join("update_new.py");
+            if replacement.exists() {
+                verify_tree(&replacement)?;
+                let metadata =
+                    fs::metadata(&replacement).map_err(|_| "comfy_update_files".to_string())?;
+                if metadata.len() < 10 || metadata.len() > 1024 * 1024 {
+                    return Err("comfy_update_files".into());
+                }
+                fs::copy(&replacement, &script).map_err(|_| "comfy_update_files".to_string())?;
+                fs::remove_file(&replacement).map_err(|_| "comfy_update_files".to_string())?;
+                self.run_update_pass(&python, &script, &repository, true)?;
+            }
+            version_from_root(&root).ok_or_else(|| "comfy_version".to_string())
+        })();
+        match result {
+            Ok(installed) => {
+                if let Ok(mut update) = self.update.lock() {
+                    update.phase = "current".into();
+                    update.installed_version = Some(installed);
+                    update.error = None;
+                    update.log = log_tail(&self.update_log);
+                }
+                if restart {
+                    let _ = self.start();
+                }
+                Ok(self.status())
+            }
+            Err(error) => {
+                if let Ok(mut update) = self.update.lock() {
+                    update.phase = "error".into();
+                    update.error = Some(error.clone());
+                    update.log = log_tail(&self.update_log);
+                }
+                if restart {
+                    let _ = self.start();
+                }
+                Err(error)
+            }
+        }
     }
     pub fn detect_installation(&self) -> Result<ComfyStatus> {
         let found = detect(&self.managed_root, true).ok_or("comfy_not_found")?;
@@ -762,6 +973,24 @@ impl Comfy {
         cancel: &AtomicBool,
         mut update: impl FnMut(&str),
     ) -> Result<()> {
+        if self
+            .update
+            .lock()
+            .ok()
+            .is_some_and(|state| state.phase == "updating")
+        {
+            return Err("comfy_update_busy".into());
+        }
+        self.active_generations.fetch_add(1, Ordering::SeqCst);
+        let _active = ActiveGeneration(&self.active_generations);
+        if self
+            .update
+            .lock()
+            .ok()
+            .is_some_and(|state| state.phase == "updating")
+        {
+            return Err("comfy_update_busy".into());
+        }
         let checkpoint = self
             .checkpoint(Path::new(&request.model_path))
             .ok_or("comfy_model_path")?;
@@ -934,6 +1163,13 @@ pub async fn comfy_update_check(state: tauri::State<'_, Arc<Comfy>>) -> Result<C
         .map_err(|_| "comfy_update_network")?
 }
 #[tauri::command]
+pub async fn comfy_update(state: tauri::State<'_, Arc<Comfy>>) -> Result<ComfyStatus> {
+    let s = state.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || s.update_comfy())
+        .await
+        .map_err(|_| "comfy_update_failed")?
+}
+#[tauri::command]
 pub fn comfy_open_updater(state: tauri::State<'_, Arc<Comfy>>) -> Result<()> {
     let root = state
         .config
@@ -983,7 +1219,11 @@ mod tests {
         let temp = tempfile::tempdir().unwrap();
         let folder = temp.path().join("ComfyUI");
         fs::create_dir(&folder).unwrap();
-        fs::write(folder.join("comfy_version.py"), b"# metadata\n__version__ = \"0.37.0\"\n").unwrap();
+        fs::write(
+            folder.join("comfy_version.py"),
+            b"# metadata\n__version__ = \"0.37.0\"\n",
+        )
+        .unwrap();
         assert_eq!(version_from_root(temp.path()).as_deref(), Some("0.37.0"));
     }
 

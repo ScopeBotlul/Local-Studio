@@ -4,7 +4,7 @@ import type {UpdateStatus} from './update-api';
 import type {ComfyStatus} from './comfy-api';
 
 const state=(phase:UpdateStatus['phase']):UpdateStatus=>({phase,portable:false,latest:phase==='available'?{version:'99.0.0',notes:'Update',publishedAt:'',installer:{url:'',size:1,sha256:''},portable:{url:'',size:1,sha256:''}}:null,received:0,total:0,error:null});
-const comfyState=(phase:ComfyStatus['update']['phase']='current'):ComfyStatus=>({installed:true,path:'C:/ComfyUI',running:false,managed:false,endpoint:'http://127.0.0.1:8188',version:'1.0.0',error:null,dismissed:false,install:{phase:'idle',variant:null,totalBytes:0,receivedBytes:0,bytesPerSecond:0,error:null},update:{phase,installedVersion:'1.0.0',latestVersion:phase==='available'?'2.0.0':'1.0.0',error:null}});
+const comfyState=(phase:ComfyStatus['update']['phase']='current'):ComfyStatus=>({installed:true,path:'C:/ComfyUI',running:false,managed:false,endpoint:'http://127.0.0.1:8188',version:'1.0.0',error:null,dismissed:false,install:{phase:'idle',variant:null,totalBytes:0,receivedBytes:0,bytesPerSecond:0,error:null},update:{phase,installedVersion:'1.0.0',latestVersion:phase==='available'?'2.0.0':'1.0.0',error:null,log:null}});
 function setup(phase:UpdateStatus['phase']='available'){
  vi.useFakeTimers();
  const options={status:vi.fn().mockResolvedValue(state('idle')),check:vi.fn().mockResolvedValue(state(phase)),comfyStatus:vi.fn().mockResolvedValue(comfyState('current')),comfyCheck:vi.fn().mockResolvedValue(comfyState('current')),canShow:vi.fn(()=>true),onStarted:vi.fn(),onAvailable:vi.fn()};
