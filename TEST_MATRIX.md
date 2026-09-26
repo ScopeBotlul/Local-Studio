@@ -1,3 +1,10 @@
+# Releaseprüfung 0.33.1 – 2026-09-26
+
+- Geändert sind die ComfyUI-Einrichtungsoberfläche, ihre laufende Statusabfrage und die Darstellung des Installationsbuttons. Downloadtransport, Hashprüfung, sichere Extraktion und automatische Pfadübernahme sind gegenüber 0.33.0 unverändert.
+- `npm.cmd run build`: bestanden; TypeScript und Vite-Produktionsbuild erfolgreich. `npm.cmd test -- src/download-overview.test.ts`: 2/2 Tests bestanden. `scripts/desktop.ps1 check`: Rust-/Tauri-Compilercheck bestanden.
+- Der vollständige ComfyUI-Paketdownload und eine reale Inferenz wurden nicht wiederholt. Die gezielte Prüfung deckt Kompilierung und direkte Downloadanzeige-Abhängigkeiten ab; eine native visuelle Abnahme des sich füllenden Buttons bleibt offen.
+- Releasepakete: optimierte EXE und Inno-Installer erfolgreich gebaut. Portable ZIP mit 80 erlaubten Dateien und 77 gegen ihre Manifeste geprüften Runtime-Dateien. EXE SHA-256 `bf8c27a2361d4c145489d020eb55abb655ca3c14dcf6ae34cbeb1966bb2c29a4`, ZIP `283ee1ff5c4a1c31ef2668532384ca4de346b40eda19612c882e69ff74001298`, Installer `b08e46d48cd5088f9bc78df936fd37f24731b4f02c9af15ff5bffba425117de6`. Signiertes Update-Manifest stimmt mit Version, URLs, Größen, Hashes und eingebettetem öffentlichen Schlüssel überein.
+
 # Releaseprüfung 0.33.0 – 2026-09-26
 
 - Frontend: `npm.cmd run build` bestanden. Der direkte Test der Downloadübersicht bestand 2/2 Tests; bestehende Restzeitberechnung und Zustandsdarstellung bleiben intakt.

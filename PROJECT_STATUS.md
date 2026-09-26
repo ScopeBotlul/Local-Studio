@@ -1,3 +1,9 @@
+# Release 0.33.1 gebaut (2026-09-26)
+
+Der ComfyUI-Installationsbutton dient während des laufenden Vorgangs jetzt selbst als Fortschrittsanzeige. Er zeigt die Ermittlung des offiziellen Releases, den echten prozentualen Bytefortschritt, die Prüfsummenprüfung und das Entpacken an. Der Status wird auch während des lang laufenden Desktop-Befehls regelmäßig aktualisiert. Nach erfolgreicher Installation übernimmt Local Studio den Pfad automatisch und startet die eingerichtete Engine wie bereits in 0.33.0 implementiert.
+
+Windows-EXE, Inno-Installer, portables Archiv, Prüfsummen und signierte Update-Metadaten für 0.33.1 wurden erzeugt und lokal bytegenau geprüft.
+
 # Release 0.33.0 veröffentlicht (2026-09-26)
 
 Version 0.33.0 integriert die Installation von ComfyUI Portable in den Einrichtungsdialog. Local Studio bietet die offiziellen Pakete für NVIDIA, NVIDIA CUDA 12.6, AMD und Intel an, zeigt Download und Installation im vorhandenen Download-Menü und speichert den eingerichteten Engine-Pfad automatisch. Mit **Nach Installation suchen** kann eine bestehende portable Installation in typischen lokalen Ordnern gefunden werden; die manuelle Auswahl bleibt verfügbar.

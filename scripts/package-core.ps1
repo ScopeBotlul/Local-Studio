@@ -42,6 +42,10 @@ Videoschnitt und GIF-Studio. Galerie und Modelle bleiben zentral erreichbar;
 Hugging Face, Downloads, Auftraege und Einstellungen liegen rechts. Die bisherige
 doppelte Studio-Navigation und Breadcrumb-Leiste wurden entfernt.
 
+Neu in 0.33.1: Der ComfyUI-Installationsbutton zeigt waehrend des Vorgangs direkt
+die aktuelle Phase und den echten prozentualen Downloadfortschritt. Nach Download,
+Pruefung und Entpacken wird die Installation automatisch als Engine eingebunden.
+
 Neu in 0.33.0: ComfyUI Portable wird bei der Einrichtung direkt in Local Studio
 heruntergeladen, per offizieller SHA-256-Pruefsumme geprueft, sicher entpackt und
 als lokale Bildengine eingerichtet. NVIDIA-, NVIDIA-CUDA-12.6-, AMD- und Intel-
