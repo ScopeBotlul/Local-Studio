@@ -42,6 +42,11 @@ Videoschnitt und GIF-Studio. Galerie und Modelle bleiben zentral erreichbar;
 Hugging Face, Downloads, Auftraege und Einstellungen liegen rechts. Die bisherige
 doppelte Studio-Navigation und Breadcrumb-Leiste wurden entfernt.
 
+Neu in 0.35.1: Die ComfyUI-Installation akzeptiert die langen, verschachtelten
+Python-/PyTorch-Pfade des offiziellen portablen Archivs. Die Sicherheitspruefung
+bleibt komponentenweise aktiv und sperrt absolute Pfade, Laufwerkspfade,
+Verzeichniswechsel, ungueltige Zeichen und reservierte Windows-Geraetenamen.
+
 Neu in 0.35.0: ComfyUI kann im Update-Center nach bewusstem Klick direkt
 aktualisiert werden. Local Studio beendet eine selbst gestartete Engine, fuehrt
 den offiziellen stabilen Core-Updater mit der eingebetteten Python-Laufzeit aus

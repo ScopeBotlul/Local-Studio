@@ -1,3 +1,9 @@
+# Version 0.35.1 – ComfyUI-Archivprüfung korrigiert (2026-09-26)
+
+Die Installation des offiziellen portablen ComfyUI-Pakets wurde fälschlich mit `comfy_archive` abgewiesen. Ursache war die Wiederverwendung der 220-Zeichen-Grenze für komplette Modelldownloadpfade. Das offizielle Paket enthält sichere verschachtelte Python-/PyTorch-Pfade, die einschließlich des Archivwurzelordners länger sind.
+
+Die Archivprüfung begrenzt den Gesamtpfad jetzt separat und prüft jeden Windows-Pfadbestandteil einzeln. Absolute Pfade, Laufwerkspräfixe, `..`, ungültige Zeichen, leere Bestandteile und reservierte Gerätenamen bleiben gesperrt. Die vorhandene Installation bestätigt den realen Auslöser; der gezielte Rusttest deckt lange sichere Pfade, eine nicht als UTF-8 ausgegebene Windows-Listung und die Sicherheitsgrenzen ab. Optimierte EXE, Installer, portables Archiv und signierte Update-Metadaten sind erstellt und lokal vollständig geprüft. Die Veröffentlichung folgt in diesem Arbeitsgang.
+
 # Release 0.35.0 veröffentlicht (2026-09-26)
 
 Das Update-Center kann den offiziellen stabilen Core-Updater einer portablen ComfyUI-Installation jetzt direkt nach einem bewussten Klick ausführen. Eine von Local Studio gestartete Engine wird vorher beendet und danach wieder gestartet. Währenddessen zeigt der Dialog den laufenden Zustand und das lokale Updater-Protokoll; parallele Bildaufträge und extern gestartete Instanzen werden abgewiesen.

@@ -316,7 +316,10 @@ fn official_asset(client: &Client, variant: &str) -> Result<(String, ReleaseAsse
     Ok((release.tag_name, asset))
 }
 fn safe_archive_listing(listing: &[u8]) -> Result<()> {
-    let listing = std::str::from_utf8(listing).map_err(|_| "comfy_archive")?;
+    // bsdtar writes its listing through the Windows console encoding. Path separators and
+    // traversal markers are ASCII in every supported code page, so lossy decoding keeps the
+    // security-sensitive bytes intact while allowing legitimate non-UTF-8 package names.
+    let listing = String::from_utf8_lossy(listing);
     let mut count = 0usize;
     for raw in listing.lines() {
         let entry = raw.trim().trim_end_matches(['/', '\\']).replace('\\', "/");
@@ -325,9 +328,13 @@ fn safe_archive_listing(listing: &[u8]) -> Result<()> {
         }
         count += 1;
         if count > 250_000
+            || entry.len() > 4096
             || entry.starts_with('/')
             || entry.as_bytes().get(1) == Some(&b':')
-            || !crate::downloads::valid_file(&entry)
+            // The portable Python environment legitimately contains complete paths longer
+            // than the 220-character model-download limit. Validate every Windows component
+            // separately instead of applying that limit to the complete archive member.
+            || !entry.split('/').all(crate::downloads::valid_file)
         {
             return Err("comfy_archive".into());
         }
@@ -1230,8 +1237,20 @@ mod tests {
     #[test]
     fn archive_listing_rejects_paths_outside_the_install_root() {
         assert!(safe_archive_listing(b"ComfyUI_windows_portable/ComfyUI/main.py\n").is_ok());
+        let long_safe = format!(
+            "ComfyUI_windows_portable/python_embeded/Lib/site-packages/{}/{}/module.py\n",
+            "long-package-directory".repeat(6),
+            "nested-directory".repeat(5)
+        );
+        assert!(long_safe.len() > 220);
+        assert!(safe_archive_listing(long_safe.as_bytes()).is_ok());
+        assert!(safe_archive_listing(
+            b"ComfyUI_windows_portable/python_embeded/Lib/site-packages/name-\x96/module.py\n"
+        )
+        .is_ok());
         assert!(safe_archive_listing(b"../escape.exe\n").is_err());
         assert!(safe_archive_listing(b"C:/escape.exe\n").is_err());
         assert!(safe_archive_listing(b"ComfyUI_windows_portable/../../escape.exe\n").is_err());
+        assert!(safe_archive_listing(b"ComfyUI_windows_portable/CON/file.py\n").is_err());
     }
 }
