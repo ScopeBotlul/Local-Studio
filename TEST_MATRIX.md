@@ -7,6 +7,7 @@
 - Visuelle Prüfung des nativen Screenshots `02-create-navigation.png`: Hauptnavigation und zweite Create-Leiste sind vollständig sichtbar, aktive Bereiche klar markiert und Bildstudio/Canvas/Galerie ohne Überlagerung angeordnet.
 - Paketprüfung: EXE, Installer und ZIP stimmen bytegenau; ZIP enthält exakt 80 erlaubte Dateien. Alle 77 Runtime-Dateien entsprechen ihren Manifesten. Installer SHA-256 `ea65a0686bfd5dfb912d25d308dea7c23f192296f9aee5957fe40c3d8e53bd92`, ZIP SHA-256 `83cc76d683ba73f7739dc4abb9a559721fedd7290d1979d25785ce440b8ea316`. Nachweis: `.artifacts/package-bytes-verification-0.30.0.json`.
 - Signaturprüfung: `node scripts/verify-release.mjs` bestätigt den bestehenden Ed25519-Schlüssel, Version, URLs, Größen und SHA-256 beider Pakete. Keine Authenticode-Signatur.
+- Veröffentlichung: v0.30.0 ist öffentlich, kein Entwurf und keine Vorabversion und als Latest markiert. `verify-published-release.mjs` hat Signatur und öffentlichen Schlüssel geprüft, Installer und Portable-ZIP vollständig zurückgeladen und alle fünf GitHub-Asset-Digests mit den lokalen Dateien verglichen. Alles stimmt überein. Nachweis: `.artifacts/github-release-verification-0.30.0.json`.
 - Nicht wiederholt: vollständige Rustsuite, echte ComfyUI-Inferenz, Live-Civitai-/Danbooru-Aufrufe sowie Installer-Installation/-Deinstallation. Diese Bereiche sind gegenüber 0.29.0 unverändert; dessen vorhandene Nachweise werden nicht als neue 0.30.0-Prüfung ausgegeben.
 
 # Öffentlicher Updatekanal 0.28.0 geprüft (2026-09-19)
