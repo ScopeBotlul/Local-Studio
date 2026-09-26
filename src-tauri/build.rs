@@ -1,6 +1,9 @@
 fn main() {
     tauri_build::try_build(tauri_build::Attributes::new().app_manifest(
         tauri_build::AppManifest::new().commands(&[
+            "bug_report_preview",
+            "bug_report_submit",
+            "bug_report_open_folder",
             "comfy_status",
             "comfy_set_path",
             "comfy_detect",

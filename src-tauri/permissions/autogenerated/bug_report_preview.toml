@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-bug-report-preview"
+description = "Enables the bug_report_preview command without any pre-configured scope."
+commands.allow = ["bug_report_preview"]
+
+[[permission]]
+identifier = "deny-bug-report-preview"
+description = "Denies the bug_report_preview command without any pre-configured scope."
+commands.deny = ["bug_report_preview"]

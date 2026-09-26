@@ -17,6 +17,7 @@ import DownloadOverview from './DownloadOverview';
 import ComfySettings from './ComfySettings';
 import {comfyApi} from './comfy-api';
 import HelpDialog from './HelpDialog';
+import BugReportDialog from './BugReportDialog';
 import UpdateDialog from './UpdateDialog';
 import {scheduleStartupUpdate} from './startup-update';
 import {updateApi,updateError} from './update-api';
@@ -136,6 +137,7 @@ function Setup({ snapshot, onSave, busy, t, language, onLanguage, canEdit, choos
 export default function App() {
   const [compactNavigation,setCompactNavigation]=useState(()=>{try{return localStorage.getItem('compact-navigation')==='true';}catch{return false;}});
   const [helpDialog,setHelpDialog]=useState<'help'|'about'|null>(null);
+  const [bugReportOpen,setBugReportOpen]=useState(false);
   const [updatesOpen,setUpdatesOpen]=useState(false);
   const [projectDetailsOpen,setProjectDetailsOpen]=useState(false);
   const installing=useRef(false);
@@ -422,9 +424,10 @@ export default function App() {
   const hashButton = <button className="button primary" onClick={() => void chooseFile()} disabled={jobPending}><FileCheck2 size={17} />{t.hashAction}<ArrowRight size={16} /></button>;
 
   return <div className="app-shell">
-    <AppMenu onProjectDetails={()=>setProjectDetailsOpen(v=>!v)} projectChanged={!!projects.project&&JSON.stringify(projects.project.request)!==JSON.stringify(studio.request)} workspaceRecovery={studio.recovery} projects={projects} settings={snapshot.settings} locked={exitBusy||saving||!studio.ready||!snapshot.settings.setupComplete} onSettings={()=>{setProjectDetailsOpen(false);setPage('settings');}} onHelp={()=>setHelpDialog('help')} onAbout={()=>setHelpDialog('about')} onUpdates={()=>{stopStartupUpdate.current();autoChecked.current=true;setUpdatesOpen(true);void updateApi.status().then(s=>{if(!['ready','downloading','checking','installing'].includes(s.phase))return updateApi.check();}).catch(e=>reportError(updateError(e,language==='de')));void comfyApi.status().then(s=>{if(s.installed&&s.update.phase==='idle')return comfyApi.checkUpdate();}).catch(()=>{});}} onZoom={scale=>{const current=snapshotRef.current;if(current)void persist({...current.settings,uiScale:clampScale(scale)});}} onError={reportError}/>
+    <AppMenu onProjectDetails={()=>setProjectDetailsOpen(v=>!v)} projectChanged={!!projects.project&&JSON.stringify(projects.project.request)!==JSON.stringify(studio.request)} workspaceRecovery={studio.recovery} projects={projects} settings={snapshot.settings} locked={exitBusy||saving||!studio.ready||!snapshot.settings.setupComplete} onSettings={()=>{setProjectDetailsOpen(false);setPage('settings');}} onHelp={()=>setHelpDialog('help')} onBugReport={()=>setBugReportOpen(true)} onAbout={()=>setHelpDialog('about')} onUpdates={()=>{stopStartupUpdate.current();autoChecked.current=true;setUpdatesOpen(true);void updateApi.status().then(s=>{if(!['ready','downloading','checking','installing'].includes(s.phase))return updateApi.check();}).catch(e=>reportError(updateError(e,language==='de')));void comfyApi.status().then(s=>{if(s.installed&&s.update.phase==='idle')return comfyApi.checkUpdate();}).catch(()=>{});}} onZoom={scale=>{const current=snapshotRef.current;if(current)void persist({...current.settings,uiScale:clampScale(scale)});}} onError={reportError}/>
     <DownloadOverview language={language} disabled={exitBusy||!snapshot.settings.setupComplete} onOpenDownloads={()=>{setProjectDetailsOpen(false);setPage('downloads');}}/>
     {helpDialog&&<HelpDialog kind={helpDialog} de={language==='de'} version={snapshot.version} onClose={()=>setHelpDialog(null)}/>}
+    {bugReportOpen&&<BugReportDialog de={language==='de'} context={page} onClose={()=>setBugReportOpen(false)}/>}
     {updatesOpen&&<UpdateDialog de={language==='de'} version={snapshot.version} automatic={snapshot.settings.autoUpdateCheck} onAutomatic={value=>{const current=snapshotRef.current;if(current)void persist({...current.settings,autoUpdateCheck:value});}} onClose={()=>setUpdatesOpen(false)} onInstall={()=>{installing.current=true;setUpdatesOpen(false);void getCurrentWindow().close();}}/>}
     <nav className={`topnav ${compactNavigation?'compact':''}`} aria-label={t.workspace}>
       <div className="topnav-leading">

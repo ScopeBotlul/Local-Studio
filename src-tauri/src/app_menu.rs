@@ -43,6 +43,7 @@ pub const IDS: &[&str] = &[
     "uiZoomOut",
     "uiZoomReset",
     "help",
+    "bugReport",
     "updates",
     "about",
 ];
@@ -150,6 +151,7 @@ pub async fn app_menu_update(mut state: MenuState, app: tauri::AppHandle) -> Res
             "&Help",
             vec![
                 ("help", "Anleitung", "User guide"),
+                ("bugReport", "Fehler melden …", "Report a bug …"),
                 ("updates", "Nach Updates suchen …", "Check for updates …"),
                 ("about", "Über Local Studio", "About Local Studio"),
             ],

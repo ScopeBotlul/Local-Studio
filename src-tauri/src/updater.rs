@@ -227,6 +227,10 @@ impl Updater {
     fn status(&self) -> Result<Status> {
         Ok(self.data.lock().map_err(err)?.status.clone())
     }
+
+    pub(crate) fn status_for_report(&self) -> Result<Status> {
+        self.status()
+    }
     fn begin(&self, phase: &str) -> Result<()> {
         let mut d = self.data.lock().map_err(err)?;
         if matches!(

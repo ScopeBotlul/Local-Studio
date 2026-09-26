@@ -42,6 +42,11 @@ Videoschnitt und GIF-Studio. Galerie und Modelle bleiben zentral erreichbar;
 Hugging Face, Downloads, Auftraege und Einstellungen liegen rechts. Die bisherige
 doppelte Studio-Navigation und Breadcrumb-Leiste wurden entfernt.
 
+Neu in 0.36.0: Unter Hilfe > Fehler melden erstellt Local Studio einen vollstaendigen
+bereinigten Diagnosebericht mit App-Einstellungen, Hardware, Komponentenstatus und
+begrenzten Logs. Tokens, Prompts, Medien und persoenliche Pfade bleiben ausgeschlossen.
+Der Bericht wird lokal gespeichert und als vorausgefuelltes GitHub-Issue geoeffnet.
+
 Neu in 0.35.5: AMD-Portable-Installationen verwenden automatisch den kompatiblen
 Split-Cross-Attention-Modus. Dadurch wird der native AOTriton-Starttest umgangen,
 der auf dem ROG Ally mit gfx1103 in amdhip64_7.dll abstuerzen kann.

@@ -1,3 +1,9 @@
+# Version 0.36.0 – lokaler Diagnosebericht und GitHub-Fehlermeldung (2026-09-26)
+
+Unter **Hilfe → Fehler melden …** steht ein neuer echter Diagnoseablauf bereit. Er sammelt App-Version und Installationsmodus, sämtliche nicht geheimen Local-Studio-Einstellungen, Windows-/CPU-/RAM-/GPU-/Treiber-/Laufwerksinformationen, aggregierte Auftragszustände, ComfyUI- und Update-Status sowie begrenzte lokale Start- und App-Protokolle. Vor dem Speichern ist der vollständige Bericht sichtbar.
+
+Der Bericht wird als Markdown-Datei in einem lokalen `bug-reports`-Ordner gespeichert. Persönliche Pfadbestandteile werden ersetzt; Tokens, Cookies, Passwörter, Prompts, Medien, Projektinhalte, Modellgewichte und Datenbankinhalte werden nicht aufgenommen. Ein vorausgefülltes Issue für `ScopeBotlul/Local-Studio` öffnet sich im Standardbrowser. GitHub verlangt dort die Anmeldung und den abschließenden Klick auf **Submit new issue**; ohne einen separaten Empfangsdienst oder eine registrierte GitHub-OAuth-App darf die Anwendung kein Entwickler-Token enthalten und kann das Issue nicht selbst absenden. Frontend-Build, zwei gezielte Rusttests, Rust-/Tauri-Compilercheck, optimierte EXE, Installer, portables Archiv und signierte Update-Metadaten sind lokal geprüft. Die Veröffentlichung folgt in diesem Arbeitsgang.
+
 # Release 0.35.5 veröffentlicht – AMD-Startmodus für den ROG Ally (2026-09-26)
 
 Das echte Startprotokoll von einem ROG Ally belegt einen nativen Zugriffsfehler in `amdhip64_7.dll`, ausgelöst durch ComfyUIs AOTriton-Kompatibilitätstest in `model_management.py`. Hardware und ROCm werden davor korrekt als `gfx1103`, ROCm 7.2 und PyTorch 2.9.1 erkannt.

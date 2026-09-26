@@ -1,3 +1,11 @@
+# Releaseprüfung 0.36.0 – 2026-09-26
+
+- `npm.cmd run build`: bestanden. Menü, Dialog, typisierte IPC-Aufrufe und Produktionsbundle kompilieren.
+- `cargo test ... bug_report::tests`: 2/2 bestanden. Persönliche Pfade und Geheimniszeilen werden entfernt; die vorausgefüllte GitHub-URL bleibt auch bei maximal langen Eingaben begrenzt und enthält nur die Zusammenfassung.
+- `scripts/desktop.ps1 check`: Rust-/Tauri-Compilercheck bestanden. Die drei neuen Befehle besitzen eigene automatisch erzeugte Berechtigungen und sind nur im lokalen Haupt-Webview erlaubt.
+- Der Bericht enthält keine Prompts, Medien, Projekt-/Datenbankinhalte oder Zugangsdaten. GitHub erhält erst nach der ausdrücklichen Schaltfläche eine vorausgefüllte Zusammenfassung; die Vollversion bleibt lokal und kann dort angehängt werden. Vollautomatisches Absenden erfordert später einen eigenen Empfangsdienst oder eine GitHub-OAuth-App.
+- Release-Build bestanden. Das portable ZIP enthält exakt 80 erlaubte Dateien; 77 Runtime-Dateien entsprechen ihren Manifesten. EXE SHA-256 `84ff3e24f93371c3e0f302caec356f0d7a00f597d7722325f7bb3dbe64b8a7b0`, ZIP `7669e874cac4ca7b515d565c7298da866838c206b9d055cc348e8fe91163d692`, Installer `2c67d19708939642c38f0c5660a48e8111e8b143b3514ee35b697edcd45483df`. Signiertes Manifest stimmt mit Version, URLs, Größen, Hashes und eingebettetem öffentlichen Schlüssel überein. Öffentliche Verifikation folgt nach dem Upload.
+
 # Releaseprüfung 0.35.5 – 2026-09-26
 
 - Reales ROG-Ally-Protokoll ausgewertet: `gfx1103`, ROCm 7.2 und PyTorch 2.9.1 werden erkannt; der Prozess endet beim GPU-Tensor in `aotriton_supported()` mit Windows-Ausnahme `0xC0000005` aus `amdhip64_7.dll`.

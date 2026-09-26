@@ -4,6 +4,9 @@
   "description": "Privileged commands for the local main webview only; hf-website has no capability.",
   "local": true,
   "permissions": [
+    "allow-bug-report-preview",
+    "allow-bug-report-submit",
+    "allow-bug-report-open-folder",
     "allow-comfy-status",
     "allow-comfy-set-path",
     "allow-comfy-detect",
