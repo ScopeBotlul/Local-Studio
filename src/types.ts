@@ -1,7 +1,7 @@
 export type Language = 'de' | 'en';
 export type Theme = 'system' | 'light' | 'dark';
 export interface Settings {
-  liveHardware:boolean; systemAccent:boolean; minimizeToTray:boolean; parallelGeneration:boolean;
+  liveHardware:boolean; systemAccent:boolean; minimizeToTray:boolean; parallelGeneration:boolean; removeCensorTags:boolean;
   autoUpdateCheck: boolean;
   autoModelUpdates: boolean;
   language: Language; theme: Theme; accentColor: string; uiScale: number;

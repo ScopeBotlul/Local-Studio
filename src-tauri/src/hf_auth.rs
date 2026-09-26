@@ -358,7 +358,9 @@ impl HfAuth {
         self.status()
     }
     pub fn pending_generation(&self, epoch: u64) -> bool {
-        self.state.lock().is_ok_and(|state| state.pending && self.epoch.load(Ordering::SeqCst) == epoch)
+        self.state
+            .lock()
+            .is_ok_and(|state| state.pending && self.epoch.load(Ordering::SeqCst) == epoch)
     }
     pub fn start_login(self: &Arc<Self>, app: tauri::AppHandle) -> HubResult<AuthStatus> {
         let id = client_id().ok_or("oauth_not_configured")?;
@@ -385,7 +387,12 @@ impl HfAuth {
                 .append_pair("state", state.secret())
                 .append_pair("code_challenge", challenge.as_str())
                 .append_pair("code_challenge_method", "S256");
-            crate::hf_browser::start_login(&app, epoch, url, Url::parse(&redirect).map_err(|_| "invalid_callback")?)?;
+            crate::hf_browser::start_login(
+                &app,
+                epoch,
+                url,
+                Url::parse(&redirect).map_err(|_| "invalid_callback")?,
+            )?;
             let auth = Arc::clone(self);
             std::thread::spawn(move || {
                 let result = wait_callback(&listener, &authority, state.secret(), || {
@@ -496,7 +503,9 @@ fn wait_callback(
                     continue;
                 }
                 // Windows accept inherits listener mode; a delayed first byte is not an invalid callback.
-                if stream.set_nonblocking(false).is_err() { continue; }
+                if stream.set_nonblocking(false).is_err() {
+                    continue;
+                }
                 let _ = stream.set_read_timeout(Some(Duration::from_millis(250)));
                 let _ = stream.set_write_timeout(Some(Duration::from_millis(250)));
                 let mut bytes = Zeroizing::new(Vec::new());
@@ -505,7 +514,16 @@ fn wait_callback(
                 while bytes.len() < 8192 && Instant::now() < until && !cancelled() {
                     match stream.read(&mut chunk) {
                         Ok(0) => break,
-                        Err(error) if matches!(error.kind(), std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut | std::io::ErrorKind::Interrupted) => continue,
+                        Err(error)
+                            if matches!(
+                                error.kind(),
+                                std::io::ErrorKind::WouldBlock
+                                    | std::io::ErrorKind::TimedOut
+                                    | std::io::ErrorKind::Interrupted
+                            ) =>
+                        {
+                            continue
+                        }
                         Err(_) => break,
                         Ok(n) => bytes.extend_from_slice(&chunk[..n]),
                     }
@@ -578,11 +596,7 @@ mod tests {
             std::thread::sleep(Duration::from_millis(350));
             write!(stream, "GET /callback?state={state}").unwrap();
             std::thread::sleep(Duration::from_millis(350));
-            write!(
-                stream,
-                "&code=only-code HTTP/1.1\r\nHost: {addr}\r\n\r\n"
-            )
-            .unwrap();
+            write!(stream, "&code=only-code HTTP/1.1\r\nHost: {addr}\r\n\r\n").unwrap();
             let mut response = String::new();
             stream.read_to_string(&mut response).unwrap();
             assert!(response.starts_with(if state == "expected" {

@@ -76,6 +76,7 @@ mod tests {
         let mut r = ImageRequest {
             vae_on_cpu: false,
             reference: None,
+            loras: vec![],
             model_path: String::new(),
             prompt: "test".into(),
             negative_prompt: String::new(),

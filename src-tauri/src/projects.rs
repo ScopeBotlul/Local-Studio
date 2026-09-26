@@ -1,12 +1,18 @@
 pub mod creative;
-pub use creative::{video_frame,media_prepare,media_status,media_cancel,media_info,caption_read,caption_write,project_creative_save,canvas_preview,canvas_export,canvas_export_mask,video_probe,video_start,video_jobs,video_cancel,VideoEngine};
+pub use creative::{
+    canvas_export, canvas_export_mask, canvas_preview, caption_read, caption_write, media_cancel,
+    media_info, media_prepare, media_status, project_creative_save, video_cancel, video_frame,
+    video_jobs, video_probe, video_start, VideoEngine,
+};
 mod editor;
 mod image_reference;
-pub use editor::{project_editor_preview,project_editor_save,project_editor_export,project_add_edit};
+pub use editor::{
+    project_add_edit, project_editor_export, project_editor_preview, project_editor_save,
+};
 // Local, passive project containers. Archive names never become filesystem paths.
 mod recent;
-pub use recent::{project_recent,project_forget_recent};
 use crate::{core::Core, gallery, image_engine::ImageRequest};
+pub use recent::{project_forget_recent, project_recent};
 use rusqlite::{Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -33,21 +39,23 @@ pub struct ModelReference {
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Asset {
-    #[serde(default,skip_serializing_if="std::ops::Not::not")] pub restricted:bool,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub restricted: bool,
     pub id: String,
     pub name: String,
     pub kind: String,
     pub bytes: u64,
     pub sha256: String,
     pub archive_name: String,
-    #[serde(default,skip_serializing_if="Vec::is_empty")]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub edit: Vec<gallery::EditOperation>,
 }
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct Manifest {
-    #[serde(default,skip_serializing_if="std::ops::Not::not")] restricted:bool,
-    #[serde(default,skip_serializing_if="Option::is_none")]
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    restricted: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     creative: Option<creative::Creative>,
     format: String,
     version: u32,
@@ -59,9 +67,11 @@ struct Manifest {
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Project {
-    #[serde(default)] pub restricted:bool,
-    #[serde(default,skip_deserializing)] pub locked:bool,
-    #[serde(default,skip_serializing_if="Option::is_none")]
+    #[serde(default)]
+    pub restricted: bool,
+    #[serde(default, skip_deserializing)]
+    pub locked: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub creative: Option<creative::Creative>,
     pub id: String,
     pub name: String,
@@ -80,7 +90,11 @@ struct State {
     db: Connection,
     project: Option<Project>,
 }
-pub(crate) fn project_restricted(p:&Project)->bool{p.restricted||p.assets.iter().chain(&p.removed).any(|a|a.restricted)||p.request.as_ref().is_some_and(crate::privacy::request)}
+pub(crate) fn project_restricted(p: &Project) -> bool {
+    p.restricted
+        || p.assets.iter().chain(&p.removed).any(|a| a.restricted)
+        || p.request.as_ref().is_some_and(crate::privacy::request)
+}
 pub struct Projects {
     state: Mutex<State>,
 }
@@ -123,7 +137,7 @@ fn valid_request(request: &Option<ImageRequest>) -> Result<()> {
     Ok(())
 }
 fn validate(m: &Manifest) -> Result<()> {
-    if m.format != "local-studio" || !matches!(m.version,1|2|3|4|5) {
+    if m.format != "local-studio" || !matches!(m.version, 1 | 2 | 3 | 4 | 5) {
         return Err("project_version".into());
     }
     if m.name.trim().is_empty()
@@ -133,13 +147,32 @@ fn validate(m: &Manifest) -> Result<()> {
     {
         return Err("project_manifest".into());
     }
-    if serde_json::to_vec(m).map_err(err)?.len() as u64 > MAX_MANIFEST { return Err("project_limit".into()); }
-    if let Some(c)=&m.creative {if m.version<3{return Err("project_version".into());}creative::validate(c,&m.assets)?;}
-    if m.version<5&&(m.restricted||m.assets.iter().any(|a|a.restricted)){return Err("project_version".into());}
+    if serde_json::to_vec(m).map_err(err)?.len() as u64 > MAX_MANIFEST {
+        return Err("project_limit".into());
+    }
+    if let Some(c) = &m.creative {
+        if m.version < 3 {
+            return Err("project_version".into());
+        }
+        creative::validate(c, &m.assets)?;
+    }
+    if m.version < 5 && (m.restricted || m.assets.iter().any(|a| a.restricted)) {
+        return Err("project_version".into());
+    }
     valid_request(&m.request)?;
-    if m.version<4&&m.request.as_ref().is_some_and(|r|r.vae_on_cpu){return Err("project_version".into());}
-    if let Some(reference)=m.request.as_ref().and_then(|r|r.reference.as_ref()) {
-        if m.version<4||reference.inputs().iter().any(|(_,r)|!m.assets.iter().any(|a|a.archive_name==r.path&&a.sha256==r.sha256&&a.kind=="image")) {return Err("project_manifest".into());}
+    if m.version < 4 && m.request.as_ref().is_some_and(|r| r.vae_on_cpu) {
+        return Err("project_version".into());
+    }
+    if let Some(reference) = m.request.as_ref().and_then(|r| r.reference.as_ref()) {
+        if m.version < 4
+            || reference.inputs().iter().any(|(_, r)| {
+                !m.assets
+                    .iter()
+                    .any(|a| a.archive_name == r.path && a.sha256 == r.sha256 && a.kind == "image")
+            })
+        {
+            return Err("project_manifest".into());
+        }
     }
     if m.request.as_ref().is_some_and(|r| !r.model_path.is_empty()) {
         return Err("project_manifest".into());
@@ -155,7 +188,9 @@ fn validate(m: &Manifest) -> Result<()> {
     let mut total = 0u64;
     for a in &m.assets {
         gallery::validate_operations(&a.edit)?;
-        if !a.edit.is_empty() && (m.version < 2 || a.kind != "image") { return Err("project_manifest".into()); }
+        if !a.edit.is_empty() && (m.version < 2 || a.kind != "image") {
+            return Err("project_manifest".into());
+        }
         let p = Path::new(&a.name);
         let ext = p
             .extension()
@@ -198,7 +233,12 @@ fn owned(p: &Project, a: &Asset) -> Result<PathBuf> {
     Ok(directory.join(name))
 }
 fn persist(state: &mut State, mut project: Option<Project>) -> Result<()> {
-    if let Some(p)=project.as_mut(){if project_restricted(p){p.restricted=true;crate::privacy::protect_path(Path::new(&p.directory))?;}}
+    if let Some(p) = project.as_mut() {
+        if project_restricted(p) {
+            p.restricted = true;
+            crate::privacy::protect_path(Path::new(&p.directory))?;
+        }
+    }
     history::persist(state, project)
 }
 fn create(root: &Path, name: String, request: Option<ImageRequest>) -> Result<Project> {
@@ -213,7 +253,9 @@ fn create(root: &Path, name: String, request: Option<ImageRequest>) -> Result<Pr
     let id = uuid();
     let directory = sessions.join(&id);
     fs::create_dir(&directory).map_err(err)?;
-    Ok(Project { restricted:request.as_ref().is_some_and(crate::privacy::request),locked:false,
+    Ok(Project {
+        restricted: request.as_ref().is_some_and(crate::privacy::request),
+        locked: false,
         creative: None,
         id,
         name,
@@ -355,8 +397,25 @@ impl Projects {
             state: Mutex::new(state),
         }))
     }
-    pub(crate) fn protect_current(&self,id:&str)->Result<()> {let mut s=self.state.lock().map_err(err)?;let mut p=Self::require(&s)?;if p.id!=id{return Err("project_changed".into());}p.restricted=true;p.dirty=true;persist(&mut s,Some(p))}
-    pub fn privacy_restricted(&self)->Result<bool>{Ok(self.state.lock().map_err(err)?.project.as_ref().is_some_and(project_restricted))}
+    pub(crate) fn protect_current(&self, id: &str) -> Result<()> {
+        let mut s = self.state.lock().map_err(err)?;
+        let mut p = Self::require(&s)?;
+        if p.id != id {
+            return Err("project_changed".into());
+        }
+        p.restricted = true;
+        p.dirty = true;
+        persist(&mut s, Some(p))
+    }
+    pub fn privacy_restricted(&self) -> Result<bool> {
+        Ok(self
+            .state
+            .lock()
+            .map_err(err)?
+            .project
+            .as_ref()
+            .is_some_and(project_restricted))
+    }
     pub fn snapshot(&self) -> Result<Option<Project>> {
         Ok(self.state.lock().map_err(err)?.project.clone())
     }
@@ -390,7 +449,12 @@ impl Projects {
     fn add_to(&self, id: &str, sources: Vec<String>) -> Result<Project> {
         self.add_for(Some(id), sources, None)
     }
-    fn add_for(&self, id: Option<&str>, sources: Vec<String>, edit: Option<Vec<gallery::EditOperation>>) -> Result<Project> {
+    fn add_for(
+        &self,
+        id: Option<&str>,
+        sources: Vec<String>,
+        edit: Option<Vec<gallery::EditOperation>>,
+    ) -> Result<Project> {
         let mut s = self.state.lock().map_err(err)?;
         let mut p = Self::require(&s)?;
         if id.is_some_and(|id| id != p.id) {
@@ -420,7 +484,8 @@ impl Projects {
                 }
                 let id = uuid();
                 let ext = source.extension().unwrap().to_string_lossy().to_lowercase();
-                let mut a = Asset { restricted:crate::privacy::media(source),
+                let mut a = Asset {
+                    restricted: crate::privacy::media(source),
                     id: id.clone(),
                     name: name.into(),
                     kind: kind.into(),
@@ -442,11 +507,17 @@ impl Projects {
                     return Err("project_changed".into());
                 }
                 a.sha256 = hash;
-                drop(output);if a.restricted{crate::privacy::mark(&owned(&p,&a)?)?;p.restricted=true;}
+                drop(output);
+                if a.restricted {
+                    crate::privacy::mark(&owned(&p, &a)?)?;
+                    p.restricted = true;
+                }
                 p.assets.push(a);
             }
             p.dirty = true;
-            if serde_json::to_vec(&p).map_err(err)?.len() as u64>MAX_MANIFEST{return Err("project_limit".into());}
+            if serde_json::to_vec(&p).map_err(err)?.len() as u64 > MAX_MANIFEST {
+                return Err("project_limit".into());
+            }
             persist(&mut s, Some(p.clone()))?;
             Ok(p.clone())
         })();
@@ -475,9 +546,12 @@ impl Projects {
         let version = digest(&mut input)?;
         let mut z = archive(&mut input)?;
         let m = read_manifest(&mut z)?;
-        if crate::privacy::locked()&&(m.restricted||m.assets.iter().any(|a|a.restricted)){return Err("privacy_locked".into());}
+        if crate::privacy::locked() && (m.restricted || m.assets.iter().any(|a| a.restricted)) {
+            return Err("privacy_locked".into());
+        }
         let mut p = create(recovery, m.name, m.request)?;
-        p.restricted=m.restricted;p.creative=m.creative;
+        p.restricted = m.restricted;
+        p.creative = m.creative;
         p.model = m.model;
         p.path = Some(path.to_string_lossy().into());
         p.version = Some(version);
@@ -503,7 +577,11 @@ impl Projects {
                 }
                 p.assets.push(a);
             }
-            for a in &p.assets{if a.restricted{crate::privacy::mark(&owned(&p,a)?)?;}}
+            for a in &p.assets {
+                if a.restricted {
+                    crate::privacy::mark(&owned(&p, a)?)?;
+                }
+            }
             image_reference::restore_reference(&mut p)?;
             p.dirty = false;
             persist(&mut s, Some(p.clone()))?;
@@ -530,7 +608,9 @@ impl Projects {
         {
             p.request = request;
             p.dirty = true;
-            if serde_json::to_vec(&p).map_err(err)?.len() as u64>MAX_MANIFEST{return Err("project_limit".into());}
+            if serde_json::to_vec(&p).map_err(err)?.len() as u64 > MAX_MANIFEST {
+                return Err("project_limit".into());
+            }
             persist(&mut s, Some(p.clone()))?;
         }
         Ok(p)
@@ -545,7 +625,12 @@ impl Projects {
         if !p.assets.iter().any(|a| a.id == id) {
             return Err("project_media".into());
         }
-        if p.creative.as_ref().is_some_and(|c|creative::referenced(c,id)){return Err("creative_in_use".into());}
+        if p.creative
+            .as_ref()
+            .is_some_and(|c| creative::referenced(c, id))
+        {
+            return Err("creative_in_use".into());
+        }
         p.removed
             .push(p.assets.iter().find(|a| a.id == id).unwrap().clone());
         while p.removed.len() > limit.clamp(1, 1000) {
@@ -605,12 +690,37 @@ pub use history::{
 pub use transfer::{project_add_gallery, project_add_image};
 pub mod preview;
 #[tauri::command]
-pub async fn project_snapshot(state: tauri::State<'_, Arc<Projects>>) -> Result<Option<Project>> {let privacy_epoch=crate::privacy::epoch();let privacy_result=(async {
-    let p = state.inner().clone();
-    tauri::async_runtime::spawn_blocking(move || {let mut result=p.snapshot()?;if crate::privacy::locked(){if let Some(p)=result.as_mut(){if project_restricted(p){p.locked=true;p.restricted=true;p.name="18+".into();p.path=None;p.version=None;p.request=None;p.model=None;p.assets.clear();p.removed.clear();p.creative=None;p.directory.clear();}}}Ok(result)})
+pub async fn project_snapshot(state: tauri::State<'_, Arc<Projects>>) -> Result<Option<Project>> {
+    let privacy_epoch = crate::privacy::epoch();
+    let privacy_result = (async {
+        let p = state.inner().clone();
+        tauri::async_runtime::spawn_blocking(move || {
+            let mut result = p.snapshot()?;
+            if crate::privacy::locked() {
+                if let Some(p) = result.as_mut() {
+                    if project_restricted(p) {
+                        p.locked = true;
+                        p.restricted = true;
+                        p.name = "18+".into();
+                        p.path = None;
+                        p.version = None;
+                        p.request = None;
+                        p.model = None;
+                        p.assets.clear();
+                        p.removed.clear();
+                        p.creative = None;
+                        p.directory.clear();
+                    }
+                }
+            }
+            Ok(result)
+        })
         .await
         .map_err(err)?
-}).await;crate::privacy::finish(privacy_epoch,privacy_result)}
+    })
+    .await;
+    crate::privacy::finish(privacy_epoch, privacy_result)
+}
 #[tauri::command]
 pub async fn project_new(
     name: String,
@@ -618,134 +728,184 @@ pub async fn project_new(
     confirmed: bool,
     state: tauri::State<'_, Arc<Projects>>,
     core: tauri::State<'_, Arc<Core>>,
-) -> Result<Project> {let privacy_epoch=crate::privacy::epoch();let privacy_result=(async {
-    let p = state.inner().clone();
-    let root = core.storage_paths()?.recovery;
-    tauri::async_runtime::spawn_blocking(move || {
-        p.new_project(Path::new(&root), name, request, confirmed)
+) -> Result<Project> {
+    let privacy_epoch = crate::privacy::epoch();
+    let privacy_result = (async {
+        let p = state.inner().clone();
+        let root = core.storage_paths()?.recovery;
+        tauri::async_runtime::spawn_blocking(move || {
+            p.new_project(Path::new(&root), name, request, confirmed)
+        })
+        .await
+        .map_err(err)?
     })
-    .await
-    .map_err(err)?
-}).await;crate::privacy::finish(privacy_epoch,privacy_result)}
+    .await;
+    crate::privacy::finish(privacy_epoch, privacy_result)
+}
 #[tauri::command]
 pub async fn project_open(
     path: String,
     confirmed: bool,
     state: tauri::State<'_, Arc<Projects>>,
     core: tauri::State<'_, Arc<Core>>,
-) -> Result<Project> {let privacy_epoch=crate::privacy::epoch();let privacy_result=(async {
-    let p = state.inner().clone();
-    let root = core.storage_paths()?.recovery;
-    tauri::async_runtime::spawn_blocking(move || {
-        p.open(Path::new(&path), Path::new(&root), confirmed)
-    })
-    .await
-    .map_err(err)?
-}).await;crate::privacy::finish(privacy_epoch,privacy_result)}
-#[tauri::command]
-pub async fn project_save(path: String, state: tauri::State<'_, Arc<Projects>>) -> Result<Project> {let privacy_epoch=crate::privacy::epoch();let privacy_result=(async {
-    let p = state.inner().clone();
-    tauri::async_runtime::spawn_blocking(move || p.save(Path::new(&path)))
+) -> Result<Project> {
+    let privacy_epoch = crate::privacy::epoch();
+    let privacy_result = (async {
+        let p = state.inner().clone();
+        let root = core.storage_paths()?.recovery;
+        tauri::async_runtime::spawn_blocking(move || {
+            p.open(Path::new(&path), Path::new(&root), confirmed)
+        })
         .await
         .map_err(err)?
-}).await;crate::privacy::finish(privacy_epoch,privacy_result)}
+    })
+    .await;
+    crate::privacy::finish(privacy_epoch, privacy_result)
+}
+#[tauri::command]
+pub async fn project_save(path: String, state: tauri::State<'_, Arc<Projects>>) -> Result<Project> {
+    let privacy_epoch = crate::privacy::epoch();
+    let privacy_result = (async {
+        let p = state.inner().clone();
+        tauri::async_runtime::spawn_blocking(move || p.save(Path::new(&path)))
+            .await
+            .map_err(err)?
+    })
+    .await;
+    crate::privacy::finish(privacy_epoch, privacy_result)
+}
 #[tauri::command]
 pub async fn project_update(
     id: String,
     request: Option<ImageRequest>,
     state: tauri::State<'_, Arc<Projects>>,
-) -> Result<Project> {let privacy_epoch=crate::privacy::epoch();let privacy_result=(async {
-    let p = state.inner().clone();
-    tauri::async_runtime::spawn_blocking(move || p.update(&id, request))
-        .await
-        .map_err(err)?
-}).await;crate::privacy::finish(privacy_epoch,privacy_result)}
+) -> Result<Project> {
+    let privacy_epoch = crate::privacy::epoch();
+    let privacy_result = (async {
+        let p = state.inner().clone();
+        tauri::async_runtime::spawn_blocking(move || p.update(&id, request))
+            .await
+            .map_err(err)?
+    })
+    .await;
+    crate::privacy::finish(privacy_epoch, privacy_result)
+}
 #[tauri::command]
 pub async fn project_add(
     sources: Vec<String>,
     state: tauri::State<'_, Arc<Projects>>,
-) -> Result<Project> {let privacy_epoch=crate::privacy::epoch();let privacy_result=(async {
-    let p = state.inner().clone();
-    tauri::async_runtime::spawn_blocking(move || p.add(sources))
-        .await
-        .map_err(err)?
-}).await;crate::privacy::finish(privacy_epoch,privacy_result)}
+) -> Result<Project> {
+    let privacy_epoch = crate::privacy::epoch();
+    let privacy_result = (async {
+        let p = state.inner().clone();
+        tauri::async_runtime::spawn_blocking(move || p.add(sources))
+            .await
+            .map_err(err)?
+    })
+    .await;
+    crate::privacy::finish(privacy_epoch, privacy_result)
+}
 #[tauri::command]
 pub async fn project_remove(
     id: String,
     state: tauri::State<'_, Arc<Projects>>,
     core: tauri::State<'_, Arc<Core>>,
-) -> Result<Project> {let privacy_epoch=crate::privacy::epoch();let privacy_result=(async {
-    let p = state.inner().clone();
-    let limit = core.current_settings()?.max_undo as usize;
-    tauri::async_runtime::spawn_blocking(move || p.remove_limited(&id, limit))
-        .await
-        .map_err(err)?
-}).await;crate::privacy::finish(privacy_epoch,privacy_result)}
+) -> Result<Project> {
+    let privacy_epoch = crate::privacy::epoch();
+    let privacy_result = (async {
+        let p = state.inner().clone();
+        let limit = core.current_settings()?.max_undo as usize;
+        tauri::async_runtime::spawn_blocking(move || p.remove_limited(&id, limit))
+            .await
+            .map_err(err)?
+    })
+    .await;
+    crate::privacy::finish(privacy_epoch, privacy_result)
+}
 #[tauri::command]
-pub async fn project_close(confirmed: bool, state: tauri::State<'_, Arc<Projects>>) -> Result<()> {let privacy_epoch=crate::privacy::epoch();let privacy_result=(async {
-    let p = state.inner().clone();
-    tauri::async_runtime::spawn_blocking(move || p.close(confirmed))
-        .await
-        .map_err(err)?
-}).await;crate::privacy::finish(privacy_epoch,privacy_result)}
+pub async fn project_close(confirmed: bool, state: tauri::State<'_, Arc<Projects>>) -> Result<()> {
+    let privacy_epoch = crate::privacy::epoch();
+    let privacy_result = (async {
+        let p = state.inner().clone();
+        tauri::async_runtime::spawn_blocking(move || p.close(confirmed))
+            .await
+            .map_err(err)?
+    })
+    .await;
+    crate::privacy::finish(privacy_epoch, privacy_result)
+}
 #[tauri::command]
-pub async fn project_recover(state: tauri::State<'_, Arc<Projects>>) -> Result<Project> {let privacy_epoch=crate::privacy::epoch();let privacy_result=(async {
-    let p = state.inner().clone();
-    tauri::async_runtime::spawn_blocking(move || p.recover())
-        .await
-        .map_err(err)?
-}).await;crate::privacy::finish(privacy_epoch,privacy_result)}
+pub async fn project_recover(state: tauri::State<'_, Arc<Projects>>) -> Result<Project> {
+    let privacy_epoch = crate::privacy::epoch();
+    let privacy_result = (async {
+        let p = state.inner().clone();
+        tauri::async_runtime::spawn_blocking(move || p.recover())
+            .await
+            .map_err(err)?
+    })
+    .await;
+    crate::privacy::finish(privacy_epoch, privacy_result)
+}
 #[tauri::command]
 pub async fn project_relink(
     path: String,
     state: tauri::State<'_, Arc<Projects>>,
-) -> Result<Project> {let privacy_epoch=crate::privacy::epoch();let privacy_result=(async {
-    let p = state.inner().clone();
-    tauri::async_runtime::spawn_blocking(move || p.relink(Path::new(&path)))
-        .await
-        .map_err(err)?
-}).await;crate::privacy::finish(privacy_epoch,privacy_result)}
+) -> Result<Project> {
+    let privacy_epoch = crate::privacy::epoch();
+    let privacy_result = (async {
+        let p = state.inner().clone();
+        tauri::async_runtime::spawn_blocking(move || p.relink(Path::new(&path)))
+            .await
+            .map_err(err)?
+    })
+    .await;
+    crate::privacy::finish(privacy_epoch, privacy_result)
+}
 #[tauri::command]
 pub async fn project_export_gallery(
     state: tauri::State<'_, Arc<Projects>>,
     core: tauri::State<'_, Arc<Core>>,
-) -> Result<gallery::ImportResult> {let privacy_epoch=crate::privacy::epoch();let privacy_result=(async {
-    let p = state.inner().clone();
-    let root = PathBuf::from(core.storage_paths()?.gallery);
-    tauri::async_runtime::spawn_blocking(move || {
-        let s = p.state.lock().map_err(err)?;
-        let project = Projects::require(&s)?;
-        if project.assets.is_empty() {
-            return Err("project_media".into());
-        }
-        let _guards = gallery::directory_guards(&root)?;
-        let folder = root.join(format!("Project-{}", uuid()));
-        fs::create_dir(&folder).map_err(err)?;
-        let _pins = gallery::directory_guards(&folder)?;
-        let mut report = gallery::ImportResult {
-            imported: vec![],
-            errors: vec![],
-        };
-        for a in &project.assets {
-            let result = (|| {
-                let source = owned(&project, a)?;
-                let _pins = gallery::directory_guards(source.parent().ok_or("project_path")?)?;
-                let mut file = gallery::lock_file(&source)?;
-                if digest(&mut file)? != a.sha256 {
-                    return Err("project_hash".into());
-                }
-                gallery::copy_one_named(&root, &folder, &source, &a.name)
-            })();
-            match result {
-                Ok(path) => report.imported.push(path),
-                Err(error) => report.errors.push(format!("{}: {}", a.name, error)),
+) -> Result<gallery::ImportResult> {
+    let privacy_epoch = crate::privacy::epoch();
+    let privacy_result = (async {
+        let p = state.inner().clone();
+        let root = PathBuf::from(core.storage_paths()?.gallery);
+        tauri::async_runtime::spawn_blocking(move || {
+            let s = p.state.lock().map_err(err)?;
+            let project = Projects::require(&s)?;
+            if project.assets.is_empty() {
+                return Err("project_media".into());
             }
-        }
-        Ok(report)
+            let _guards = gallery::directory_guards(&root)?;
+            let folder = root.join(format!("Project-{}", uuid()));
+            fs::create_dir(&folder).map_err(err)?;
+            let _pins = gallery::directory_guards(&folder)?;
+            let mut report = gallery::ImportResult {
+                imported: vec![],
+                errors: vec![],
+            };
+            for a in &project.assets {
+                let result = (|| {
+                    let source = owned(&project, a)?;
+                    let _pins = gallery::directory_guards(source.parent().ok_or("project_path")?)?;
+                    let mut file = gallery::lock_file(&source)?;
+                    if digest(&mut file)? != a.sha256 {
+                        return Err("project_hash".into());
+                    }
+                    gallery::copy_one_named(&root, &folder, &source, &a.name)
+                })();
+                match result {
+                    Ok(path) => report.imported.push(path),
+                    Err(error) => report.errors.push(format!("{}: {}", a.name, error)),
+                }
+            }
+            Ok(report)
+        })
+        .await
+        .map_err(err)?
     })
-    .await
-    .map_err(err)?
-}).await;crate::privacy::finish(privacy_epoch,privacy_result)}
+    .await;
+    crate::privacy::finish(privacy_epoch, privacy_result)
+}
 #[cfg(test)]
 mod tests;

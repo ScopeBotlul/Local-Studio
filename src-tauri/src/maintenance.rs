@@ -1,4 +1,9 @@
-use crate::{core::Core, gallery, image_engine::ImageEngine, projects::{Projects,VideoEngine}};
+use crate::{
+    core::Core,
+    gallery,
+    image_engine::ImageEngine,
+    projects::{Projects, VideoEngine},
+};
 use serde::Serialize;
 use std::{
     collections::HashMap,
@@ -59,14 +64,25 @@ impl Maintenance {
             last_auto: Mutex::new(None),
         }
     }
-    fn preview(&self, days: u32, projects: &Projects, images: &ImageEngine, video: Option<&VideoEngine>) -> Result<Preview> {
+    fn preview(
+        &self,
+        days: u32,
+        projects: &Projects,
+        images: &ImageEngine,
+        video: Option<&VideoEngine>,
+    ) -> Result<Preview> {
         let cutoff = cutoff(days);
         let mut inventory = projects.cleanup_inventory(cutoff)?;
         let image = images.cleanup_inventory(cutoff)?;
         inventory.files.extend(image.files);
         inventory.protected_bytes += image.protected_bytes;
         inventory.unavailable += image.unavailable;
-        if let Some(video)=video {let v=video.cleanup_inventory(cutoff,projects)?;inventory.files.extend(v.files);inventory.protected_bytes+=v.protected_bytes;inventory.unavailable+=v.unavailable;}
+        if let Some(video) = video {
+            let v = video.cleanup_inventory(cutoff, projects)?;
+            inventory.files.extend(v.files);
+            inventory.protected_bytes += v.protected_bytes;
+            inventory.unavailable += v.unavailable;
+        }
         // Bound each review/execution batch; a subsequent preview covers the remainder.
         inventory.files.truncate(1000);
         let token = uuid::Uuid::new_v4().to_string();
@@ -120,8 +136,10 @@ impl Maintenance {
         for file in plan.files {
             let result = if file.category == "project" {
                 projects.cleanup_file(&file, cutoff)
-            } else if file.category=="video" {
-                video.ok_or("cleanup_storage")?.cleanup_file(&file,cutoff,projects)
+            } else if file.category == "video" {
+                video
+                    .ok_or("cleanup_storage")?
+                    .cleanup_file(&file, cutoff, projects)
             } else {
                 images.cleanup_file(&file, cutoff)
             };
@@ -153,8 +171,12 @@ mod tests {
         let images = ImageEngine::new(t.path(), t.path().join("runtime")).unwrap();
         let m = Maintenance::new();
         let p = m.preview(7, &projects, &images, None).unwrap();
-        assert!(m.apply(&p.token, false, 7, &projects, &images, None).is_err());
-        assert!(m.apply(&p.token, true, 8, &projects, &images, None).is_err());
+        assert!(m
+            .apply(&p.token, false, 7, &projects, &images, None)
+            .is_err());
+        assert!(m
+            .apply(&p.token, true, 8, &projects, &images, None)
+            .is_err());
         let p = m.preview(7, &projects, &images, None).unwrap();
         assert_eq!(
             m.apply(&p.token, true, 7, &projects, &images, None)
@@ -162,11 +184,15 @@ mod tests {
                 .deleted,
             0
         );
-        assert!(m.apply(&p.token, true, 7, &projects, &images, None).is_err());
+        assert!(m
+            .apply(&p.token, true, 7, &projects, &images, None)
+            .is_err());
         let p = m.preview(7, &projects, &images, None).unwrap();
         m.plans.lock().unwrap().get_mut(&p.token).unwrap().at =
             Instant::now() - Duration::from_secs(301);
-        assert!(m.apply(&p.token, true, 7, &projects, &images, None).is_err());
+        assert!(m
+            .apply(&p.token, true, 7, &projects, &images, None)
+            .is_err());
     }
 }
 pub(crate) fn inspect(path: &Path, category: &str, owner: &str) -> Result<Candidate> {
@@ -197,7 +223,7 @@ pub async fn storage_cleanup_preview(
     core: tauri::State<'_, Arc<Core>>,
     projects: tauri::State<'_, Arc<Projects>>,
     images: tauri::State<'_, Arc<ImageEngine>>,
-    video: tauri::State<'_,Arc<VideoEngine>>,
+    video: tauri::State<'_, Arc<VideoEngine>>,
 ) -> Result<Preview> {
     let m = state.inner().clone();
     let core = core.inner().clone();
@@ -205,7 +231,12 @@ pub async fn storage_cleanup_preview(
     let i = images.inner().clone();
     let v = video.inner().clone();
     tauri::async_runtime::spawn_blocking(move || {
-        m.preview(core.current_settings()?.temp_retention_days, &p, &i, Some(&v))
+        m.preview(
+            core.current_settings()?.temp_retention_days,
+            &p,
+            &i,
+            Some(&v),
+        )
     })
     .await
     .map_err(|_| "cleanup_storage")?
@@ -218,7 +249,7 @@ pub async fn storage_cleanup_apply(
     core: tauri::State<'_, Arc<Core>>,
     projects: tauri::State<'_, Arc<Projects>>,
     images: tauri::State<'_, Arc<ImageEngine>>,
-    video: tauri::State<'_,Arc<VideoEngine>>,
+    video: tauri::State<'_, Arc<VideoEngine>>,
 ) -> Result<Report> {
     let m = state.inner().clone();
     let core = core.inner().clone();
@@ -244,7 +275,7 @@ pub async fn storage_cleanup_auto(
     core: tauri::State<'_, Arc<Core>>,
     projects: tauri::State<'_, Arc<Projects>>,
     images: tauri::State<'_, Arc<ImageEngine>>,
-    video: tauri::State<'_,Arc<VideoEngine>>,
+    video: tauri::State<'_, Arc<VideoEngine>>,
 ) -> Result<Report> {
     let m = state.inner().clone();
     let core = core.inner().clone();
@@ -267,7 +298,14 @@ pub async fn storage_cleanup_auto(
         if !current.auto_cleanup {
             return Ok(Report::default());
         }
-        m.apply(&preview.token, true, current.temp_retention_days, &p, &i, Some(&v))
+        m.apply(
+            &preview.token,
+            true,
+            current.temp_retention_days,
+            &p,
+            &i,
+            Some(&v),
+        )
     })
     .await
     .map_err(|_| "cleanup_storage")?

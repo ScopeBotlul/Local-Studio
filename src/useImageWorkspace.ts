@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type SetStateAction } from 'r
 import { imageApi, type ImageRequest, type ImageWorkspace } from './image-api';
 import {usePrivacy,useModelPrivacy} from './Privacy';
 
-export const defaultImageRequest: ImageRequest = { modelPath: '', prompt: '', negativePrompt: '', width: 512, height: 512, steps: 25, guidance: 5, seed: 42, sampler: 'euler' };
+export const defaultImageRequest: ImageRequest = { modelPath: '', prompt: '', negativePrompt: '', loras: [], width: 512, height: 512, steps: 25, guidance: 5, seed: 42, sampler: 'euler' };
 export function useImageWorkspace(enabled: boolean) {
   const [request, renderRequest] = useState(defaultImageRequest);
   const [ready, setReady] = useState(false);

@@ -2,7 +2,8 @@ import { invoke } from '@tauri-apps/api/core';
 
 export interface ImageMask {path:string;sha256:string;width:number;height:number}
 export interface ImageReference {mask?:ImageMask|null;path:string;sha256:string;width:number;height:number;strength:number}
-export interface ImageRequest { vaeOnCpu?:boolean; reference?:ImageReference|null; modelPath: string; prompt: string; negativePrompt: string; width: number; height: number; steps: number; guidance: number; seed: number; sampler: string; }
+export interface ImageLora {path:string;strength:number;sha256?:string|null}
+export interface ImageRequest { vaeOnCpu?:boolean; reference?:ImageReference|null; loras?:ImageLora[]; modelPath: string; prompt: string; negativePrompt: string; width: number; height: number; steps: number; guidance: number; seed: number; sampler: string; }
 export interface ImageJob {restricted?:boolean;locked?:boolean; batch?:{id:string;index:number;count:number}|null; samplingSteps?:number|null; id: string; request: ImageRequest; status: string; phase: string; step: number; hashedBytes: number; modelBytes: number; modelSha256: string | null; runtime: string; device: string; createdAt: string; elapsedMs: number; error: string | null; output: string | null; savedPath: string | null; logTail: string; discarded: boolean; startedAt: string | null; finishedAt: string | null; queuePosition: number | null; }
 export interface ImageProbe { ready: boolean; family: string | null; modelBytes: number | null; missing: string[]; runtime: string; device: string | null; vramBytes: number | null; modelLicense: string; runtimeLicense: string; }
 export interface ImageModel {id:string;name:string;path:string;totalBytes:number;restricted:boolean}
@@ -25,6 +26,7 @@ export interface ImageWorkspace { request: ImageRequest | null; models: Record<s
 export interface WorkspaceSnapshot {locked?:boolean; workspace: ImageWorkspace; recoveryAvailable: boolean; unsaved: number; }
 export const activeImage = (job: ImageJob) => job.status === 'running' || job.status === 'queued';
 export const imageApi = {
+  reference:(path:string)=>invoke<ImageReference>('image_reference',{path}),
   generateBatch:(request:ImageRequest,count:number,incrementSeed:boolean)=>invoke<{jobs:ImageJob[];error:string|null}>('image_generate_batch',{request,count,incrementSeed}),
   resume: (id: string) => invoke<ImageJob>('image_resume', { id }),
   workspace: () => invoke<WorkspaceSnapshot>('image_workspace'),
@@ -36,7 +38,7 @@ export const imageApi = {
   generate: (request: ImageRequest) => invoke<ImageJob>('image_generate', { request }),
   cancel: (id: string) => invoke<void>('image_cancel', { id }),
   output: (id: string) => invoke<string>('image_output', { id }),
-  save: (id: string) => invoke<string>('image_save', { id }),
+  save: (id: string, folder = '') => invoke<string>('image_save', { id, folder }),
 };
 
 const errors: Record<string, [string, string]> = {
@@ -78,6 +80,15 @@ const errors: Record<string, [string, string]> = {
   image_missing: ['Das Ergebnis ist nicht mehr verfügbar.', 'The result is no longer available.'],
   image_interrupted: ['Dieser Auftrag wurde durch einen App-Abbruch unterbrochen. Er wird nicht automatisch neu gestartet.', 'This job was interrupted by an app crash. It will not restart automatically.'],
   image_worker_guard: ['Der Bildworker konnte nicht sicher an die App gebunden werden.', 'The image worker could not be attached safely to the app.'],
+  comfy_connection: ['Die lokale ComfyUI-API antwortet nicht.', 'The local ComfyUI API is not responding.'],
+  comfy_workflow: ['ComfyUI hat den geprüften Workflow abgelehnt.', 'ComfyUI rejected the validated workflow.'],
+  comfy_execution: ['ComfyUI konnte das Bild nicht erzeugen. Das ComfyUI-Protokoll enthält Details.', 'ComfyUI could not generate the image. Check its log for details.'],
+  comfy_model_path: ['Das Modell muss im Ordner ComfyUI\\models\\checkpoints liegen.', 'The model must be inside ComfyUI\\models\\checkpoints.'],
+  comfy_reference: ['Referenzbild und Inpainting verwenden vorerst die bisherige Bildengine.', 'Reference image and inpainting currently use the existing image engine.'],
+  image_lora: ['Maximal acht LoRAs mit einer Stärke von -2 bis 2 auswählen.', 'Select up to eight LoRAs with a strength from -2 to 2.'],
+  image_lora_path: ['LoRAs müssen im Ordner ComfyUI\\models\\loras liegen.', 'LoRAs must be inside ComfyUI\\models\\loras.'],
+  image_lora_changed: ['Eine ausgewählte LoRA-Datei wurde seit dem Einreihen verändert.', 'A selected LoRA file changed after the job was queued.'],
+  image_lora_runtime: ['LoRAs benötigen die laufende ComfyUI-Engine.', 'LoRAs require the running ComfyUI engine.'],
 };
 export function imageError(value: unknown, de: boolean) {
   const message = String(value);

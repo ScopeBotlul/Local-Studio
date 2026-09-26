@@ -1,6 +1,9 @@
 use super::*;
 fn request() -> ImageRequest {
-    ImageRequest { vae_on_cpu:false,  reference:None,
+    ImageRequest {
+        vae_on_cpu: false,
+        reference: None,
+        loras: vec![],
         model_path: String::new(),
         prompt: "Project prompt ü".into(),
         negative_prompt: "noise".into(),
@@ -244,8 +247,9 @@ fn checksum_failures_and_unsupported_versions_leave_active_project_intact() {
         .new_project(t.path(), "original".into(), None, false)
         .unwrap();
     let id = uuid();
-    let a = Asset { restricted:false,
-        edit:vec![],
+    let a = Asset {
+        restricted: false,
+        edit: vec![],
         id: id.clone(),
         name: "image.png".into(),
         kind: "image".into(),
@@ -253,8 +257,9 @@ fn checksum_failures_and_unsupported_versions_leave_active_project_intact() {
         sha256: "0".repeat(64),
         archive_name: format!("media/{id}.png"),
     };
-    let mut m = Manifest { restricted:false,
-        creative:None,
+    let mut m = Manifest {
+        restricted: false,
+        creative: None,
         format: "local-studio".into(),
         version: 1,
         name: "corrupt".into(),
@@ -279,19 +284,35 @@ fn checksum_failures_and_unsupported_versions_leave_active_project_intact() {
     m.assets[0].bytes = MAX_BYTES + 1;
     assert!(validate(&m).is_err());
     m.assets[0] = a.clone();
-    m.assets[0].edit = vec![gallery::EditOperation::Adjust{brightness:10,contrast:0,saturation:0,temperature:0}];
-    assert!(validate(&m).is_err(), "v1 must not silently accept a recipe");
+    m.assets[0].edit = vec![gallery::EditOperation::Adjust {
+        brightness: 10,
+        contrast: 0,
+        saturation: 0,
+        temperature: 0,
+    }];
+    assert!(
+        validate(&m).is_err(),
+        "v1 must not silently accept a recipe"
+    );
     m.version = 2;
     assert!(validate(&m).is_ok());
     m.assets[0].kind = "audio".into();
     m.assets[0].name = "audio.wav".into();
     m.assets[0].archive_name = format!("media/{id}.wav");
-    assert!(validate(&m).is_err(), "image operations cannot target audio");
+    assert!(
+        validate(&m).is_err(),
+        "image operations cannot target audio"
+    );
     m.assets[0] = a.clone();
-    m.assets[0].edit = vec![gallery::EditOperation::Adjust{brightness:101,contrast:0,saturation:0,temperature:0}];
+    m.assets[0].edit = vec![gallery::EditOperation::Adjust {
+        brightness: 101,
+        contrast: 0,
+        saturation: 0,
+        temperature: 0,
+    }];
     assert!(validate(&m).is_err());
-    let mut json=serde_json::to_value(&m).unwrap();
-    json["assets"][0]["edit"]=serde_json::json!([{"type":"execute","code":"untrusted"}]);
+    let mut json = serde_json::to_value(&m).unwrap();
+    json["assets"][0]["edit"] = serde_json::json!([{"type":"execute","code":"untrusted"}]);
     assert!(serde_json::from_value::<Manifest>(json).is_err());
     m.assets[0] = a.clone();
     m.assets.push(a);
@@ -337,6 +358,20 @@ fn project_preview_only_serves_current_manifest_assets_to_main_window() {
     assert!(owned(&project, &project.assets[0]).unwrap().exists());
 }
 #[test]
-fn recent_projects_track_only_successful_save_and_open_and_do_not_delete_files(){
- let t=tempfile::tempdir().unwrap();let p=Projects::new(t.path()).unwrap();p.new_project(t.path(),"Recent".into(),None,false).unwrap();let target=t.path().join("recent.localstudio");p.save(&target).unwrap();p.close(false).unwrap();p.open(&target,t.path(),false).unwrap();let s=p.state.lock().unwrap();let count:i64=s.db.query_row("SELECT count(*) FROM recent_projects",[],|r|r.get(0)).unwrap();assert_eq!(count,1);s.db.execute("DELETE FROM recent_projects",[]).unwrap();assert!(target.exists());
+fn recent_projects_track_only_successful_save_and_open_and_do_not_delete_files() {
+    let t = tempfile::tempdir().unwrap();
+    let p = Projects::new(t.path()).unwrap();
+    p.new_project(t.path(), "Recent".into(), None, false)
+        .unwrap();
+    let target = t.path().join("recent.localstudio");
+    p.save(&target).unwrap();
+    p.close(false).unwrap();
+    p.open(&target, t.path(), false).unwrap();
+    let s = p.state.lock().unwrap();
+    let count: i64 =
+        s.db.query_row("SELECT count(*) FROM recent_projects", [], |r| r.get(0))
+            .unwrap();
+    assert_eq!(count, 1);
+    s.db.execute("DELETE FROM recent_projects", []).unwrap();
+    assert!(target.exists());
 }

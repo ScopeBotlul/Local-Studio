@@ -1,3 +1,26 @@
+# Release 0.29.0 gebaut, Veröffentlichung vorbereitet (2026-09-26)
+
+Version 0.29.0 ist als finale Windows-EXE, Installer und portable ZIP gebaut. Der isolierte native Lauf der exakten Release-EXE bestand 15/15 Prüfungen; Paketinhalt, Runtime-Hashes, Installeridentität und Prüfsummen sind bestätigt. Update-Metadaten werden aus den Release-Hinweisen mit dem vorhandenen Ed25519-Schlüssel signiert. Die Veröffentlichung auf `ScopeBotlul/Local-Studio` folgt mit Installer, portablem Archiv, Prüfsummen, `update.json` und `update.sig`.
+
+Automatisierte Abnahme: 54/54 Frontendtests sowie 178 Rusttests bestanden, 0 fehlgeschlagen; ein Windows-Symlinktest blieb wegen fehlender Developer-Mode-Berechtigung planmäßig ignoriert. Der native Test verwendete ein isoliertes portables Profil und keine persönlichen Daten. Echte ComfyUI-Inferenz mit beliebigen Nutzergewichten sowie Live-Civitai-/Danbooru-Netzantworten bleiben wie in den Release-Hinweisen offengelegt.
+
+# TODO-Arbeitspaket nach 0.28.0 (2026-09-26)
+
+Der Arbeitsstand aus `TODO` ist als zusammenhängender Quellstand umgesetzt und in Version 0.29.0 paketiert.
+
+- Modelle lassen sich nach einer zweiten Warnung dauerhaft vom Datenträger löschen. Pfad, Dateiidentität und unveränderte Metadaten werden unmittelbar vor dem Löschen erneut geprüft; Verknüpfungen und geänderte oder laufend verwendete Dateien werden abgelehnt.
+- Die Navigation kann dauerhaft auf Symbole reduziert werden. Das Bildstudio enthält rechts eine echte Galerie; ihr aktueller Ordner ist zugleich das Speicherziel. Modellnamen im Auswahlfeld werden ohne `.safetensors` gezeigt.
+- Neue Bildaufträge verwenden standardmäßig einen kryptografisch zufällig gewählten Seed. Ein absichtlich fester Seed bleibt möglich. Bereits vollständig geschriebene, gültige PNGs werden nach einem späten Worker-/Speicherfehler als Ergebnis erhalten.
+- Portable ComfyUI-Installationen werden erkannt und können in den Einstellungen ausgewählt, lokal gestartet und beendet werden. Beim ersten Start ohne Installation erscheint ein Einrichtungsdialog mit dem offiziellen Download. Der enthaltene Updateordner kann geöffnet werden; Local Studio führt weder Updater noch Modellcode oder Custom-Node-Installer automatisch aus. Der reale ComfyUI-Pfad unterstützt SDXL-Checkpoint, Prompt, Negativ-Prompt und bis zu acht LoRAs. Die API wird ausschließlich über `127.0.0.1:8188` angesprochen und anhand von `/system_stats` geprüft.
+- LoRAs werden im Studio aus der lokalen Bibliothek oder per Dateiauswahl ergänzt, gewichtet, vor Queue/Resume erneut gebunden und gehasht. ComfyUI akzeptiert nur LoRAs unter dessen eigenem `models/loras`-Ordner. Lose UNet-/CLIP-/VAE-Komponenten bleiben sichtbar, werden aber noch nicht zu einer vermeintlich universellen Pipeline verbunden; dafür braucht jede Modellfamilie einen expliziten Workflow.
+- Die Modellansicht zeigt laufend im RAM/VRAM verwendete Bild-, Sprach- und Chatmodelle. Der Assistent hat einen lokalen Programmiermodus ohne Studio-Werkzeuge und ohne automatische Codeausführung.
+- Das GIF-Studio erzeugt echte lokale GIF-Dateien aus 1–200 Bildern und speichert sie im aktuellen Galerieordner. Unterschiedliche Framegrößen werden an den ersten Frame angepasst. Dafür ist kein KI-Modell nötig.
+- Prompt und Negativ-Prompt haben eine gemeinsame Strg+F-Suche mit Trefferwahl und Markierung im jeweiligen Textfeld.
+- Civitai ist als eingeschränkter interner Kind-WebView eingebunden. Auf einer Bildseite können Prompt, Negativ-Prompt, Referenzbild sowie gemeldete Modelle/LoRAs übernommen beziehungsweise über die offizielle Downloadadresse geöffnet werden. Eine zusätzliche jugendfreie LoRA-Suche unterstützt Suchtext und optionale Basisfamilie, etwa Wai-Anima plus SDXL. Downloads werden nicht ungefragt installiert oder als kompatibel behauptet.
+- Der Tag-Importer besitzt einen internen Danbooru-Browser. Nur exakte Postseiten aktivieren die Übernahme; Kategorien, Fragezeichen, Mengenangaben und Unterstriche werden entfernt und die Tags in Character, Body, Position, Camera und Miscellaneous gruppiert. Für Rule34 und andere Seiten steht der lokale Einfügeweg bereit. Die neue Einstellung entfernt bekannte Zensur-Tags.
+
+Grenzen: Ein echter ComfyUI-Lauf mit Nutzercheckpoint/LoRAs, öffentliche Civitai-/Danbooru-Netzantworten und die native Positionierung der neuen Kind-WebViews sind noch nicht Ende-zu-Ende geprüft. Civitai-Modelldownloads öffnen die geprüfte offizielle Adresse und werden anschließend über die bestehende lokale Modellsuche aufgenommen; ein direkter Download mit fremden Cookies/Token wurde bewusst nicht behauptet. Separate FLUX/Wan/SDXL-Komponenten brauchen weiterhin familienbezogene Workflowprofile. Die allgemeinen Civitai- und Danbooru-Ansichten teilen sich einen gehärteten Kind-WebView und sollten nicht gleichzeitig geöffnet werden.
+
 # Version 0.28.0 veröffentlicht (2026-09-19)
 
 Nach ausdrücklicher Nutzerbestätigung Quellstand f1e850a66d1a5ba110f25e3329a0760167be6840 nach main gepusht und Release v0.28.0 öffentlich als Latest freigegeben. Der Tag verweist auf diesen Quellstand. Installer, Portable, Prüfsummen und signierte Update-Metadaten sind verfügbar: https://github.com/ScopeBotlul/Local-Studio/releases/tag/v0.28.0. Die App kann damit 0.28.0 über den bestehenden Updatekanal finden. Die frühere Freigabeblockade ist erledigt; Prüflücken bei großer Bildgenerierung bleiben wie in den Release-Hinweisen offengelegt.
@@ -618,3 +641,9 @@ Der IPC-Vertrag umfasst noch keine Modelladapter, Inferenz, Downloadjobs, Projek
 Die Recovery-Grundlage erkennt unterbrochene Jobs. Wiederherstellung von Ebenen, Medien, Prompts oder Timelinezuständen, periodische Recovery-Punkte und deren Schutzregeln sind noch nicht implementiert. Große Modelljobs, Offline-Inferenz, vollständige Ressourcenverwaltung, Accessibility-Abnahme und M12-Distribution sind nicht durch die Core-Tests abgedeckt.
 
 Als Nächstes stehen die noch offenen M0-Punkte und anschließend M1 gemäß `PLAN.md` an. Die Core-Pakete sind erstellt und das portable Archiv ist geprüft. Installer-Installation/-Deinstallation, signierte Updates und vollständige M12-Abnahme bleiben offen. Es liegt derzeit keine dokumentierte Nutzerentscheidung als Blockade vor.
+
+## 2026-09-19 – Downloadübersicht in der Menüleiste (Quellstand nach 0.28.0)
+- Download-Symbol neben den Menüs öffnet ein kompaktes, deckendes Fenster mit allen aktiven Modell-Downloads und einem laufenden App-Update; abgeschlossene/pausierte Vorgänge und reine lokale Prüfaufträge werden nicht als laufende Downloads gezeigt.
+- Fortschritt, Datenmenge, Geschwindigkeit und ungefähre Restzeit; Warteschlange, Prüfung und Übernahme haben eigene Statusangaben ohne erfundene Restzeiten. Updategeschwindigkeit wird aus tatsächlichen Byte-Differenzen zwischen Statusabfragen berechnet.
+- Abfragen laufen nur bei geöffneter Übersicht, ohne Überlappung; verspätete Antworten nach Schließen/Privacy-Neumount werden verworfen. Fehler werden angezeigt und automatisch erneut abgefragt.
+- Escape, Schließen, erneuter Symbolklick und Außenklick schließen die Übersicht; „Alle Downloads“ öffnet die bestehende Verwaltung. Bestehende modale Dialoge werden nicht überlagert. Kein neuer Installer/Release erstellt.

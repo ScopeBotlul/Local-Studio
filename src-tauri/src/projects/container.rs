@@ -36,7 +36,7 @@ fn commit(s: &mut State, p: Project) -> Result<()> {
         history::checkpoint(&tx, old, history::now())?;
     }
     history::register(&tx, &p, history::now())?;
-    recent::remember(&tx,&p)?;
+    recent::remember(&tx, &p)?;
     tx.execute(
         "INSERT OR REPLACE INTO project_session VALUES(1,?1)",
         [serde_json::to_string(&Some(&p)).map_err(err)?],
@@ -223,22 +223,69 @@ impl Projects {
                 });
             }
             r.model_path.clear();
-            if let Some(reference)=r.reference.as_mut(){
-                let asset=p.assets.iter().find(|a|a.sha256==reference.sha256&&a.kind=="image").ok_or("project_manifest")?;
-                reference.path=asset.archive_name.clone();
-                if let Some(mask)=reference.mask.as_mut(){mask.path=p.assets.iter().find(|a|a.sha256==mask.sha256&&a.kind=="image").ok_or("project_manifest")?.archive_name.clone();}
+            if let Some(reference) = r.reference.as_mut() {
+                let asset = p
+                    .assets
+                    .iter()
+                    .find(|a| a.sha256 == reference.sha256 && a.kind == "image")
+                    .ok_or("project_manifest")?;
+                reference.path = asset.archive_name.clone();
+                if let Some(mask) = reference.mask.as_mut() {
+                    mask.path = p
+                        .assets
+                        .iter()
+                        .find(|a| a.sha256 == mask.sha256 && a.kind == "image")
+                        .ok_or("project_manifest")?
+                        .archive_name
+                        .clone();
+                }
             }
         }
-        if let Some(reference)=request.as_ref().and_then(|r|r.reference.as_ref()) {
-            let asset=p.assets.iter().find(|a|a.archive_name==reference.path).ok_or("project_manifest")?;
-            let stored=owned(&p,asset)?.to_string_lossy().into_owned();
-            p.request.as_mut().unwrap().reference.as_mut().unwrap().path=stored;
-            if let Some(mask)=reference.mask.as_ref(){let asset=p.assets.iter().find(|a|a.archive_name==mask.path).ok_or("project_manifest")?;let stored=owned(&p,asset)?.to_string_lossy().into_owned();p.request.as_mut().unwrap().reference.as_mut().unwrap().mask.as_mut().unwrap().path=stored;}
+        if let Some(reference) = request.as_ref().and_then(|r| r.reference.as_ref()) {
+            let asset = p
+                .assets
+                .iter()
+                .find(|a| a.archive_name == reference.path)
+                .ok_or("project_manifest")?;
+            let stored = owned(&p, asset)?.to_string_lossy().into_owned();
+            p.request.as_mut().unwrap().reference.as_mut().unwrap().path = stored;
+            if let Some(mask) = reference.mask.as_ref() {
+                let asset = p
+                    .assets
+                    .iter()
+                    .find(|a| a.archive_name == mask.path)
+                    .ok_or("project_manifest")?;
+                let stored = owned(&p, asset)?.to_string_lossy().into_owned();
+                p.request
+                    .as_mut()
+                    .unwrap()
+                    .reference
+                    .as_mut()
+                    .unwrap()
+                    .mask
+                    .as_mut()
+                    .unwrap()
+                    .path = stored;
+            }
         }
-        let m = Manifest { restricted:project_restricted(&p),
-            creative:p.creative.clone(),
+        let m = Manifest {
+            restricted: project_restricted(&p),
+            creative: p.creative.clone(),
             format: "local-studio".into(),
-            version: if project_restricted(&p){5}else if request.as_ref().is_some_and(|r|r.reference.is_some()||r.vae_on_cpu){4}else if p.creative.is_some(){3}else if p.assets.iter().any(|a| !a.edit.is_empty()) {2} else {1},
+            version: if project_restricted(&p) {
+                5
+            } else if request
+                .as_ref()
+                .is_some_and(|r| r.reference.is_some() || r.vae_on_cpu)
+            {
+                4
+            } else if p.creative.is_some() {
+                3
+            } else if p.assets.iter().any(|a| !a.edit.is_empty()) {
+                2
+            } else {
+                1
+            },
             name: p.name.clone(),
             request,
             model: p.model.clone(),
@@ -316,7 +363,10 @@ impl Projects {
             if let Some(file) = &existing {
                 gallery::rename_handle(file, &backup)?;
             }
-            gallery::rename_handle(&output, path)?;if project_restricted(&p){crate::privacy::mark(path)?;}
+            gallery::rename_handle(&output, path)?;
+            if project_restricted(&p) {
+                crate::privacy::mark(path)?;
+            }
             commit(&mut s, p.clone()).map_err(|_| "project_save_recovery")?;
             if let Some(file) = &existing {
                 let _ = gallery::delete_handle(file);

@@ -87,7 +87,8 @@ pub struct SearchQuery {
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ModelSummary {
-    #[serde(default)] pub restricted:bool,
+    #[serde(default)]
+    pub restricted: bool,
     pub id: String,
     pub task: Option<String>,
     pub library: Option<String>,
@@ -110,7 +111,14 @@ fn summary(v: &Value) -> HubResult<ModelSummary> {
     let id = v["id"].as_str().ok_or("invalid_response")?;
     validate_repo(id)?;
     Ok(ModelSummary {
-        restricted:v["tags"].as_array().is_some_and(|tags|tags.iter().filter_map(Value::as_str).any(|tag|matches!(tag.to_ascii_lowercase().as_str(),"nsfw"|"18+"|"adult"|"not-for-all-audiences"))),
+        restricted: v["tags"].as_array().is_some_and(|tags| {
+            tags.iter().filter_map(Value::as_str).any(|tag| {
+                matches!(
+                    tag.to_ascii_lowercase().as_str(),
+                    "nsfw" | "18+" | "adult" | "not-for-all-audiences"
+                )
+            })
+        }),
         id: id.into(),
         revision: v["sha"].as_str().map(str::to_owned),
         task: v["pipeline_tag"].as_str().map(str::to_owned),
@@ -257,7 +265,12 @@ pub fn detail(repo: &str, revision: &str, token: Option<&str>) -> HubResult<Mode
     detail_metadata(repo, revision, token, true)
 }
 
-pub(crate) fn detail_metadata(repo: &str, revision: &str, token: Option<&str>, include_card: bool) -> HubResult<ModelDetail> {
+pub(crate) fn detail_metadata(
+    repo: &str,
+    revision: &str,
+    token: Option<&str>,
+    include_card: bool,
+) -> HubResult<ModelDetail> {
     validate_repo(repo)?;
     if revision.is_empty()
         || [".", ".."].contains(&revision)
@@ -306,9 +319,15 @@ pub(crate) fn detail_metadata(repo: &str, revision: &str, token: Option<&str>, i
         })
         .collect();
     let card_url = Url::parse(&format!("{ORIGIN}/{repo}/raw/{sha}/README.md")).unwrap();
-    let card = if include_card { send(authorized(card_url))
-        .and_then(|response| bounded_bytes(response, 512 * 1024))
-        .and_then(|bytes| String::from_utf8(bytes.to_vec()).map_err(|_| "invalid_response".into())) } else { Ok(String::new()) };
+    let card = if include_card {
+        send(authorized(card_url))
+            .and_then(|response| bounded_bytes(response, 512 * 1024))
+            .and_then(|bytes| {
+                String::from_utf8(bytes.to_vec()).map_err(|_| "invalid_response".into())
+            })
+    } else {
+        Ok(String::new())
+    };
     let (card, card_error) = match card {
         Ok(card) => (Some(card), None),
         Err(error) => (None, Some(error)),
@@ -323,8 +342,12 @@ pub(crate) fn detail_metadata(repo: &str, revision: &str, token: Option<&str>, i
 }
 
 fn total_file_bytes(files: &[ModelFile]) -> Option<u64> {
-    if files.is_empty() { return None; }
-    files.iter().try_fold(0u64, |sum, file| sum.checked_add(file.size?))
+    if files.is_empty() {
+        return None;
+    }
+    files
+        .iter()
+        .try_fold(0u64, |sum, file| sum.checked_add(file.size?))
 }
 
 pub fn model_size(repo: &str, revision: &str, token: Option<&str>) -> HubResult<Option<u64>> {
@@ -350,8 +373,13 @@ pub fn open_browser(target: &str) -> HubResult<()> {
 // Native browser controller only; no IPC accepts arbitrary URLs for this helper.
 pub fn open_external_https(target: &str) -> HubResult<()> {
     let url = Url::parse(target).map_err(|_| "invalid_link")?;
-    if url.scheme() != "https" || url.host_str().is_none() || !url.username().is_empty()
-        || url.password().is_some() || target.len() > 8192 || target.chars().any(char::is_control) {
+    if url.scheme() != "https"
+        || url.host_str().is_none()
+        || !url.username().is_empty()
+        || url.password().is_some()
+        || target.len() > 8192
+        || target.chars().any(char::is_control)
+    {
         return Err("invalid_link".into());
     }
     let verb: Vec<u16> = "open\0".encode_utf16().collect();
@@ -406,18 +434,65 @@ mod tests {
     use super::*;
     #[test]
     fn search_task_filters_are_sent_to_hugging_face_with_pagination() {
-        for task in ["text-to-image", "image-to-image", "image-text-to-image", "mask-generation", "text-to-video", "image-to-video", "image-text-to-video", "video-to-video", "text-to-audio", "audio-to-audio", "automatic-speech-recognition", "text-to-speech", "text-generation", "image-text-to-text", "image-to-text", "video-text-to-text", "image-segmentation", "depth-estimation", "object-detection", "audio-classification"] {
-            let url=search_url(&SearchQuery{search:"model & test".into(),task:task.into(),sort:"downloads".into(),cursor:Some("next+page".into())}).unwrap();
-            assert_eq!(url.host_str(),Some("huggingface.co"));
-            assert!(url.query_pairs().any(|(key,value)|key=="pipeline_tag"&&value==task));
-            assert!(url.query_pairs().any(|(key,value)|key=="cursor"&&value=="next+page"));
-            assert!(url.query_pairs().any(|(key,value)|key=="search"&&value=="model & test"));
+        for task in [
+            "text-to-image",
+            "image-to-image",
+            "image-text-to-image",
+            "mask-generation",
+            "text-to-video",
+            "image-to-video",
+            "image-text-to-video",
+            "video-to-video",
+            "text-to-audio",
+            "audio-to-audio",
+            "automatic-speech-recognition",
+            "text-to-speech",
+            "text-generation",
+            "image-text-to-text",
+            "image-to-text",
+            "video-text-to-text",
+            "image-segmentation",
+            "depth-estimation",
+            "object-detection",
+            "audio-classification",
+        ] {
+            let url = search_url(&SearchQuery {
+                search: "model & test".into(),
+                task: task.into(),
+                sort: "downloads".into(),
+                cursor: Some("next+page".into()),
+            })
+            .unwrap();
+            assert_eq!(url.host_str(), Some("huggingface.co"));
+            assert!(url
+                .query_pairs()
+                .any(|(key, value)| key == "pipeline_tag" && value == task));
+            assert!(url
+                .query_pairs()
+                .any(|(key, value)| key == "cursor" && value == "next+page"));
+            assert!(url
+                .query_pairs()
+                .any(|(key, value)| key == "search" && value == "model & test"));
         }
     }
     #[test]
     fn search_task_filters_reject_unknown_or_injected_tags() {
-        for task in ["video", "arbitrary-code", "text-to-image&token=secret", "https://example.com"] {
-            assert_eq!(search_url(&SearchQuery{search:String::new(),task:task.into(),sort:"downloads".into(),cursor:None}).unwrap_err(),"invalid_query");
+        for task in [
+            "video",
+            "arbitrary-code",
+            "text-to-image&token=secret",
+            "https://example.com",
+        ] {
+            assert_eq!(
+                search_url(&SearchQuery {
+                    search: String::new(),
+                    task: task.into(),
+                    sort: "downloads".into(),
+                    cursor: None
+                })
+                .unwrap_err(),
+                "invalid_query"
+            );
         }
     }
     fn response_server(
@@ -514,12 +589,23 @@ mod tests {
     }
     #[test]
     fn model_size_requires_complete_metadata_and_checked_sum() {
-        let file = |size| ModelFile { path: "file".into(), size, sha256: None, git_sha1: None };
+        let file = |size| ModelFile {
+            path: "file".into(),
+            size,
+            sha256: None,
+            git_sha1: None,
+        };
         assert_eq!(total_file_bytes(&[]), None);
         assert_eq!(total_file_bytes(&[file(Some(0))]), Some(0));
-        assert_eq!(total_file_bytes(&[file(Some(453864)), file(Some(807))]), Some(454671));
+        assert_eq!(
+            total_file_bytes(&[file(Some(453864)), file(Some(807))]),
+            Some(454671)
+        );
         assert_eq!(total_file_bytes(&[file(Some(10)), file(None)]), None);
-        assert_eq!(total_file_bytes(&[file(Some(u64::MAX)), file(Some(1))]), None);
+        assert_eq!(
+            total_file_bytes(&[file(Some(u64::MAX)), file(Some(1))]),
+            None
+        );
     }
 
     #[test]

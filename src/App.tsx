@@ -6,6 +6,7 @@ import AssistantPage from './AssistantPage';
 import {ai} from './ai-api';
 import CanvasStudio from './CanvasStudio';
 import TimelineStudio from './TimelineStudio';
+import GifStudio from './GifStudio';
 import VideoJobs from './VideoJobs';
 import {mediaApi} from './media-tools';
 import {useCreative} from './useCreative';
@@ -13,6 +14,8 @@ import {creativeApi} from './creative-state';
 import {setMenuContext} from './menu-context';
 import './creative.css';
 import AppMenu from './AppMenu';
+import DownloadOverview from './DownloadOverview';
+import ComfySettings from './ComfySettings';
 import HelpDialog from './HelpDialog';
 import UpdateDialog from './UpdateDialog';
 import {scheduleStartupUpdate} from './startup-update';
@@ -40,7 +43,7 @@ import './hub.css';
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { open } from '@tauri-apps/plugin-dialog';
-import { ArrowLeft, ArrowRight, Box, Check, CheckCircle2, ChevronDown, Circle, CircleHelp, Cpu, Download, FileCheck2, Film, Folder, HardDrive, House, Images, LoaderCircle, Monitor, Palette, RefreshCw, Settings2, ShieldCheck, Sparkles, Square, Terminal, TriangleAlert, Workflow, X, type LucideIcon } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Box, Check, CheckCircle2, ChevronDown, Circle, CircleHelp, Cpu, Download, FileCheck2, Film, Folder, HardDrive, House, Images, LoaderCircle, Monitor, Palette, PanelLeftClose, PanelLeftOpen, RefreshCw, Settings2, ShieldCheck, Sparkles, Square, Terminal, TriangleAlert, Workflow, X, type LucideIcon } from 'lucide-react';
 import { api, inDesktop } from './api';
 import { clampScale, errorMessage, fileName, formatBytes, formatDate, initialLanguage, isActiveJob, ZOOM_STEP } from './helpers';
 import { translations, type Translations } from './i18n';
@@ -129,6 +132,7 @@ function Setup({ snapshot, onSave, busy, t, language, onLanguage, canEdit, choos
 }
 
 export default function App() {
+  const [compactNavigation,setCompactNavigation]=useState(()=>{try{return localStorage.getItem('compact-navigation')==='true';}catch{return false;}});
   const [helpDialog,setHelpDialog]=useState<'help'|'about'|null>(null);
   const [updatesOpen,setUpdatesOpen]=useState(false);
   const [projectDetailsOpen,setProjectDetailsOpen]=useState(false);
@@ -152,7 +156,7 @@ export default function App() {
   const [language, setLanguage] = useState<Language>(initialLanguage);
   const projects = useProject(!!snapshot, studio, language === 'de', snapshot?.paths.projects ?? '');
   const creative=useCreative(projects,language==='de',snapshot?.settings.maxUndo??100);
-  const [studioTab,setStudioTab]=useState<'generate'|'canvas'|'timeline'>(()=>{const s=sessionStorage.getItem('privacy-studio');return s==='canvas'||s==='timeline'?s:'generate';});
+  const [studioTab,setStudioTab]=useState<'generate'|'canvas'|'timeline'|'gif'>(()=>{const s=sessionStorage.getItem('privacy-studio');return s==='canvas'||s==='timeline'||s==='gif'?s:'generate';});
   useEffect(()=>{sessionStorage.setItem('privacy-studio',studioTab);},[studioTab]);
   useEffect(()=>{privacy.beforeLock.current=async()=>{if(studio.ready&&!studio.recovery){await studio.flush();if(projects.ready&&!projects.project?.recovery&&!projects.project?.locked)await projects.flush();}};return()=>{privacy.beforeLock.current=null;};},[studio,projects,privacy.beforeLock]);
   useEffect(()=>{if(projectDetailsOpen||page!=='studio'||studioTab==='generate')return;return setMenuContext('creative',{priority:1,actions:{...(creative.canUndo?{undo:creative.undo}:{}),...(creative.canRedo?{redo:creative.redo}:{})}});},[projectDetailsOpen,page,studioTab,creative.canUndo,creative.canRedo,creative.data]);
@@ -419,9 +423,25 @@ export default function App() {
 
   return <div className="app-shell">
     <AppMenu onProjectDetails={()=>setProjectDetailsOpen(v=>!v)} projectChanged={!!projects.project&&!projects.project.locked&&JSON.stringify(projects.project.request)!==JSON.stringify(studio.request)} workspaceRecovery={studio.recovery} projects={projects} settings={snapshot.settings} locked={exitBusy||saving||!studio.ready||!snapshot.settings.setupComplete} onSettings={()=>{setProjectDetailsOpen(false);setPage('settings');}} onHelp={()=>setHelpDialog('help')} onAbout={()=>setHelpDialog('about')} onUpdates={()=>{stopStartupUpdate.current();autoChecked.current=true;setUpdatesOpen(true);void updateApi.status().then(s=>{if(!['ready','downloading','checking','installing'].includes(s.phase))return updateApi.check();}).catch(e=>reportError(updateError(e,language==='de')));}} onZoom={scale=>{const current=snapshotRef.current;if(current)void persist({...current.settings,uiScale:clampScale(scale)});}} onError={reportError}/>
+    <DownloadOverview language={language} disabled={exitBusy||!snapshot.settings.setupComplete} onOpenDownloads={()=>{setProjectDetailsOpen(false);setPage('downloads');}}/>
     {helpDialog&&<HelpDialog kind={helpDialog} de={language==='de'} version={snapshot.version} onClose={()=>setHelpDialog(null)}/>}
     {updatesOpen&&<UpdateDialog de={language==='de'} version={snapshot.version} automatic={snapshot.settings.autoUpdateCheck} onAutomatic={value=>{const current=snapshotRef.current;if(current)void persist({...current.settings,autoUpdateCheck:value});}} onClose={()=>setUpdatesOpen(false)} onInstall={()=>{installing.current=true;setUpdatesOpen(false);void getCurrentWindow().close();}}/>}
-    <aside className="sidebar" inert={exitBusy}><div className="brand"><Logo small /><div>Local Studio<span>{t.core}</span></div></div><nav aria-label={t.workspace}>{[0, 1].map(group => <div className="nav-group" key={group}><span className="nav-label">{group === 0 ? t.workspace : t.library}</span>{nav.filter(item => item.group === group).map(item => { const Icon = item.icon; return <button key={item.id} className={`nav-item ${page === item.id ? 'selected' : ''}`} aria-current={page === item.id ? 'page' : undefined} onClick={() => { setInitialModelRepo(null); setProjectDetailsOpen(false); setPage(item.id); }}><Icon size={19} strokeWidth={1.7} /><span>{t[item.id]}</span>{item.id === 'studio' && activeImages.length > 0 && <span className="nav-count">{activeImages.length}</span>}{item.id === 'jobs' && activeCount > 0 && <span className="nav-count">{activeCount}</span>}</button>; })}</div>)}</nav><div className="sidebar-bottom"><button className={`nav-item ${page === 'settings' ? 'selected' : ''}`} aria-current={page === 'settings' ? 'page' : undefined} onClick={() => {setProjectDetailsOpen(false);setPage('settings');}}><Settings2 size={19} strokeWidth={1.7} /><span>{t.settings}</span>{dirty && <span className="unsaved-dot" title={t.unsaved} />}</button><div className="local-note"><span className={`connection-dot ${pollError ? 'warning' : ''}`} /><span>{t.local}</span></div></div></aside>
+    <nav className={`topnav ${compactNavigation?'compact':''}`} aria-label={t.workspace}>
+      <div className="topnav-brand"><Logo small /><div>Local Studio<span>{t.core}</span></div></div>
+      <div className="topnav-groups">
+        {[0, 1].map(group => (
+          <div className="topnav-group" key={group}>
+            {group === 0 ? t.workspace : t.library}
+            {nav.filter(item => item.group === group).map(item => {
+              const Icon = item.icon;
+              return <button key={item.id} title={t[item.id]} className={`nav-item ${page === item.id ? 'selected' : ''}`} aria-current={page === item.id ? 'page' : undefined} onClick={() => { setInitialModelRepo(null); setProjectDetailsOpen(false); setPage(item.id); }}><Icon size={17} strokeWidth={1.7} /><span>{t[item.id]}</span>{item.id === 'studio' && activeImages.length > 0 && <span className="nav-count">{activeImages.length}</span>}{item.id === 'jobs' && activeCount > 0 && <span className="nav-count">{activeCount}</span>}</button>;
+            })}
+          </div>
+        ))}
+      </div>
+      <button type="button" className="sidebar-toggle" title={compactNavigation?(language==='de'?'Navigation vergrößern':'Expand navigation'):(language==='de'?'Nur Symbole anzeigen':'Show icons only')} aria-label={compactNavigation?(language==='de'?'Navigation vergrößern':'Expand navigation'):(language==='de'?'Navigation verkleinern':'Collapse navigation')} onClick={()=>setCompactNavigation(value=>{const next=!value;try{localStorage.setItem('compact-navigation',String(next));}catch{/* optional preference */}return next;})}>{compactNavigation?<PanelLeftOpen size={17}/>:<PanelLeftClose size={17}/>}</button>
+      <button type="button" className="sidebar-toggle" title={t.settings} aria-label={t.settings} onClick={() => { setProjectDetailsOpen(false); setPage('settings'); }}><Settings2 size={17} strokeWidth={1.7} />{dirty && <span className="unsaved-dot" title={t.unsaved} />}</button>
+    </nav>
     <div className="main-shell" inert={exitBusy}><CoreFeatures settings={snapshot.settings} de={language==='de'} onJobs={()=>setPage('jobs')}/><header className="topbar"><div className="breadcrumb">Local Studio<span>/</span><strong>{projectDetailsOpen?(language==='de'?'Projektmedien und Details':'Project media and details'):pageTitle}</strong></div><button onClick={() => setPage('jobs')} className="topbar-status" title={pollError ? t.connectionLost : t.monitor}><span className={`connection-dot ${pollError ? 'warning' : ''}`} />{activeCount ? `${activeCount} ${t.active}${activeImages.length ? ' · Image' : ''}` : t.core}</button></header>
       <main id="main-content" className="main-content">
         <PrivacyButton de={language==='de'}/>{projectDetailsOpen&&<ProjectPanel onClose={()=>setProjectDetailsOpen(false)} shortcuts={snapshot.settings.shortcuts} maxUndo={snapshot.settings.maxUndo} controller={projects} language={language} disabled={!studio.ready || studio.recovery || saving} changed={!!projects.project && JSON.stringify(projects.project.request) !== JSON.stringify(studio.request)} />}
@@ -440,7 +460,7 @@ export default function App() {
         {(page === 'hub' || page === 'models') && <HubPage key={page} language={language} showImage={path => { studio.selectModel(path); setSelectedImageJob(null); setStudioTab('generate'); setPage('studio'); }} mode={page} showDownloads={() => setPage('downloads')} initialRepo={page === 'models' ? initialModelRepo : null} showModels={repo => { setInitialModelRepo(repo ?? null); setPage('models'); }} />}
         {page === 'assistant' && <AssistantPage de={language==='de'} onGallery={()=>setPage('gallery')} onApply={request=>{if(!studio.ready||studio.recovery){setError(language==='de'?'Zuerst den Bild-Arbeitsstand wiederherstellen oder verwerfen.':'First restore or discard the image workspace.');return;}studio.restore(request);setSelectedImageJob(null);setStudioTab('generate');setPage('studio');}}/>}
         {page === 'downloads' && <DownloadsPage language={language} />}
-        {page === 'studio' && <><div className="studio-tabs" role="tablist" aria-label={language==='de'?'Studio-Bereich':'Studio workspace'}>{(['generate','canvas','timeline'] as const).map(tab=><button key={tab} role="tab" tabIndex={studioTab===tab?0:-1} className="button secondary" aria-selected={studioTab===tab} onKeyDown={event=>{const tabs=['generate','canvas','timeline'] as const;const index=tabs.indexOf(tab);const next=event.key==='ArrowRight'?tabs[(index+1)%3]:event.key==='ArrowLeft'?tabs[(index+2)%3]:event.key==='Home'?tabs[0]:event.key==='End'?tabs[2]:null;if(next){event.preventDefault();setStudioTab(next);const buttons=event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>('[role="tab"]');buttons?.[tabs.indexOf(next)]?.focus();}}} onClick={()=>setStudioTab(tab)}>{tab==='generate'?<Sparkles size={16}/>:tab==='canvas'?<Palette size={16}/>:<Film size={16}/>}<span>{tab==='generate'?(language==='de'?'Bildgenerierung':'Image generation'):tab==='canvas'?(language==='de'?'Bildeditor':'Image editor'):(language==='de'?'Videoschnitt':'Video editor')}</span></button>)}</div>{studioTab === 'generate' && <ImageStudio workspaceLocked={studio.locked} projectDisabled={!projects.ready || projects.busy || !!projects.project?.recovery || studio.recovery} onAddToProject={projects.addImage} shortcuts={snapshot.settings.shortcuts} key={page} language={language} request={studio.request} setRequest={studio.setRequest} selectModel={studio.selectModel} onRestore={request => { studio.restore(request); setSelectedImageJob(null); setStudioTab('generate'); setPage('studio'); }} selectedJob={selectedImageJob} disabled={!studio.ready || studio.recovery}  />}{studioTab==='canvas'&&<PrivacyGate de={language==='de'} blocked={privacy.status.projectLocked}><CanvasStudio workspace={creative} projects={projects} de={language==='de'}/></PrivacyGate>} {studioTab==='timeline'&&<PrivacyGate de={language==='de'} blocked={privacy.status.projectLocked}><TimelineStudio workspace={creative} projects={projects} de={language==='de'}/></PrivacyGate>}</>}
+        {page === 'studio' && <><div className="studio-tabs" role="tablist" aria-label={language==='de'?'Studio-Bereich':'Studio workspace'}>{(['generate','canvas','timeline','gif'] as const).map(tab=><button key={tab} role="tab" tabIndex={studioTab===tab?0:-1} className="button secondary" aria-selected={studioTab===tab} onKeyDown={event=>{const tabs=['generate','canvas','timeline','gif'] as const;const index=tabs.indexOf(tab);const next=event.key==='ArrowRight'?tabs[(index+1)%4]:event.key==='ArrowLeft'?tabs[(index+3)%4]:event.key==='Home'?tabs[0]:event.key==='End'?tabs[3]:null;if(next){event.preventDefault();setStudioTab(next);const buttons=event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>('[role="tab"]');buttons?.[tabs.indexOf(next)]?.focus();}}} onClick={()=>setStudioTab(tab)}>{tab==='generate'?<Sparkles size={16}/>:tab==='canvas'?<Palette size={16}/>:tab==='timeline'?<Film size={16}/>:<Images size={16}/>}<span>{tab==='generate'?(language==='de'?'Bildgenerierung':'Image generation'):tab==='canvas'?(language==='de'?'Bildeditor':'Image editor'):tab==='timeline'?(language==='de'?'Videoschnitt':'Video editor'):'GIF'}</span></button>)}</div>{studioTab === 'generate' && <ImageStudio workspaceLocked={studio.locked} projectDisabled={!projects.ready || projects.busy || !!projects.project?.recovery || studio.recovery} onAddToProject={projects.addImage} shortcuts={snapshot.settings.shortcuts} removeCensorTags={snapshot.settings.removeCensorTags} key={page} language={language} request={studio.request} setRequest={studio.setRequest} selectModel={studio.selectModel} onRestore={request => { studio.restore(request); setSelectedImageJob(null); setStudioTab('generate'); setPage('studio'); }} selectedJob={selectedImageJob} disabled={!studio.ready || studio.recovery}  />}{studioTab==='canvas'&&<PrivacyGate de={language==='de'} blocked={privacy.status.projectLocked}><CanvasStudio workspace={creative} projects={projects} de={language==='de'}/></PrivacyGate>} {studioTab==='timeline'&&<PrivacyGate de={language==='de'} blocked={privacy.status.projectLocked}><TimelineStudio workspace={creative} projects={projects} de={language==='de'}/></PrivacyGate>}{studioTab==='gif'&&<GifStudio de={language==='de'}/>}</>}
         {page === 'gallery' && <Gallery onReference={reference=>{if(!studio.ready||studio.recovery)return;studio.setRequest(r=>({...r,reference,width:reference.width,height:reference.height}));setSelectedImageJob(null);setStudioTab('generate');setPage('studio');}} onAddEdit={async(selection,ops)=>{if(!await projects.addEdit(selection,ops))return null;const p=projects.get()!;const a=p.assets.at(-1)!;return {id:p.id,assetId:a.id,sha256:a.sha256};}} onSaveEdit={projects.saveEdit} maxUndo={snapshot.settings.maxUndo} projectDisabled={!projects.ready || projects.busy || !!projects.project?.recovery || studio.recovery} onAddToProject={projects.addGallery} shortcuts={snapshot.settings.shortcuts} language={language} restoreDisabled={!studio.ready || studio.recovery} onRestore={request => { studio.restore(request); setSelectedImageJob(null); setStudioTab('generate'); setPage('studio'); }} />}
         {!['home', 'jobs', 'settings', 'hub', 'models', 'downloads', 'studio', 'gallery', 'assistant'].includes(page) && <PlannedPage page={page as Exclude<Page, 'home' | 'jobs' | 'settings'>} t={t} goHome={() => setPage('home')} />}
         </div>
@@ -451,6 +471,7 @@ export default function App() {
     {exitBusy && <div className="modal-backdrop" role="status"><div className="setup-dialog">{language === 'de' ? 'Bilder sichern und Anwendung beenden …' : 'Finishing images and closing …'}</div></div>}
     {error && <div className="error-toast" role="alert"><TriangleAlert size={19} /><div><strong>{t.operationError}</strong><p>{error}</p></div><IconButton title={t.dismiss} onClick={() => setError('')}><X size={16} /></IconButton></div>}
     {toast && <div className="toast" role="status"><CheckCircle2 size={17} />{toast}</div>}
+    {snapshot.settings.setupComplete&&<><ComfySettings de={language==='de'} promptOnly/>{page==='settings'&&<ComfySettings de={language==='de'}/>}</>}
     {!snapshot.settings.setupComplete && <Setup snapshot={snapshot} t={t} language={language} onLanguage={setLanguage} onSave={persist} busy={saving} canEdit={canEditSettings} chooseFolder={chooseFolder} />}
   </div>;
 }

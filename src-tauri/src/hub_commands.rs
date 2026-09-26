@@ -11,7 +11,10 @@ pub fn hf_status(state: State<'_, Arc<HfAuth>>) -> Result<AuthStatus, String> {
 }
 
 #[tauri::command]
-pub async fn hf_start_login(app: tauri::AppHandle, state: State<'_, Arc<HfAuth>>) -> Result<AuthStatus, String> {
+pub async fn hf_start_login(
+    app: tauri::AppHandle,
+    state: State<'_, Arc<HfAuth>>,
+) -> Result<AuthStatus, String> {
     let auth = state.inner().clone();
     tauri::async_runtime::spawn_blocking(move || auth.start_login(app))
         .await
@@ -19,7 +22,10 @@ pub async fn hf_start_login(app: tauri::AppHandle, state: State<'_, Arc<HfAuth>>
 }
 
 #[tauri::command]
-pub async fn hf_cancel_login(app: tauri::AppHandle, state: State<'_, Arc<HfAuth>>) -> Result<AuthStatus, String> {
+pub async fn hf_cancel_login(
+    app: tauri::AppHandle,
+    state: State<'_, Arc<HfAuth>>,
+) -> Result<AuthStatus, String> {
     crate::hf_browser::cancel_login(&app, state.inner())
 }
 
@@ -80,12 +86,18 @@ pub async fn hf_model_detail(
 }
 
 #[tauri::command]
-pub async fn hf_model_size(repo: String, revision: String, state: State<'_, Arc<HfAuth>>) -> Result<Option<u64>, String> {
+pub async fn hf_model_size(
+    repo: String,
+    revision: String,
+    state: State<'_, Arc<HfAuth>>,
+) -> Result<Option<u64>, String> {
     let auth = state.inner().clone();
     tauri::async_runtime::spawn_blocking(move || {
         let token = auth.token()?;
         hub::model_size(&repo, &revision, token.as_ref().map(|token| token.as_str()))
-    }).await.map_err(|_| "internal")?
+    })
+    .await
+    .map_err(|_| "internal")?
 }
 
 #[tauri::command]

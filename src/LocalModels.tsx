@@ -1,8 +1,8 @@
 import {ModelPrivacy} from "./Privacy";
 import { useEffect, useRef, useState } from 'react';
-import { open } from '@tauri-apps/plugin-dialog';
+import { confirm, open } from '@tauri-apps/plugin-dialog';
 import { invoke } from '@tauri-apps/api/core';
-import { FolderOpen, HardDrive, RefreshCw, Search, X } from 'lucide-react';
+import { FolderOpen, HardDrive, RefreshCw, Search, Trash2, X } from 'lucide-react';
 import DownloadsPage from './DownloadsPage';
 import ModelTransfer from './ModelTransfer';
 import ModelUpdates from './ModelUpdates';
@@ -11,6 +11,7 @@ import { displayPath, formatBytes, formatDate, formatGigabytes } from './helpers
 import type { Language } from './types';
 import './local-models.css';
 import {ModelClassification,modelCategories,categoryLabel,inModelCategory,type ModelCategory,type ModelProfile} from './ModelClassification';
+import LoadedModels from './LoadedModels';
 
 interface LocalFile { path: string; size: number | null; modified: number | null; }
 export interface LocalModel {
@@ -38,6 +39,10 @@ const labels: Record<string, [string, string]> = {
   local_quick_empty: ['Keine typischen Modellordner gefunden. Bitte einen Ordner wählen.', 'No typical model folders found. Please choose a folder.'],
   local_drives: ['Keine lokalen Laufwerke für die Suche verfügbar.', 'No local drives available for scanning.'],
   local_folder: ['Bitte einen Ordner auswählen.', 'Select a folder.'], local_busy: ['Bitte den laufenden Suchlauf abwarten oder abbrechen.', 'Wait for the scan or cancel it first.'],
+  local_delete_confirmation: ['Das Löschen muss ausdrücklich bestätigt werden.', 'Deletion must be explicitly confirmed.'],
+  local_delete_changed: ['Mindestens eine Modelldatei wurde seit der letzten Prüfung verändert. Erneut prüfen und danach löschen.', 'At least one model file changed since the last check. Recheck it before deleting.'],
+  local_delete_locked: ['Das Modell wird gerade verwendet oder eine Datei ist gesperrt. Modell entladen und erneut versuchen.', 'The model is in use or a file is locked. Unload it and try again.'],
+  local_delete_unsafe: ['Die Dateien liegen an einem nicht sicher löschbaren oder umgeleiteten Pfad.', 'The files are at an unsafe or redirected path and cannot be deleted.'],
   local_unavailable: ['Speicherort nicht lesbar oder nicht verfügbar.', 'Storage is unreadable or unavailable.'], local_link: ['Verknüpfung oder umgeleiteter Pfad übersprungen.', 'Link or redirected path skipped.'],
   local_limit: ['Such- oder Dateigrenze erreicht.', 'Scan or file limit reached.'], local_missing: ['Eintrag nicht mehr vorhanden.', 'Entry no longer exists.'], local_storage: ['Lokale Modellliste konnte nicht gelesen oder gespeichert werden.', 'Unable to read or save the local model list.'],
 };
@@ -77,7 +82,16 @@ export default function LocalModels({ language, showImage }: { language: Languag
     const selected = await open({ directory: true, multiple: false, title: de ? 'Modellordner auswählen' : 'Choose model folder' });
     if (typeof selected === 'string' && alive.current) setPath(selected);
   }
+  async function deleteModel(entry:LocalModel) {
+    const count=entry.files.length;
+    const approved=await confirm(de
+      ? `„${entry.name}“ dauerhaft vom Datenträger löschen?\n\n${count} Datei${count===1?'':'en'} · ${formatGigabytes(entry.totalBytes,language)}\nDieser Vorgang kann nicht rückgängig gemacht werden.`
+      : `Permanently delete “${entry.name}” from disk?\n\n${count} file${count===1?'':'s'} · ${formatGigabytes(entry.totalBytes,language)}\nThis cannot be undone.`,
+      {title:de?'Modell dauerhaft löschen':'Permanently delete model',kind:'warning'});
+    if(approved)await act(()=>invoke('model_library_forget',{id:entry.id,delete:true}));
+  }
   return <div className="local-model-library">
+    <LoadedModels language={language}/>
     <details className="model-maintenance"><summary>{de?'Wartung, Modellupdates und Benchmarks':'Maintenance, model updates and benchmarks'}</summary><Benchmarks language={language} /><ModelUpdates language={language} /></details>
     <ModelTransfer language={language} model={moveModel} dismiss={() => setMoveModel(null)} onBusy={setMoving} />
     <section className="panel local-import" aria-label={de ? 'Modelle vom PC einbinden' : 'Import models from PC'}>
@@ -122,7 +136,7 @@ export default function LocalModels({ language, showImage }: { language: Languag
       <p className="hub-hint">{text(entry.discoveryReason)}</p>
       <small>{de ? 'Zuletzt geprüft' : 'Last inspected'}: {formatDate(entry.checkedAt, language)}</small>
       </details>
-      <div className="hub-actions">{entry.format === 'safetensors' && entry.profile?.support === 'preflight' && entry.status === 'checked' && <button className="button primary" onClick={() => showImage(entry.path)}>{de ? 'Im Studio prüfen' : 'Check in Studio'}</button>}<button className="button secondary" disabled={busy || running} onClick={() => void act(() => invoke('model_library_recheck', { id: entry.id }))}><RefreshCw size={14} />{de ? 'Erneut prüfen' : 'Recheck'}</button><button className="text-button" disabled={busy || running} title={de ? 'Entfernt nur den Listeneintrag; die Dateien bleiben erhalten.' : 'Removes only the list entry; files are kept.'} onClick={() => void act(() => invoke('model_library_forget', { id: entry.id }))}>{de ? 'Aus Liste entfernen' : 'Remove from list'}</button></div>
+      <div className="hub-actions">{entry.format === 'safetensors' && entry.profile?.support === 'preflight' && entry.status === 'checked' && <button className="button primary" onClick={() => showImage(entry.path)}>{de ? 'Im Studio prüfen' : 'Check in Studio'}</button>}<button className="button secondary" disabled={busy || running} onClick={() => void act(() => invoke('model_library_recheck', { id: entry.id }))}><RefreshCw size={14} />{de ? 'Erneut prüfen' : 'Recheck'}</button><button className="text-button" disabled={busy || running} title={de ? 'Entfernt nur den Listeneintrag; die Dateien bleiben erhalten.' : 'Removes only the list entry; files are kept.'} onClick={() => void act(() => invoke('model_library_forget', { id: entry.id }))}>{de ? 'Aus Liste entfernen' : 'Remove from list'}</button><button className="text-button danger" disabled={busy||running||!entry.files.length||['missing','unavailable','changed'].includes(entry.status)} onClick={()=>void deleteModel(entry)}><Trash2 size={14}/>{de?'Dateien löschen':'Delete files'}</button></div>
       {entry.discovery === 'model' && <button className="button secondary" disabled={busy || running || !['checked', 'recognized'].includes(entry.status)} onClick={() => setMoveModel(entry)}>{de ? 'Dateien verschieben' : 'Move files'}</button>}
       {entry.discovery==='model'&&<ModelPrivacy path={entry.path} de={de}/>}<details><summary>{de ? 'Erfasste Dateien' : 'Recorded files'} ({entry.files.length})</summary><ul className="download-file-list">{entry.files.map(file => <li key={file.path}><span className="download-path">{displayPath(file.path)}</span><span>{formatGigabytes(file.size, language)}</span></li>)}</ul></details>
     </article>)}</div>

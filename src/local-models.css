@@ -1,4 +1,5 @@
 .local-import { padding: 24px; margin-bottom: 25px; }
+.loaded-models{padding:20px;margin-bottom:20px}.loaded-models .section-heading{padding:0}.loaded-models h2{display:flex;align-items:center;gap:8px}.loaded-model-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0;border-top:1px solid var(--border)}.loaded-model-row strong,.loaded-model-row small{display:block}.loaded-model-row small,.loaded-model-row>span{color:var(--muted);font-size:11px}
 .local-full-scan { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; padding-bottom: 20px; margin-bottom: 20px; border-bottom: 1px solid var(--border); }
 .local-full-scan > .hub-hint { flex: 1 1 300px; margin: 0; }
 .local-import-controls { display: flex; flex-wrap: wrap; gap: 10px; }

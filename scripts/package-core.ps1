@@ -36,6 +36,16 @@ Die Website-Anmeldung ist separat; ihre Cookies liegen im eigenen WebView-Profil
 App-Tokens werden nicht in Website-Cookies umgewandelt. Modellseiten lassen sich
 über In Local Studio öffnen an die Modellansicht übergeben.
 
+Neu in 0.29.0: portable ComfyUI-Erkennung, Einrichtung, lokaler Start und SDXL-
+Bildauftraege ueber 127.0.0.1. LoRAs im Studio auswaehlen und gewichten.
+Rechte Studiogalerie mit gemeinsamem Speicherordner, zufaellige Seeds und Strg+F
+in Prompt/Negativ-Prompt. Modelle nach erneuter Warnung vom Datentraeger loeschen.
+Civitai-Bildvorlagen und LoRA-Suche im eingeschraenkten internen Browser.
+Danbooru-Post-Tags uebernehmen, lokal formatieren und optionale Zensur-Tags filtern.
+GIF-Studio, lokaler Programmiermodus, kompakte Navigation und Downloaduebersicht.
+Keine automatische Installation von Custom Nodes, Modellcode oder Abhaengigkeiten.
+Lose Encoder/UNet/VAE-Dateien brauchen weiterhin familienbezogene Workflows.
+
 Neu in 0.28.0: Update-Popup beim Start, Projektuebersicht auf der Startseite,
 korrigierter Neues-Projekt-Dialog, Prompt-Feld und aufgeklappter Negativ-Prompt.
 Sichtbare Hugging-Face-Bereichsfilter mit 20 Aufgaben und Unterstuetzungshinweisen.

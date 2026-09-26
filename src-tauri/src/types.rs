@@ -3,11 +3,18 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Settings {
-    #[serde(default)] pub live_hardware: bool,
-    #[serde(default)] pub system_accent: bool,
-    #[serde(default)] pub minimize_to_tray: bool,
-    #[serde(default)] pub parallel_generation: bool,
-    #[serde(default = "crate::settings::auto_cleanup_default")] pub auto_model_updates: bool,
+    #[serde(default)]
+    pub live_hardware: bool,
+    #[serde(default)]
+    pub system_accent: bool,
+    #[serde(default)]
+    pub minimize_to_tray: bool,
+    #[serde(default)]
+    pub parallel_generation: bool,
+    #[serde(default)]
+    pub remove_censor_tags: bool,
+    #[serde(default = "crate::settings::auto_cleanup_default")]
+    pub auto_model_updates: bool,
     #[serde(default = "crate::settings::auto_cleanup_default")]
     pub auto_update_check: bool,
     pub language: String,
@@ -23,7 +30,10 @@ pub struct Settings {
     pub auto_cleanup: bool,
     #[serde(default)]
     pub storage_overrides: std::collections::BTreeMap<String, String>,
-    #[serde(default = "crate::shortcuts::defaults", deserialize_with = "crate::shortcuts::deserialize")]
+    #[serde(
+        default = "crate::shortcuts::defaults",
+        deserialize_with = "crate::shortcuts::deserialize"
+    )]
     pub shortcuts: std::collections::BTreeMap<String, String>,
 }
 

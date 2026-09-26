@@ -111,16 +111,26 @@ impl Core {
         Ok(settings)
     }
 
-    pub fn current_settings(&self) -> Result<Settings, String> { locked(&self.database)?.settings() }
+    pub fn current_settings(&self) -> Result<Settings, String> {
+        locked(&self.database)?.settings()
+    }
 
     pub fn storage_paths(&self) -> Result<crate::types::StoragePaths, String> {
-        Ok(crate::settings::effective_paths(&locked(&self.database)?.settings()?))
+        Ok(crate::settings::effective_paths(
+            &locked(&self.database)?.settings()?,
+        ))
     }
 
     pub fn jobs(&self) -> Result<Vec<Job>, String> {
         Ok(Self::public_jobs(locked(&self.database)?.jobs()?))
     }
-    fn public_jobs(jobs:Vec<Job>)->Vec<Job>{jobs.into_iter().filter(|j|!crate::privacy::locked()||!crate::privacy::media(Path::new(&j.input_path))).collect()}
+    fn public_jobs(jobs: Vec<Job>) -> Vec<Job> {
+        jobs.into_iter()
+            .filter(|j| {
+                !crate::privacy::locked() || !crate::privacy::media(Path::new(&j.input_path))
+            })
+            .collect()
+    }
 
     pub fn enqueue(&self, path: &str) -> Result<Job, String> {
         if !Path::new(path).is_absolute() {

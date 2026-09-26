@@ -9,7 +9,9 @@ pub async fn canvas_export_mask(
     state: tauri::State<'_, Arc<Projects>>,
     core: tauri::State<'_, Arc<Core>>,
     catalog: tauri::State<'_, Arc<gallery::GalleryCatalog>>,
-) -> Result<String> {let privacy_epoch=crate::privacy::epoch();let privacy_result=(async {
+) -> Result<String> {
+    let privacy_epoch = crate::privacy::epoch();
+    let privacy_result=(async {
     let permit = gallery::editor_permit().await?;
     let projects = state.inner().clone();
     let catalog = catalog.inner().clone();
@@ -26,4 +28,6 @@ pub async fn canvas_export_mask(
         let bytes = gallery::encode_rgba(image::DynamicImage::ImageLuma8(pixels).to_rgba8(), "png", 100)?;
         catalog.export_project_edit(&root, "Mask", &bytes, serde_json::json!({"restricted":project_restricted(&project),"project":id,"layerId":layer_id,"assetId":layer.asset_id,"operations":layer.operations,"mask":mask}), "png")
     }).await.map_err(err)?
-}).await;crate::privacy::finish(privacy_epoch,privacy_result)}
+}).await;
+    crate::privacy::finish(privacy_epoch, privacy_result)
+}

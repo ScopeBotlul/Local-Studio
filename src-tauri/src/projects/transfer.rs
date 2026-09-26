@@ -8,35 +8,45 @@ pub async fn project_add_gallery(
     targets: Vec<gallery::FileTarget>,
     state: tauri::State<'_, Arc<Projects>>,
     core: tauri::State<'_, Arc<Core>>,
-) -> Result<Project> {let privacy_epoch=crate::privacy::epoch();let privacy_result=(async {
-    let p = state.inner().clone();
-    let core = core.inner().clone();
-    tauri::async_runtime::spawn_blocking(move || {
-        let sources = gallery::project_sources(&core, &root_id, &targets)?;
-        p.add_to(
-            &id,
-            sources
-                .iter()
-                .map(|(path, _, _)| path.to_string_lossy().into())
-                .collect(),
-        )
+) -> Result<Project> {
+    let privacy_epoch = crate::privacy::epoch();
+    let privacy_result = (async {
+        let p = state.inner().clone();
+        let core = core.inner().clone();
+        tauri::async_runtime::spawn_blocking(move || {
+            let sources = gallery::project_sources(&core, &root_id, &targets)?;
+            p.add_to(
+                &id,
+                sources
+                    .iter()
+                    .map(|(path, _, _)| path.to_string_lossy().into())
+                    .collect(),
+            )
+        })
+        .await
+        .map_err(err)?
     })
-    .await
-    .map_err(err)?
-}).await;crate::privacy::finish(privacy_epoch,privacy_result)}
+    .await;
+    crate::privacy::finish(privacy_epoch, privacy_result)
+}
 #[tauri::command]
 pub async fn project_add_image(
     id: String,
     job_id: String,
     state: tauri::State<'_, Arc<Projects>>,
     images: tauri::State<'_, Arc<ImageEngine>>,
-) -> Result<Project> {let privacy_epoch=crate::privacy::epoch();let privacy_result=(async {
-    let p = state.inner().clone();
-    let images = images.inner().clone();
-    tauri::async_runtime::spawn_blocking(move || {
-        let source = images.project_source(&job_id)?;
-        p.add_to(&id, vec![source.0.to_string_lossy().into()])
+) -> Result<Project> {
+    let privacy_epoch = crate::privacy::epoch();
+    let privacy_result = (async {
+        let p = state.inner().clone();
+        let images = images.inner().clone();
+        tauri::async_runtime::spawn_blocking(move || {
+            let source = images.project_source(&job_id)?;
+            p.add_to(&id, vec![source.0.to_string_lossy().into()])
+        })
+        .await
+        .map_err(err)?
     })
-    .await
-    .map_err(err)?
-}).await;crate::privacy::finish(privacy_epoch,privacy_result)}
+    .await;
+    crate::privacy::finish(privacy_epoch, privacy_result)
+}

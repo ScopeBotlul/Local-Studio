@@ -6,7 +6,7 @@ import type { Language } from './types';
 export const imagePhases: Record<string, [string, string]> = {
   queued: ['Wartet', 'Queued'], paused: ['Pausiert', 'Paused'],
   waiting: ['Wartet auf Ressourcen', 'Waiting for resources'],
-  hashing: ['Modelldatei prüfen', 'Verifying model file'], loading: ['Modell laden', 'Loading model'], sampling: ['Bild generieren', 'Generating image'], decoding: ['Bild dekodieren', 'Decoding image'],
+  hashing: ['Modelldatei prüfen', 'Verifying model file'], loading: ['Modell laden', 'Loading model'], processing: ['ComfyUI verarbeitet den Auftrag', 'ComfyUI is processing the job'], sampling: ['Bild generieren', 'Generating image'], decoding: ['Bild dekodieren', 'Decoding image'],
   completed: ['Fertig · Modell entladen', 'Completed · model unloaded'], failed: ['Fehlgeschlagen', 'Failed'], cancelled: ['Abgebrochen', 'Cancelled'], interrupted: ['Unterbrochen', 'Interrupted'],
 };
 export default function ImageJobRow({ job, language, onOpen, onCancel, onResume, pending }: { job: ImageJob; language: Language; onOpen: () => void; onCancel: () => void; onResume: () => void; pending: boolean }) {

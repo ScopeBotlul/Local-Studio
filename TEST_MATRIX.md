@@ -16,6 +16,25 @@ Release-Entwurf 391874618 enthält alle fünf Dateien vollständig (Status uploa
 - Signatur-/Releaseprüfung erfolgreich: node scripts/verify-release.mjs bestätigt bestehenden Ed25519-Schlüssel, Versionen, URLs, Größen und Hashes. Keine Authenticode-Signatur.
 - Reale 4-MP-Generierung und vollständige native Generierungs-/18+-Sperrstrecke bleiben offen; keine vollständige Produktabnahme behauptet. Release-Hinweise legen dies offen. Öffentliche Veröffentlichung/Downloadprüfung folgt separat.
 
+# Releaseprüfung 0.29.0 – 2026-09-26
+
+- `npm.cmd run build`: bestanden; finale Version 0.29.0, TypeScript und Vite-Produktionsfrontend. Bestehende Bundlegrößenwarnung.
+- `npm.cmd test -- --run`: 54/54 Frontendtests in 14 Dateien bestanden.
+- Vollständiger serieller Rustlauf außerhalb der Sandbox: 178 bestanden, 0 fehlgeschlagen, 1 ignoriert. Der ignorierte HF-Snapshot-Symlinktest verlangt Windows Developer Mode oder Symlinkprivileg; die zugehörigen Pfadgrenzen sind separat getestet. Windows Credential Manager war in diesem Gesamtlauf erfolgreich.
+- Release-Build: optimierte Tauri-EXE, vier geprüfte Runtime-Ordner und Inno-Installer erfolgreich erzeugt.
+- Exakte Release-EXE in isoliertem portablen Profil: 15/15 native Prüfungen bestanden. Start, First-run-Setup, Sprache/Theme/Zoom, Speicherstamm, konkurrierendes Speichern, ungültige Einstellungen, echter SHA-256-Worker, fehlende Datei, Queue-/laufender Abbruch, Persistenz, Crash-Recovery und sicherer Exit; keine unbehandelten Frontendfehler. Bericht: `.artifacts/native-1790383905953/report.json`.
+- Paketprüfung: EXE im portablen Ordner und ZIP bytegleich mit der nativ geprüften Release-EXE; Installer bytegleich mit dem Build; ZIP enthält exakt 80 erlaubte Dateien. Alle 77 Runtime-Dateien entsprechen ihren Manifesten. Installer SHA-256 `33bc1a0bba7bf45c51d8fd3e1ca2e3d0ac99ca2bb052f1c1df21ef8b03370cef`, ZIP SHA-256 `a5c209a18bcb13187d8c5744cef792e010a4f5700b31ce57112e0880ea47a305`.
+- Nicht ausgeführt: echte ComfyUI-Inferenz mit Nutzercheckpoint/LoRAs, Live-Civitai-/Danbooru-API, native Interaktion mit beiden neuen Kind-WebViews, Installation/Deinstallation des finalen Setups und Authenticode-Signierung. Diese Grenzen stehen in den öffentlichen Release-Hinweisen.
+
+# TODO-Arbeitspaket nach 0.28.0 – Prüfung 2026-09-26
+
+- `npm.cmd run build`: bestanden, TypeScript und Vite-Produktionsfrontend. Bestehende Warnung zum JavaScript-Chunk über 500 kB; kein Desktop-/Installerpaket erzeugt.
+- `npm.cmd test -- --run`: 54/54 Frontendtests in 14 Dateien bestanden. Darunter Tagformatierung/Zensurfilter und Downloadübersicht. Nach den letzten Browser-/LoRA-Ergänzungen `npm.cmd test -- src/TagImporter.test.ts`: 2/2 bestanden und der Frontend-Build erneut bestanden.
+- `scripts/desktop.ps1 check`: Rust-Compilercheck nach allen Änderungen bestanden. `cargo test --no-run` war zuvor ebenfalls bestanden.
+- Breiter Rustlauf: 173 Tests bestanden, zwei zunächst fehlgeschlagen, ein privilegierter Symlinktest planmäßig ignoriert. Der Medienbereinigungstest bestand bei direkter Wiederholung; der Windows-Credential-Test scheiterte in der Sandbox mit `secret_store` und bestand direkt außerhalb der Sandbox. Diese Wiederholungen ergeben keinen vollständig grünen einzelnen Gesamtlauf und werden entsprechend nicht so bezeichnet.
+- Neue gezielte Rustnachweise: echte Zweiframe-GIF-Datei 2/2 GIF-Tests bestanden; Civitai-/Danbooru-URLgrenzen, Danbooru-Tagfelder und begrenzte LoRA-Suchparameter 4/4 bestanden; Modelllöschung, LoRA-Grenzen, gültige PNG-Ausgabe sowie bestehende Galerie-/Privacy-/Queuepfade waren im breiten Lauf bestanden.
+- Nicht ausgeführt: echter ComfyUI-Start und Inferenz mit Nutzergewichten, Live-Civitai-/Danbooru-API, native Kind-WebView-/DPI-Abnahme, Installations-/Deinstallationsprüfung, portable Paketprüfung, Signierung und GitHub-Veröffentlichung. Keine Aussagen über Kompatibilität einzelner fremder Modelle oder Custom Nodes.
+
 # Modell-Suchfilter: gezielte Prüfung (2026-09-19)
 
 - Frontend-Build einschließlich TypeScript erfolgreich (.artifacts/hub-filters-build.log); erfasst auch die vorherige Projektformular-Layoutänderung. Bestehender Hinweis zur Bundle-Größe unverändert.
@@ -662,3 +681,10 @@ Im damaligen Build 0.2.0 war der OAuth-Browserlogin mangels Registrierung deakti
 [Anonymer Provider-Check](.artifacts/oauth-provider-0.2.1.json): offizieller Autorisierungsendpunkt antwortet mit HTTP 302 zur Hugging-Face-Loginseite, deren Antwort HTTP 200 ist. Kein Konto, keine Cookies und kein Tokenaustausch verwendet. Die einmalige vorherige Registrierung ist durch ausdrückliche Nutzerfreigabe autorisiert; Antwort siehe [öffentliche Client-Metadaten](docs/huggingface-oauth-client.json).
 
 ZIP-Inhalt/CRC, Anleitung, EXE-Identität und Prüfsummen geprüft. Vollständige echte Kontoanmeldung/Refresh, Installer-Lebenszyklus und Rust-Abhängigkeitsaudit bleiben offen. Der Browser-Automationsdienst war technisch nicht erreichbar; kein visueller Nachweis der externen Loginseite.
+
+## 2026-09-19 – Downloadübersicht (gezielte Prüfung)
+- `npm.cmd run build`: bestanden (TypeScript + Frontend; bestehende Bundlegrößenwarnung). Kein Desktop-/Installer-Build.
+- `npm.cmd test -- src/download-overview.test.ts`: 2 Tests bestanden, Restzeit ohne Messwert sowie DE/EN-Minuten-/Stundenrundung.
+- `node scripts/check-download-overview.mjs`: bestanden, isolierter Headless Edge mit echten React-/WindowFrame-Komponenten und simulierten IPC-Antworten. Mehrere Downloads, aktive Filterung, Fortschritt/Restzeit, Prüfung, Abschlussentfernung, Stoppen des Pollings, Escape/Fokusrückgabe, Außenklick, Symbol-Toggle, Navigation, Leer-/Fehlerzustand und 150%-Zoom; App-Update inkl. initial unbekannter Geschwindigkeit, Byte-Differenzmessung und Abschluss.
+- Nach erstem Testlauf Fokus-Rückgabe nach Escape korrigiert; abschließender Browserlauf bestanden. Bericht: `.artifacts/download-overview-browser.json`.
+- Keine echten Netzwerk-Downloads, Rust-, Inferenz- oder Installertests wiederholt; Backend und Downloadtransport unverändert. Native Desktop-Abnahme dieser neuen Übersicht steht noch aus.

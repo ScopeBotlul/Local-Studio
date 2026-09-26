@@ -233,55 +233,60 @@ pub(super) fn compose(request: &ImageRequest, directory: &Path, output: &Path) -
     Ok(())
 }
 #[tauri::command]
-pub async fn image_reference(path: String, mask: Option<bool>) -> Result<ReferencePreview> {let privacy_epoch=crate::privacy::epoch();let privacy_result=(async {
-    tauri::async_runtime::spawn_blocking(move || {
-        let path = PathBuf::from(path);
-        let _pins = crate::gallery::directory_guards(path.parent().ok_or("image_path")?)?;
-        let file = read_locked(&path)?;
-        let _guard = &file;
-        if file.metadata().map_err(|_| "image_path")?.len() > MAX_IMAGE {
-            return Err("image_reference_parameters".into());
-        }
-        let mut data = vec![];
-        (&file)
-            .take(MAX_IMAGE + 1)
-            .read_to_end(&mut data)
-            .map_err(|_| "image_path")?;
-        let decoder = png::Decoder::new(std::io::Cursor::new(&data));
-        let reader = decoder
-            .read_info()
-            .map_err(|_| "image_reference_parameters")?;
-        let info = reader.info();
-        let (width, height) = (info.width, info.height);
-        if info.animation_control.is_some()
-            || info.bit_depth != png::BitDepth::Eight
-            || !valid_dimensions(width, height)
-        {
-            return Err("image_reference_parameters".into());
-        }
-        let path = fs::canonicalize(path).map_err(|_| "image_path")?;
-        png_bytes(&path, width, height)?;
-        if mask.unwrap_or(false) {
-            validate_mask(&data)?;
-        }
-        Ok(ReferencePreview {
-            reference: ImageReference {
-                mask: None,
-                path: path.to_string_lossy().into(),
-                sha256: format!("{:x}", Sha256::digest(&data)),
-                width,
-                height,
-                strength: 0.65,
-            },
-            preview: format!(
-                "data:image/png;base64,{}",
-                base64::engine::general_purpose::STANDARD.encode(data)
-            ),
+pub async fn image_reference(path: String, mask: Option<bool>) -> Result<ReferencePreview> {
+    let privacy_epoch = crate::privacy::epoch();
+    let privacy_result = (async {
+        tauri::async_runtime::spawn_blocking(move || {
+            let path = PathBuf::from(path);
+            let _pins = crate::gallery::directory_guards(path.parent().ok_or("image_path")?)?;
+            let file = read_locked(&path)?;
+            let _guard = &file;
+            if file.metadata().map_err(|_| "image_path")?.len() > MAX_IMAGE {
+                return Err("image_reference_parameters".into());
+            }
+            let mut data = vec![];
+            (&file)
+                .take(MAX_IMAGE + 1)
+                .read_to_end(&mut data)
+                .map_err(|_| "image_path")?;
+            let decoder = png::Decoder::new(std::io::Cursor::new(&data));
+            let reader = decoder
+                .read_info()
+                .map_err(|_| "image_reference_parameters")?;
+            let info = reader.info();
+            let (width, height) = (info.width, info.height);
+            if info.animation_control.is_some()
+                || info.bit_depth != png::BitDepth::Eight
+                || !valid_dimensions(width, height)
+            {
+                return Err("image_reference_parameters".into());
+            }
+            let path = fs::canonicalize(path).map_err(|_| "image_path")?;
+            png_bytes(&path, width, height)?;
+            if mask.unwrap_or(false) {
+                validate_mask(&data)?;
+            }
+            Ok(ReferencePreview {
+                reference: ImageReference {
+                    mask: None,
+                    path: path.to_string_lossy().into(),
+                    sha256: format!("{:x}", Sha256::digest(&data)),
+                    width,
+                    height,
+                    strength: 0.65,
+                },
+                preview: format!(
+                    "data:image/png;base64,{}",
+                    base64::engine::general_purpose::STANDARD.encode(data)
+                ),
+            })
         })
+        .await
+        .map_err(|_| "image_storage")?
     })
-    .await
-    .map_err(|_| "image_storage")?
-}).await;crate::privacy::finish(privacy_epoch,privacy_result)}
+    .await;
+    crate::privacy::finish(privacy_epoch, privacy_result)
+}
 #[cfg(test)]
 mod tests {
     use super::*;
