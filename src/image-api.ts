@@ -3,7 +3,8 @@ import { invoke } from '@tauri-apps/api/core';
 export interface ImageMask {path:string;sha256:string;width:number;height:number}
 export interface ImageReference {mask?:ImageMask|null;path:string;sha256:string;width:number;height:number;strength:number}
 export interface ImageLora {path:string;strength:number;sha256?:string|null}
-export interface ImageRequest { vaeOnCpu?:boolean; reference?:ImageReference|null; loras?:ImageLora[]; modelPath: string; prompt: string; negativePrompt: string; width: number; height: number; steps: number; guidance: number; seed: number; sampler: string; }
+export type ImageBackend='auto'|'vulkan'|'comfy';
+export interface ImageRequest { engine?:ImageBackend; vaeOnCpu?:boolean; reference?:ImageReference|null; loras?:ImageLora[]; modelPath: string; prompt: string; negativePrompt: string; width: number; height: number; steps: number; guidance: number; seed: number; sampler: string; }
 export interface ImageJob {restricted?:boolean;locked?:boolean; batch?:{id:string;index:number;count:number}|null; samplingSteps?:number|null; id: string; request: ImageRequest; status: string; phase: string; step: number; hashedBytes: number; modelBytes: number; modelSha256: string | null; runtime: string; device: string; createdAt: string; elapsedMs: number; error: string | null; output: string | null; savedPath: string | null; logTail: string; discarded: boolean; startedAt: string | null; finishedAt: string | null; queuePosition: number | null; }
 export interface ImageProbe { ready: boolean; family: string | null; modelBytes: number | null; missing: string[]; runtime: string; device: string | null; vramBytes: number | null; modelLicense: string; runtimeLicense: string; }
 export interface ImageModel {id:string;name:string;path:string;totalBytes:number;restricted:boolean}
@@ -33,7 +34,7 @@ export const imageApi = {
   saveWorkspace: (workspace: ImageWorkspace) => invoke<void>('image_workspace_save', { workspace }),
   recover: () => invoke<WorkspaceSnapshot>('image_recover'),
   discard: (id: string) => invoke<void>('image_discard', { id }),
-  probe: (path: string) => invoke<ImageProbe>('image_probe', { path }),
+  probe: (path:string,backend:ImageBackend='auto',needsComfy=false,needsNative=false) => invoke<ImageProbe>('image_probe', { path, backend, needsComfy, needsNative }),
   jobs: () => invoke<ImageJob[]>('image_jobs'),
   generate: (request: ImageRequest) => invoke<ImageJob>('image_generate', { request }),
   cancel: (id: string) => invoke<void>('image_cancel', { id }),
@@ -60,8 +61,8 @@ const errors: Record<string, [string, string]> = {
   image_runtime_invalid: ['Die Bild-Runtime wurde verändert. Bitte die Originaldateien aus dem Local-Studio-Paket wiederherstellen.', 'Image runtime has changed. Restore the original files from the Local Studio package.'],
   image_runtime_start: ['Die Bild-Runtime konnte nicht gestartet werden. Prüfe den Grafiktreiber; Details stehen im Auftrag.', 'Image runtime could not start. Check your graphics driver; see job details.'],
   image_runtime_timeout: ['Die Runtime antwortet nicht. Grafiktreiber prüfen und erneut versuchen.', 'The runtime is not responding. Check your graphics driver and retry.'],
-  image_gpu: ['Das Modell ist für die ComfyUI-Engine noch nicht erreichbar. Starte die von Local Studio verwaltete ComfyUI-Engine neu. Nur der native Ersatzadapter benötigt derzeit eine NVIDIA-GPU mit funktionierendem Vulkan-Treiber.', 'The model is not yet available to the ComfyUI engine. Restart the ComfyUI engine managed by Local Studio. Only the native fallback adapter currently requires an NVIDIA GPU with a working Vulkan driver.'],
-  image_vram: ['Für diesen ersten SDXL-Pfad sind mindestens 8 GB Grafikspeicher vorgesehen.', 'This first SDXL path requires at least 8 GB of graphics memory.'],
+  image_gpu: ['Keine nutzbare Vulkan-GPU gefunden. Aktualisiere den Grafiktreiber oder wähle ComfyUI als Engine.', 'No usable Vulkan GPU was found. Update the graphics driver or select ComfyUI as the engine.'],
+  image_vram: ['Für diesen SDXL-Pfad sind mindestens 8 GB dedizierter Grafikspeicher vorgesehen. Geräte mit gemeinsamem Grafikspeicher werden stattdessen vom Vulkan-Worker dynamisch eingeteilt.', 'This SDXL path requires at least 8 GB of dedicated graphics memory. Devices with shared graphics memory are allocated dynamically by the Vulkan worker instead.'],
   image_prompt: ['Bitte einen Prompt mit höchstens 4.000 UTF-8-Bytes eingeben.', 'Enter a prompt of at most 4,000 UTF-8 bytes.'],
   image_parameters: ['Ungültige Bildparameter. Auflösung, Schritte, Guidance und Sampler prüfen.', 'Invalid image parameters. Check resolution, steps, guidance and sampler.'],
   image_queue_full: ['Es warten bereits 20 Bildaufträge. Bitte einen Auftrag abwarten oder abbrechen.', '20 image jobs are already waiting. Wait for a job or cancel one.'],

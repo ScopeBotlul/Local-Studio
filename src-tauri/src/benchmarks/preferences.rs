@@ -94,6 +94,7 @@ impl Benchmarks {
     }
     fn edit_preference(&self, edit: PreferenceEdit) -> Result<Preference> {
         crate::image_engine::validate(&crate::image_engine::ImageRequest {
+            engine: crate::image_engine::ImageBackend::Auto,
             vae_on_cpu: false,
             reference: None,
             loras: vec![],

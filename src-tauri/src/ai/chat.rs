@@ -386,6 +386,7 @@ fn run_tool(
                 return Err("ai_image_model".into());
             }
             let request = ImageRequest {
+                engine: crate::image_engine::ImageBackend::Auto,
                 vae_on_cpu: false,
                 reference: None,
                 loras: vec![],

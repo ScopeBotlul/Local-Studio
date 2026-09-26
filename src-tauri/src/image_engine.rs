@@ -43,6 +43,8 @@ pub struct ImageLora {
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ImageRequest {
+    #[serde(default, skip_serializing_if = "ImageBackend::is_auto")]
+    pub engine: ImageBackend,
     #[serde(default, skip_serializing_if = "is_false")]
     pub vae_on_cpu: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -58,6 +60,20 @@ pub struct ImageRequest {
     pub guidance: f32,
     pub seed: u32,
     pub sampler: String,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ImageBackend {
+    #[default]
+    Auto,
+    Vulkan,
+    Comfy,
+}
+impl ImageBackend {
+    fn is_auto(&self) -> bool {
+        *self == Self::Auto
+    }
 }
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -339,7 +355,22 @@ fn command(runtime: &Path) -> Command {
     crate::hardware::hide_console(&mut command);
     command
 }
-fn devices(runtime: &Path) -> Result<String> {
+fn select_vulkan_device(output: &str, vendors: &[&str]) -> Option<String> {
+    let devices: Vec<_> = output
+        .lines()
+        .filter(|line| line.starts_with("Vulkan") && line.contains('\t'))
+        .collect();
+    for vendor in vendors {
+        if let Some(device) = devices
+            .iter()
+            .find(|line| line.to_ascii_lowercase().contains(&vendor.to_ascii_lowercase()))
+        {
+            return Some((*device).to_owned());
+        }
+    }
+    devices.first().map(|device| (*device).to_owned())
+}
+fn devices(runtime: &Path, vendors: &[&str]) -> Result<String> {
     let mut child = command(runtime)
         .arg("--list-devices")
         .stdout(Stdio::piped())
@@ -377,15 +408,7 @@ fn devices(runtime: &Path) -> Result<String> {
     if !status.success() {
         return Err("image_runtime_start".into());
     }
-    output
-        .lines()
-        .find(|line| {
-            line.starts_with("Vulkan")
-                && line.contains('\t')
-                && line.to_uppercase().contains("NVIDIA")
-        })
-        .map(str::to_owned)
-        .ok_or_else(|| "image_gpu".into())
+    select_vulkan_device(&output, vendors).ok_or_else(|| "image_gpu".into())
 }
 pub(crate) struct ProcessGroup(windows_sys::Win32::Foundation::HANDLE);
 // The owned Windows job handle may be moved between threads; access remains serialized by its owner.
@@ -638,19 +661,27 @@ impl ImageEngine {
                 Err(error) => result.missing.push(error),
             }
         }
+        let hardware = crate::hardware::discover();
+        let mut vendors = Vec::new();
+        for vendor in ["NVIDIA", "AMD", "Intel"] {
+            if hardware.gpus.iter().any(|gpu| gpu.vendor == vendor) {
+                vendors.push(vendor);
+            }
+        }
         match runtime_files(&self.runtime) {
-            Ok(_locks) => match devices(&self.runtime) {
+            Ok(_locks) => match devices(&self.runtime, &vendors) {
                 Ok(device) => result.device = Some(device),
                 Err(error) => result.missing.push(error),
             },
             Err(error) => result.missing.push(error),
         }
-        let hardware = crate::hardware::discover();
-        result.vram_bytes = hardware
-            .gpus
-            .iter()
-            .find(|g| g.vendor == "NVIDIA")
-            .and_then(|g| g.vram_bytes);
+        result.vram_bytes = result.device.as_ref().and_then(|device| {
+            hardware
+                .gpus
+                .iter()
+                .find(|gpu| device.to_ascii_lowercase().contains(&gpu.name.to_ascii_lowercase()))
+                .and_then(|gpu| gpu.vram_bytes)
+        });
         if result
             .vram_bytes
             .is_some_and(|bytes| bytes < 8 * 1024 * 1024 * 1024)
@@ -660,8 +691,8 @@ impl ImageEngine {
         result.ready = result.missing.is_empty();
         result
     }
-    pub fn probe(&self, path: &str) -> ImageProbe {
-        if !path.is_empty() && self.comfy.checkpoint_path(Path::new(path)) {
+    fn comfy_probe(&self, path: &str) -> ImageProbe {
+        if !path.is_empty() {
             let checkpoint_ready = self.comfy.checkpoint(Path::new(path)).is_some();
             let model = fs::canonicalize(path)
                 .ok()
@@ -690,7 +721,66 @@ impl ImageEngine {
                 runtime_license: "GPL-3.0".into(),
             };
         }
+        ImageProbe {
+            ready: false,
+            family: None,
+            model_bytes: None,
+            missing: vec!["image_model_missing".into()],
+            runtime: "ComfyUI · lokale HTTP-API".into(),
+            device: Some("ComfyUI · 127.0.0.1".into()),
+            vram_bytes: None,
+            model_license: "unknown".into(),
+            runtime_license: "GPL-3.0".into(),
+        }
+    }
+    fn automatic_probe(&self, path: &str) -> ImageProbe {
+        let hardware = crate::hardware::discover();
+        let prefer_vulkan = !hardware.gpus.iter().any(|gpu| gpu.vendor == "NVIDIA")
+            && hardware
+                .gpus
+                .iter()
+                .any(|gpu| matches!(gpu.vendor.as_str(), "AMD" | "Intel"));
+        if prefer_vulkan {
+            let native = self.native_probe(path);
+            if native.ready || !self.comfy.checkpoint_path(Path::new(path)) {
+                return native;
+            }
+            let comfy = self.comfy_probe(path);
+            return if comfy.ready { comfy } else { native };
+        }
+        if self.comfy.checkpoint_path(Path::new(path)) {
+            let comfy = self.comfy_probe(path);
+            if comfy.ready {
+                return comfy;
+            }
+        }
         self.native_probe(path)
+    }
+    pub fn probe(
+        &self,
+        path: &str,
+        engine: ImageBackend,
+        needs_comfy: bool,
+        needs_native: bool,
+    ) -> ImageProbe {
+        if needs_comfy && engine == ImageBackend::Vulkan {
+            let mut probe = self.native_probe(path);
+            probe.ready = false;
+            probe.missing.push("image_lora_runtime".into());
+            return probe;
+        }
+        if needs_native && engine == ImageBackend::Comfy {
+            let mut probe = self.comfy_probe(path);
+            probe.ready = false;
+            probe.missing.push("comfy_reference".into());
+            return probe;
+        }
+        match (engine, needs_comfy, needs_native) {
+            (_, true, _) => self.comfy_probe(path),
+            (_, _, true) | (ImageBackend::Vulkan, _, _) => self.native_probe(path),
+            (ImageBackend::Comfy, _, _) => self.comfy_probe(path),
+            (ImageBackend::Auto, _, _) => self.automatic_probe(path),
+        }
     }
     fn update(&self, id: &str, save: bool, change: impl FnOnce(&mut ImageJob)) -> Result<()> {
         let mut state = self.state.lock().map_err(|_| "image_storage")?;
@@ -722,7 +812,10 @@ impl ImageEngine {
         let result = (|| -> Result<String> {
             self.update(&job.id, true, |j| j.phase = "waiting".into())?;
             let resources = crate::resources::shared();
-            let _admission = if job.runtime.starts_with("ComfyUI") {
+            let shared_graphics_memory = !job.runtime.starts_with("ComfyUI")
+                && (job.device.to_ascii_uppercase().contains("AMD")
+                    || job.device.to_ascii_uppercase().contains("INTEL"));
+            let _admission = if job.runtime.starts_with("ComfyUI") || shared_graphics_memory {
                 resources.acquire_unmeasured(&job.id, "image", true, &cancel)
             } else {
                 resources.acquire(
@@ -830,7 +923,7 @@ impl ImageEngine {
                     "--backend",
                     backend,
                     "--auto-fit",
-                    "off",
+                    if shared_graphics_memory { "on" } else { "off" },
                     "--diffusion-fa",
                     "-o",
                 ])
@@ -1188,12 +1281,17 @@ impl ImageEngine {
 #[tauri::command]
 pub async fn image_probe(
     path: String,
+    backend: ImageBackend,
+    needs_comfy: bool,
+    needs_native: bool,
     state: tauri::State<'_, Arc<ImageEngine>>,
 ) -> Result<ImageProbe> {
     let privacy_epoch = crate::privacy::epoch();
     let privacy_result = (async {
-        let engine = state.inner().clone();
-        tauri::async_runtime::spawn_blocking(move || engine.probe(&path))
+        let image_engine = state.inner().clone();
+        tauri::async_runtime::spawn_blocking(move || {
+            image_engine.probe(&path, backend, needs_comfy, needs_native)
+        })
             .await
             .map_err(|_| "image_storage".into())
     })
@@ -1330,6 +1428,7 @@ mod tests {
     }
     pub(super) fn request() -> ImageRequest {
         ImageRequest {
+            engine: ImageBackend::Auto,
             vae_on_cpu: false,
             reference: None,
             loras: vec![],
@@ -1376,6 +1475,31 @@ mod tests {
     fn native_admission_includes_checkpoint_size_and_working_memory() {
         let model = 7 * 1024 * 1024 * 1024;
         assert_eq!(admission_ram(model), 8 * 1024 * 1024 * 1024);
+    }
+    #[test]
+    fn vulkan_device_selection_accepts_amd_intel_and_prefers_detected_vendor_order() {
+        let output = "Vulkan0\tAMD Radeon(TM) Graphics\nVulkan1\tNVIDIA GeForce RTX 4080\nCPU\tProcessor\n";
+        assert_eq!(
+            select_vulkan_device(output, &["NVIDIA", "AMD"]).as_deref(),
+            Some("Vulkan1\tNVIDIA GeForce RTX 4080")
+        );
+        assert_eq!(
+            select_vulkan_device(output, &["AMD"]).as_deref(),
+            Some("Vulkan0\tAMD Radeon(TM) Graphics")
+        );
+        assert_eq!(
+            select_vulkan_device("Vulkan0\tIntel Arc Graphics\n", &["Intel"]).as_deref(),
+            Some("Vulkan0\tIntel Arc Graphics")
+        );
+        assert!(select_vulkan_device("CPU\tProcessor\n", &["AMD"]).is_none());
+    }
+    #[test]
+    fn legacy_image_requests_default_to_automatic_engine_selection() {
+        let value = serde_json::to_value(request()).unwrap();
+        let mut legacy = value.as_object().unwrap().clone();
+        legacy.remove("engine");
+        let decoded: ImageRequest = serde_json::from_value(legacy.into()).unwrap();
+        assert_eq!(decoded.engine, ImageBackend::Auto);
     }
 }
 

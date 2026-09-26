@@ -1,3 +1,12 @@
+# Releaseprüfung 0.36.15 – 2026-09-26
+
+- Bestanden: 28 gezielte Rust-Tests für Bildengine, Warteschlange, Referenzen, Recovery, PNG-Prüfung sowie neue Engine-Serialisierung und Vulkan-Geräteauswahl. Alte Requests ohne `engine` laden als `auto`; NVIDIA, AMD und Intel werden aus der echten `--list-devices`-Ausgabe gewählt.
+- Bestanden: Rust-Compilercheck, TypeScript-/Vite-Produktionsbuild und optimierter Tauri-Release-Build 0.36.15.
+- Reale Vulkan-Ausführung: vorhandener DreamShaperXL-Turbo-Checkpoint, ausdrücklich `Vulkan1 · AMD Radeon(TM) Graphics`, `--auto-fit on`, Flash Attention, 512 × 512, Euler/Karras, Seed 42, ein Schritt. Runtime meldet vollständiges Laden von 6.624,11 MB Modellparametern in den AMD-Vulkan-Backend, 17,97 Sekunden Sampling und 42,85 Sekunden Gesamtausführung. Das Ergebnis ist ein dekodierbares PNG mit exakt 512 × 512 Pixeln und SHA-256 `a3a3b723df9bf269e3d404c53af2f685eaf455e4c2821a86dad14679ddff2c3d`.
+- Bestanden: portabler Start-Smoketest; die Release-App blieb nach acht Sekunden aktiv und wurde danach kontrolliert beendet.
+- Bestanden: Installer, Portable-ZIP mit 80 erlaubten Dateien, alle vier Runtime-Manifeste, Prüfsummen und signierte Update-Metadaten. Portable SHA-256 `a2d0e3d938fd56d4586a78d03cd8a0e16a42d662206cb4daae2453896507550b`; Installer SHA-256 `9a9fe339cf7e13583badff96a4ed7feed7176f16ad59cb6a3408dde34c221099`.
+- Grenze: Der reale AMD-Lauf belegt den Vulkan-Pfad auf dem Entwicklungsrechner, aber keinen WAI-Illustrious-Lauf und keine 12-/16-GB-Speichergrenze auf ROG Ally oder Xbox Ally. Dieser Zielgerätetest bleibt offen. Unveränderte KI-, Galerie-, Video-, Datenschutz-, ComfyUI-Installations- und Updater-Suiten wurden nicht erneut ausgeführt.
+
 # Releaseprüfung 0.36.14 – 2026-09-26
 
 - Bestanden: sechs gezielte ComfyUI-Tests für Paket-Allowlist, AMD-Kompatibilitätsprofil, verschachtelte Modellpfade, exakte Workflowwerte, Archivschutz und Versionsvergleich.

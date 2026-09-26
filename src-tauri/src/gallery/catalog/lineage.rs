@@ -440,6 +440,7 @@ mod tests {
         fs::write(root.join("generated.png"), b"passive metadata fixture").unwrap();
         let c = GalleryCatalog::new(&root).unwrap();
         let request = ImageRequest {
+            engine: crate::image_engine::ImageBackend::Auto,
             vae_on_cpu: false,
             reference: None,
             loras: vec![],

@@ -58,12 +58,12 @@ export default function ImageStudio({ onAddToProject, projectDisabled, shortcuts
     if (!request.modelPath || galleryOnly) {setProbeBusy(false);return;}
     const timer=setTimeout(()=>void check(false),450);
     return()=>{clearTimeout(timer);probeGeneration.current++;};
-  }, [request.modelPath, galleryOnly]);
+  }, [request.modelPath, request.engine, request.loras?.length, !!request.reference, galleryOnly]);
   useEffect(()=>{if(selectedJob)setSelected(selectedJob);},[selectedJob]);
   function modelPath(value: string) { if(value===request.modelPath)return; probeGeneration.current++; setProbeBusy(false); setProbe(null); selectModel(value); }
   async function check(force=true) {
     const generation = ++probeGeneration.current; setProbeBusy(true); setError('');
-    try { const cached=readinessCache.get(request.modelPath); const next = !force && cached && Date.now()-cached.at<60000 ? cached.probe : await imageApi.probe(request.modelPath); if(readinessCache.size>=64)readinessCache.clear(); readinessCache.set(request.modelPath,{at:Date.now(),probe:next}); if (alive.current && generation === probeGeneration.current) setProbe(next); }
+    try { const cacheKey=[request.modelPath,request.engine??'auto',request.loras?.length?'lora':'',request.reference?'reference':''].join('|'); const cached=readinessCache.get(cacheKey); const next = !force && cached && Date.now()-cached.at<60000 ? cached.probe : await imageApi.probe(request.modelPath,request.engine??'auto',!!request.loras?.length,!!request.reference); if(readinessCache.size>=64)readinessCache.clear(); readinessCache.set(cacheKey,{at:Date.now(),probe:next}); if (alive.current && generation === probeGeneration.current) setProbe(next); }
     catch (e) { if (alive.current && generation === probeGeneration.current) setError(String(e)); }
     finally { if (alive.current && generation === probeGeneration.current) setProbeBusy(false); }
   }
@@ -94,6 +94,13 @@ export default function ImageStudio({ onAddToProject, projectDisabled, shortcuts
         <option value="">{modelsBusy?(de?'Modelle werden erkannt …':'Identifying models …'):request.modelPath?modelDisplayName(displayPath(request.modelPath).split(/[\\/]/).pop()??''):(de?'Modell auswählen …':'Select a model …')}</option>
         {models.map(model=><option key={model.id} value={model.path}>{modelDisplayName(model.name)} · {formatGigabytes(model.totalBytes,language)}{model.restricted?' · 18+':''}</option>)}
       </select>
+      <label className="field-label" htmlFor="image-engine">{de?'Bildengine':'Image engine'}</label>
+      <select id="image-engine" className="image-model-select" value={request.engine??'auto'} disabled={busy} onChange={event=>setRequest(current=>({...current,engine:event.target.value as 'auto'|'vulkan'|'comfy'}))}>
+        <option value="auto">{de?'Automatisch · für diese Hardware empfohlen':'Automatic · recommended for this hardware'}</option>
+        <option value="vulkan">Vulkan · stable-diffusion.cpp</option>
+        <option value="comfy">ComfyUI · API</option>
+      </select>
+      <p className="hub-hint">{de?'Automatisch verwendet Vulkan auf AMD-/Intel-Handhelds, ComfyUI auf NVIDIA und ComfyUI für LoRAs. Referenzbilder verwenden Vulkan.':'Automatic uses Vulkan on AMD/Intel handhelds, ComfyUI on NVIDIA, and ComfyUI for LoRAs. Reference images use Vulkan.'}</p>
       <div className={'image-model-status '+(probe?.ready?'ready':'')} role="status">{probeBusy?(de?'Ausführbarkeit wird automatisch geprüft …':'Checking readiness automatically …'):probe?.ready?(de?'SDXL bereit · Prüfung vor dem Start automatisch':'SDXL ready · checked automatically before starting'):probe?(de?'Modell oder Laufzeit noch nicht bereit':'Model or runtime not ready'):(de?'Vollständigen SDXL-Checkpoint wählen':'Choose a complete SDXL checkpoint')}</div>
       {!modelsBusy&&!models.length&&<p className="hub-hint">{de?'Keine passenden Checkpoints in der Bibliothek. Über das Ordnersymbol eine Datei wählen.':'No compatible checkpoints in the library. Choose a file with the folder button.'}</p>}
       {probe&&!probe.ready&&<ul className="image-model-errors">{probe.missing.map(code=><li key={code}>{imageError(code,de)}</li>)}</ul>}

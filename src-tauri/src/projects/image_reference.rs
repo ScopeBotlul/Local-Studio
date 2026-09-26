@@ -74,6 +74,7 @@ mod tests {
         fs::write(&source, &bytes).unwrap();
         let p = Projects::new(t.path()).unwrap();
         let mut r = ImageRequest {
+            engine: crate::image_engine::ImageBackend::Auto,
             vae_on_cpu: false,
             reference: None,
             loras: vec![],

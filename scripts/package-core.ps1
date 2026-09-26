@@ -52,6 +52,12 @@ zusaetzlich mmap fuer grosse Safetensors und den nativen comfy-kitchen-HIP-
 Dispatcher. Damit umgeht Local Studio zwei offizielle ROCm-/UMA-Risikopfade,
 die zum in Bugreport #5 gemeldeten Sampling-Absturz passen.
 
+Neu in 0.36.15: Das Bildstudio kann automatisch zwischen ComfyUI und dem
+mitgelieferten Vulkan-Worker waehlen. AMD-/Intel-Handhelds ohne NVIDIA verwenden
+stable-diffusion.cpp mit automatischer Speicherverteilung; NVIDIA und LoRAs
+verwenden weiterhin ComfyUI. Vulkan und ComfyUI lassen sich auch bewusst waehlen.
+Alte Projekte werden kompatibel mit automatischer Engine-Auswahl geladen.
+
 Neu in 0.36.12: AMD-Systeme mit hoechstens 16 GB gemeinsamem Speicher starten
 ComfyUI ohne DynamicVRAM und mit Low-VRAM-Modus. Der SDXL-Textencoder laeuft
 dadurch auf der CPU und umgeht den auf dem ROG Ally abgestuerzten ROCm-Pfad.

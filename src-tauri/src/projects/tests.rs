@@ -1,6 +1,7 @@
 use super::*;
 fn request() -> ImageRequest {
     ImageRequest {
+        engine: crate::image_engine::ImageBackend::Auto,
         vae_on_cpu: false,
         reference: None,
         loras: vec![],

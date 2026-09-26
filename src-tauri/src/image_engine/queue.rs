@@ -121,11 +121,12 @@ impl ImageEngine {
             lora.sha256 = Some(digest);
             extensions.push(file);
         }
-        let probe = if request.reference.is_some() {
-            self.native_probe(&request.model_path)
-        } else {
-            self.probe(&request.model_path)
-        };
+        let probe = self.probe(
+            &request.model_path,
+            request.engine,
+            !request.loras.is_empty(),
+            request.reference.is_some(),
+        );
         if !probe.ready {
             return Err(format!("image_not_ready: {}", probe.missing.join(", ")));
         }
