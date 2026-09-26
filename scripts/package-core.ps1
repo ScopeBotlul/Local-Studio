@@ -42,6 +42,11 @@ Videoschnitt und GIF-Studio. Galerie und Modelle bleiben zentral erreichbar;
 Hugging Face, Downloads, Auftraege und Einstellungen liegen rechts. Die bisherige
 doppelte Studio-Navigation und Breadcrumb-Leiste wurden entfernt.
 
+Neu in 0.36.11: Verwaltete AMD-ComfyUI-Installationen deaktivieren gepinnten
+Hostspeicher und asynchrones Weight-Offloading. Das reduziert den im ROG-Ally-
+Bericht sichtbaren RAM-Druck beim Laden grosser SDXL-Modelle. Crashberichte
+bewahren zusaetzlich gezielt den Bereich um native Fatal- und Speicherfehler.
+
 Neu in 0.36.10: Ein waehrend der Bildgenerierung abgestuerztes ComfyUI beendet
 den Auftrag jetzt sofort mit einer klaren Meldung. Bugreports behalten Anfang
 und Ende des Crashlogs und enthalten auch die Anzahl der Bildauftraege.

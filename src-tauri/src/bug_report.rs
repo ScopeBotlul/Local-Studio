@@ -148,6 +148,49 @@ fn head_tail_chars(input: &str, limit: usize) -> String {
     )
 }
 
+fn diagnostic_chars(input: &str, limit: usize) -> String {
+    if input.len() <= limit {
+        return input.to_string();
+    }
+    let lower = input.to_ascii_lowercase();
+    let signal = [
+        "windows fatal",
+        "access violation",
+        "out of memory",
+        "runtimeerror",
+        "traceback",
+    ]
+    .iter()
+    .filter_map(|marker| lower.find(marker))
+    .min();
+    let Some(signal) = signal else {
+        return head_tail_chars(input, limit);
+    };
+    let part = limit / 3;
+    let mut head_end = part;
+    while !input.is_char_boundary(head_end) {
+        head_end -= 1;
+    }
+    let mut middle_start = signal.saturating_sub(part / 2);
+    while !input.is_char_boundary(middle_start) {
+        middle_start += 1;
+    }
+    let mut middle_end = (middle_start + part).min(input.len());
+    while !input.is_char_boundary(middle_end) {
+        middle_end -= 1;
+    }
+    let mut tail_start = input.len().saturating_sub(part);
+    while !input.is_char_boundary(tail_start) {
+        tail_start += 1;
+    }
+    format!(
+        "{}\n[output omitted before crash]\n{}\n[output omitted after crash]\n{}",
+        &input[..head_end],
+        &input[middle_start..middle_end],
+        &input[tail_start..]
+    )
+}
+
 fn prefix_chars(input: &str, limit: usize) -> String {
     if input.chars().count() <= limit {
         return input.to_string();
@@ -228,7 +271,7 @@ fn build(
         settings,
         hardware,
         jobs,
-        head_tail_chars(&comfy_status, 16 * 1024),
+        diagnostic_chars(&comfy_status, 18 * 1024),
         tail_chars(&update_status, 6 * 1024),
         logs,
     );
@@ -421,11 +464,16 @@ mod tests {
 
     #[test]
     fn bounded_diagnostics_keep_the_error_lead_and_crash_tail() {
-        let input = format!("fatal error\n{}\nstack tail", "x".repeat(1_000));
-        let bounded = head_tail_chars(&input, 128);
-        assert!(bounded.starts_with("fatal error"));
+        let input = format!(
+            "startup details\n{}\nWindows fatal exception: access violation\n{}\nstack tail",
+            "x".repeat(1_000),
+            "y".repeat(1_000)
+        );
+        let bounded = diagnostic_chars(&input, 300);
+        assert!(bounded.starts_with("startup details"));
+        assert!(bounded.contains("Windows fatal exception: access violation"));
         assert!(bounded.ends_with("stack tail"));
-        assert!(bounded.contains("[middle output omitted]"));
+        assert!(bounded.contains("[output omitted before crash]"));
         assert!(bounded.len() < input.len());
     }
 }

@@ -23,6 +23,11 @@ type Result<T> = std::result::Result<T, String>;
 const ENDPOINT: &str = "http://127.0.0.1:8188";
 const RELEASE_API: &str = "https://api.github.com/repos/Comfy-Org/ComfyUI/releases/latest";
 const MAX_ARCHIVE_BYTES: u64 = 12 * 1024 * 1024 * 1024;
+const AMD_COMPAT_ARGS: [&str; 3] = [
+    "--use-split-cross-attention",
+    "--disable-pinned-memory",
+    "--disable-async-offload",
+];
 
 #[derive(Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -1018,7 +1023,7 @@ impl Comfy {
         self.write_extra_model_paths()?;
         let amd_safe_attention = uses_amd_safe_attention(&root);
         let log_header = if amd_safe_attention {
-            "Local Studio: ComfyUI runtime (AMD compatibility: split cross attention)\r\n"
+            "Local Studio: ComfyUI runtime (AMD compatibility: split cross attention, pinned memory and async offload disabled)\r\n"
         } else {
             "Local Studio: ComfyUI runtime\r\n"
         };
@@ -1048,10 +1053,7 @@ impl Comfy {
             .arg(&self.extra_model_paths)
             .stdin(Stdio::null());
         if amd_safe_attention {
-            // Current AMD Windows builds may terminate inside aotriton_supported()
-            // on APUs such as gfx1103. ComfyUI skips that native probe when the
-            // split attention backend is explicitly selected.
-            command.arg("--use-split-cross-attention");
+            command.args(AMD_COMPAT_ARGS);
         }
         command
             .stdout(Stdio::from(log.try_clone().map_err(|_| "comfy_storage")?))
@@ -1519,6 +1521,14 @@ mod tests {
         assert!(!uses_amd_safe_attention(temp.path()));
         fs::write(temp.path().join("run_amd_gpu.bat"), b"rem official launcher").unwrap();
         assert!(uses_amd_safe_attention(temp.path()));
+        assert_eq!(
+            AMD_COMPAT_ARGS,
+            [
+                "--use-split-cross-attention",
+                "--disable-pinned-memory",
+                "--disable-async-offload"
+            ]
+        );
     }
 
     #[test]

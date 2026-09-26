@@ -1,3 +1,12 @@
+# Releaseprüfung 0.36.11 – 2026-09-26
+
+- Bestanden: drei gezielte Bugreport-Tests; die begrenzte Diagnose enthält Startinformationen, den Bereich um eine native Fatal-/Zugriffsverletzung und das Stackende.
+- Bestanden: sechs gezielte ComfyUI-Tests; der AMD-Kompatibilitätssatz enthält Split Cross Attention, `--disable-pinned-memory` und `--disable-async-offload`.
+- Abgrenzung: Die zusätzlichen Speicheroptionen gelten nur für anhand des offiziellen AMD-Launchers erkannte AMD-Pakete; NVIDIA-Installationen bleiben unverändert.
+- Bestanden: Frontend-Produktionsbuild, optimierter Rust-/Tauri-Build, Inno-Installer, portables Archiv, Runtime-Staging und signierte Update-Metadaten.
+- Paket-Hashes: Portable ZIP `d8f3a379a73cc3455b070b6108461619f90400767ae0e0de2748bb077d2cf726`, Installer `73e97d69df3068fab328f602f3625fd0f7d913449aebda9011b3741643bdecf4`.
+- Noch offen: echter WAI-Illustrious-Lauf auf dem ROG Ally und Vergleich des Laufzeitlogs ohne gepinnten Hostspeicher und asynchrones Offloading.
+
 # Releaseprüfung 0.36.10 – 2026-09-26
 
 - Bestanden: drei gezielte Bugreport-Tests einschließlich Schutz persönlicher Daten und Erhalt von Fehleranfang plus Stackende bei begrenzter Berichtslänge.
