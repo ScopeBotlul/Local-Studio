@@ -1,3 +1,14 @@
+# Releaseprüfung 0.36.13 – 2026-09-26
+
+- Bestanden: sieben gezielte Frontendtests für Singular-/Pluralbeschriftung des Benachrichtigungssymbols sowie bekannten und unbestimmten gemeinsamen Downloadfortschritt.
+- Bestanden: TypeScript-/Vite-Produktionsbuild mit Benachrichtigungsdialog, Zähler, Wiederherstellungsaktionen, Fehlerbehandlung und zweisprachiger Oberfläche.
+- Codepfad geprüft: Projekt-, Bildarbeitsstand- und Auftragswiederherstellung werden aus dem Hauptinhalt in das Benachrichtigungszentrum verlagert. Allgemeine Fehler und Verbindungsverlust verdecken den Arbeitsbereich nicht mehr.
+- Bericht geprüft: GitHub-Issue #4 zeigt das vollständig aktive AMD-Low-Memory-Profil, erfolgreiches Laden von WAI Illustrious und anschließend eine native Windows-Zugriffsverletzung im ROCm-Samplingpfad auf `gfx1103`.
+- Bestanden: optimierter Rust-/Tauri-Build, Inno-Installer, portables Archiv, Runtime-Staging und lokale Prüfung der signierten Update-Metadaten.
+- Paket-Hashes: Portable ZIP `83f2930ba92d4ffe0856ac7a10955d960ee8a82a9529096ee78747f10c3b4798`, Installer `0ef2c67167b119bfb70b213b0c62054224e2f0563a65adc82849ced06136ba45`.
+- Abgrenzung: Die Rust-Inferenzpfade sind gegenüber 0.36.12 unverändert und wurden für diese UI-Änderung nicht erneut getestet. Der echte ROG-Ally-Lauf bleibt offen.
+- Noch ausstehend: öffentliche Releaseprüfung nach dem Upload.
+
 # Releaseprüfung 0.36.12 – 2026-09-26
 
 - Bestanden: sechs gezielte ComfyUI-Tests.

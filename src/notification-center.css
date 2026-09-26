@@ -1,0 +1,16 @@
+.window-notification-button{position:relative;display:grid;place-items:center;align-self:center;width:32px;height:28px;margin:0 2px;padding:0;border:0;border-radius:5px;background:transparent;color:var(--text)}
+.window-notification-button:hover,.window-notification-button[aria-expanded=true]{background:var(--panel-raised)}
+.window-notification-badge{position:absolute;right:1px;top:1px;min-width:13px;height:13px;box-sizing:border-box;padding:0 3px;border:2px solid var(--sidebar);border-radius:8px;background:var(--accent);color:var(--accent-contrast,#fff);font-size:8px;font-weight:700;line-height:9px;text-align:center}
+dialog.notification-center{position:fixed;inset:44px auto auto 12px;margin:0;width:min(430px,calc(100vw - 24px));max-width:calc(100vw - 24px);max-height:calc(100vh - 60px);box-sizing:border-box;padding:18px;background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:12px;box-shadow:0 16px 48px #0007;zoom:calc(1 / var(--ui-scale));overflow:auto}
+.notification-center::backdrop{background:transparent}
+.notification-center-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:12px}
+.notification-center-heading h2{font-size:16px;margin:0 0 3px}
+.notification-center-heading small{color:var(--muted);font-size:11px}
+.notification-center-list{max-height:65vh;overflow:auto;overscroll-behavior:contain}
+.notification-center-empty{display:grid;justify-items:center;text-align:center;padding:34px 18px;color:var(--muted)}
+.notification-center-empty svg{color:var(--accent);margin-bottom:10px}.notification-center-empty strong{font-size:13px;color:var(--text)}.notification-center-empty p{font-size:12px;margin:6px 0 0}
+.notification-center-item{display:grid;grid-template-columns:20px 1fr;gap:11px;padding:15px 0;border-top:1px solid var(--border)}
+.notification-center-item>svg{margin-top:1px;color:var(--muted)}
+.notification-center-item.warning>svg{color:var(--warning)}.notification-center-item.error>svg{color:var(--danger)}.notification-center-item.success>svg{color:var(--accent)}
+.notification-center-item strong{display:block;font-size:13px}.notification-center-item p{margin:5px 0 0;color:var(--muted);font-size:12px;line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere}
+.notification-center-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:11px}.notification-center-actions .button{min-height:30px;padding:5px 10px;font-size:11px}

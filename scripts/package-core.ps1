@@ -42,6 +42,11 @@ Videoschnitt und GIF-Studio. Galerie und Modelle bleiben zentral erreichbar;
 Hugging Face, Downloads, Auftraege und Einstellungen liegen rechts. Die bisherige
 doppelte Studio-Navigation und Breadcrumb-Leiste wurden entfernt.
 
+Neu in 0.36.13: Ein Benachrichtigungssymbol neben den Downloads sammelt
+Wiederherstellungen und wichtige Hinweise, ohne den Arbeitsbereich zu verdecken.
+Projekt-, Bildarbeitsstand- und Auftragswiederherstellungen lassen sich direkt
+im Benachrichtigungsfenster aufrufen; ein Zaehler zeigt offene Hinweise.
+
 Neu in 0.36.12: AMD-Systeme mit hoechstens 16 GB gemeinsamem Speicher starten
 ComfyUI ohne DynamicVRAM und mit Low-VRAM-Modus. Der SDXL-Textencoder laeuft
 dadurch auf der CPU und umgeht den auf dem ROG Ally abgestuerzten ROCm-Pfad.
