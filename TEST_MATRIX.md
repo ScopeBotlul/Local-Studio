@@ -1,3 +1,12 @@
+# Releaseprüfung 0.36.12 – 2026-09-26
+
+- Bestanden: sechs gezielte ComfyUI-Tests.
+- Abgedeckt: AMD-Grundprofil, zusätzliches Low-Memory-Profil mit `--disable-dynamic-vram` und `--lowvram`, Grenzwerte bei 12, 16 und 32 GB sowie unveränderte Modellpfad- und Workflowbehandlung.
+- Abgrenzung: Das Low-Memory-Profil gilt nur für erkannte AMD-Pakete bei höchstens 16 GB Gesamtspeicher; größere AMD-Systeme und NVIDIA bleiben unverändert.
+- Bestanden: Frontend-Produktionsbuild, optimierter Rust-/Tauri-Build, Inno-Installer, portables Archiv, Runtime-Staging und signierte Update-Metadaten.
+- Paket-Hashes: Portable ZIP `cb915237fb4265da3e0bd3448bec0f05e0c5e674eddbe9e596bce6aa5ba41196`, Installer `f4897b1c098be070cf0dfbbdf72cb6e4a5a9e79520a80fa5d9b9fff07f9637ca`.
+- Noch offen: echter WAI-Illustrious-Lauf auf dem ROG Ally; CPU-Textencoding und konservatives Speichermanagement können die Generierung verlangsamen.
+
 # Releaseprüfung 0.36.11 – 2026-09-26
 
 - Bestanden: drei gezielte Bugreport-Tests; die begrenzte Diagnose enthält Startinformationen, den Bereich um eine native Fatal-/Zugriffsverletzung und das Stackende.

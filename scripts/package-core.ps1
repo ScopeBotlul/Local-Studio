@@ -42,6 +42,10 @@ Videoschnitt und GIF-Studio. Galerie und Modelle bleiben zentral erreichbar;
 Hugging Face, Downloads, Auftraege und Einstellungen liegen rechts. Die bisherige
 doppelte Studio-Navigation und Breadcrumb-Leiste wurden entfernt.
 
+Neu in 0.36.12: AMD-Systeme mit hoechstens 16 GB gemeinsamem Speicher starten
+ComfyUI ohne DynamicVRAM und mit Low-VRAM-Modus. Der SDXL-Textencoder laeuft
+dadurch auf der CPU und umgeht den auf dem ROG Ally abgestuerzten ROCm-Pfad.
+
 Neu in 0.36.11: Verwaltete AMD-ComfyUI-Installationen deaktivieren gepinnten
 Hostspeicher und asynchrones Weight-Offloading. Das reduziert den im ROG-Ally-
 Bericht sichtbaren RAM-Druck beim Laden grosser SDXL-Modelle. Crashberichte

@@ -28,6 +28,7 @@ const AMD_COMPAT_ARGS: [&str; 3] = [
     "--disable-pinned-memory",
     "--disable-async-offload",
 ];
+const AMD_LOW_MEMORY_ARGS: [&str; 2] = ["--disable-dynamic-vram", "--lowvram"];
 
 #[derive(Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -130,6 +131,9 @@ fn resolve_comfy_option(info: &Value, node: &str, input: &str, requested: &str) 
 }
 fn uses_amd_safe_attention(path: &Path) -> bool {
     path.join("run_amd_gpu.bat").is_file()
+}
+fn uses_amd_low_memory_profile(total_memory: u64) -> bool {
+    total_memory <= 16 * 1024 * 1024 * 1024
 }
 fn likely_roots(managed_root: &Path) -> Vec<PathBuf> {
     let mut choices = Vec::new();
@@ -1022,7 +1026,16 @@ impl Comfy {
         }
         self.write_extra_model_paths()?;
         let amd_safe_attention = uses_amd_safe_attention(&root);
-        let log_header = if amd_safe_attention {
+        let amd_low_memory = if amd_safe_attention {
+            let mut memory = sysinfo::System::new();
+            memory.refresh_memory();
+            uses_amd_low_memory_profile(memory.total_memory())
+        } else {
+            false
+        };
+        let log_header = if amd_low_memory {
+            "Local Studio: ComfyUI runtime (AMD low-memory compatibility: split cross attention, pinned memory, async offload and dynamic VRAM disabled; lowvram enabled)\r\n"
+        } else if amd_safe_attention {
             "Local Studio: ComfyUI runtime (AMD compatibility: split cross attention, pinned memory and async offload disabled)\r\n"
         } else {
             "Local Studio: ComfyUI runtime\r\n"
@@ -1054,6 +1067,9 @@ impl Comfy {
             .stdin(Stdio::null());
         if amd_safe_attention {
             command.args(AMD_COMPAT_ARGS);
+        }
+        if amd_low_memory {
+            command.args(AMD_LOW_MEMORY_ARGS);
         }
         command
             .stdout(Stdio::from(log.try_clone().map_err(|_| "comfy_storage")?))
@@ -1507,6 +1523,13 @@ mod tests {
         assert_eq!(
             package_name("amd").unwrap(),
             "ComfyUI_windows_portable_amd.7z"
+        );
+        assert!(uses_amd_low_memory_profile(12 * 1024 * 1024 * 1024));
+        assert!(uses_amd_low_memory_profile(16 * 1024 * 1024 * 1024));
+        assert!(!uses_amd_low_memory_profile(32 * 1024 * 1024 * 1024));
+        assert_eq!(
+            AMD_LOW_MEMORY_ARGS,
+            ["--disable-dynamic-vram", "--lowvram"]
         );
         assert_eq!(
             package_name("nvidia_legacy").unwrap(),
