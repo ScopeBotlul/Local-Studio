@@ -47,7 +47,7 @@ impl Drop for Lease {
     }
 }
 
-fn admitted(s: &State, id: &str, available: u64) -> bool {
+fn admitted(s: &State, id: &str, available: u64, enforce_memory: bool) -> bool {
     let Some(task) = s.tasks.iter().find(|t| t.id == id) else {
         return false;
     };
@@ -68,7 +68,9 @@ fn admitted(s: &State, id: &str, available: u64) -> bool {
     let reserved = active
         .iter()
         .fold(0u64, |v, t| v.saturating_add(t.ram_bytes));
-    available.saturating_sub(reserved) >= task.ram_bytes.saturating_add(512 * 1024 * 1024)
+    !enforce_memory
+        || available.saturating_sub(reserved)
+            >= task.ram_bytes.saturating_add(512 * 1024 * 1024)
 }
 impl Resources {
     pub fn acquire(
@@ -78,6 +80,26 @@ impl Resources {
         ram_bytes: u64,
         gpu: bool,
         cancel: &AtomicBool,
+    ) -> Result<Lease, String> {
+        self.acquire_with_memory_policy(id, kind, ram_bytes, gpu, cancel, true)
+    }
+    pub fn acquire_unmeasured(
+        self: &Arc<Self>,
+        id: &str,
+        kind: &str,
+        gpu: bool,
+        cancel: &AtomicBool,
+    ) -> Result<Lease, String> {
+        self.acquire_with_memory_policy(id, kind, 0, gpu, cancel, false)
+    }
+    fn acquire_with_memory_policy(
+        self: &Arc<Self>,
+        id: &str,
+        kind: &str,
+        ram_bytes: u64,
+        gpu: bool,
+        cancel: &AtomicBool,
+        enforce_memory: bool,
     ) -> Result<Lease, String> {
         let ticket = format!("{kind}:{id}");
         {
@@ -110,11 +132,12 @@ impl Resources {
             let available = memory.available_memory();
             {
                 let mut s = self.state.lock().map_err(|_| "resource_state")?;
-                if admitted(&s, &ticket, available) {
+                if admitted(&s, &ticket, available, enforce_memory) {
                     s.tasks.iter_mut().find(|t| t.id == ticket).unwrap().state = "running".into();
                     return Ok(guard);
                 }
-                if !s.tasks.iter().any(|t| t.state == "running")
+                if enforce_memory
+                    && !s.tasks.iter().any(|t| t.state == "running")
                     && available < ram_bytes.saturating_add(512 * 1024 * 1024)
                 {
                     return Err("resource_memory".into());
@@ -156,15 +179,16 @@ mod tests {
                 task("c", "waiting", false),
             ],
         };
-        assert!(!admitted(&s, "b", u64::MAX));
+        assert!(!admitted(&s, "b", u64::MAX, true));
         s.parallel = true;
-        assert!(admitted(&s, "b", u64::MAX));
-        assert!(!admitted(&s, "c", u64::MAX));
-        assert!(!admitted(&s, "b", 1));
+        assert!(admitted(&s, "b", u64::MAX, true));
+        assert!(!admitted(&s, "c", u64::MAX, true));
+        assert!(!admitted(&s, "b", 1, true));
+        assert!(admitted(&s, "b", 1, false));
         s.tasks[1].gpu = true;
-        assert!(!admitted(&s, "b", u64::MAX));
+        assert!(!admitted(&s, "b", u64::MAX, false));
         s.tasks[0].gpu = false;
-        assert!(admitted(&s, "b", u64::MAX));
+        assert!(admitted(&s, "b", u64::MAX, false));
     }
     #[test]
     fn cancelled_waiter_is_removed_and_lease_releases_capacity() {

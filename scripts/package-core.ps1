@@ -42,6 +42,11 @@ Videoschnitt und GIF-Studio. Galerie und Modelle bleiben zentral erreichbar;
 Hugging Face, Downloads, Auftraege und Einstellungen liegen rechts. Die bisherige
 doppelte Studio-Navigation und Breadcrumb-Leiste wurden entfernt.
 
+Neu in 0.36.5: Verwaltete ComfyUI-Auftraege besitzen keine pauschale Grenze fuer
+den von Windows gerade als frei gemeldeten RAM mehr. Auf Geraeten mit gemeinsamem
+CPU-/GPU-Speicher entscheidet ComfyUI/ROCm ueber Laden und Auslagern. Reihenfolge
+und die Sperre gegen parallele GPU-Auftraege bleiben erhalten.
+
 Neu in 0.36.4: ComfyUI-Auftraege werden auf PCs mit gemeinsamem CPU-/GPU-Speicher
 nicht mehr wegen der Dateigroesse des Checkpoints vorzeitig abgewiesen. Local Studio
 reserviert eine kleine Arbeitsreserve und laesst ComfyUI/ROCm den tatsaechlichen

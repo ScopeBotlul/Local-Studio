@@ -1,3 +1,9 @@
+# Release 0.36.5 vorbereitet – verbleibende ComfyUI-RAM-Sperre entfernt (2026-09-26)
+
+Die in 0.36.4 reduzierte Vorabreserve blieb auf dem ROG Ally zu streng: Bei weniger als ungefähr 1 GiB unmittelbar freiem Windows-RAM wurde der Auftrag weiterhin vor ComfyUI abgewiesen. Das kann bei gemeinsamem CPU-/GPU-Speicher auftreten, obwohl ComfyUI/ROCm noch auslagern kann.
+
+Verwaltete ComfyUI-Aufträge umgehen jetzt ausschließlich die physische RAM-Zulassungsgrenze des gemeinsamen Planers. FIFO-Reihenfolge, maximale Parallelität und GPU-Exklusivität bleiben aktiv. Andere Laufzeiten und der native Bildadapter behalten ihre RAM-Prüfungen. Die direkt betroffenen Bild-Engine- und Ressourcenplaner-Tests, Frontend-Produktionsbuild, optimierter Rust-/Tauri-Build, Installer, portables Archiv und signierte Update-Metadaten sind bestanden. Die Veröffentlichung wird nach der GitHub-Rückprüfung ergänzt.
+
 # Release 0.36.4 veröffentlicht – RAM-Vorprüfung für ComfyUI korrigiert (2026-09-26)
 
 Die gemeinsame Ressourcenplanung hat bisher für jeden Bildauftrag die vollständige Checkpoint-Dateigröße plus 1 GiB als freien System-RAM verlangt. Zusammen mit der allgemeinen 512-MiB-Sicherheitsreserve wurden WAI Illustrious und ähnlich große Checkpoints auf dem ROG Ally deshalb bereits vor dem ComfyUI-Start abgewiesen.

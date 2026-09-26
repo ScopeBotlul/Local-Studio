@@ -1,3 +1,11 @@
+# Releaseprüfung 0.36.5 – 2026-09-26
+
+- `cargo test --manifest-path src-tauri/Cargo.toml image_engine::tests`: 6/6 bestanden. ComfyUI verwendet den neuen nicht gemessenen Ressourcenpfad; der native Adapter reserviert weiterhin Checkpoint-Größe plus 1 GiB.
+- `cargo test --manifest-path src-tauri/Cargo.toml resources::tests`: 2/2 bestanden. Ein nicht gemessener Auftrag wird auch bei einem sehr niedrigen freien RAM-Wert zugelassen, bleibt aber an FIFO, Parallelitätsgrenze und GPU-Exklusivität gebunden.
+- Ein echter WAI-Illustrious-Lauf auf dem ROG Ally wurde auf dem Entwicklungsgerät nicht ausgeführt. Eine danach auftretende ComfyUI-/ROCm-Speichermeldung wäre eine reale Laufzeitgrenze und wird anhand des lokalen Protokolls untersucht.
+- Frontend-Produktionsbuild sowie optimierter Rust-/Tauri-Release-Build und Inno-Installer: bestanden. Das portable ZIP enthält exakt 80 erlaubte Dateien; 77 Runtime-Dateien entsprechen ihren Manifesten. EXE SHA-256 `f81ef733fa28ef3ce1c1ae96a5f679e4a9e7bc439d71627f786acbae45b2cfbf`, ZIP `be1e4f96ff26489cf342b05965163382eee2b9482a08df68194658c8de527835`, Installer `c6c1c152e471505849ad92fdc3c43548af067f430bc08cadba399b060bfac56b`. Das signierte Manifest stimmt mit Version, URLs, Größen, Hashes und eingebettetem öffentlichen Schlüssel überein.
+- Veröffentlichung und Rückprüfung der GitHub-Assets: ausstehend.
+
 # Releaseprüfung 0.36.4 – 2026-09-26
 
 - `cargo test --manifest-path src-tauri/Cargo.toml image_engine::tests`: 6/6 bestanden. Der neue Test bestätigt für ComfyUI eine feste 512-MiB-Auftragsreserve und für den nativen Adapter weiterhin Checkpoint-Größe plus 1 GiB.

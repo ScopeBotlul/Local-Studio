@@ -144,12 +144,8 @@ pub(crate) fn valid_dimensions(width: u32, height: u32) -> bool {
         && height % 64 == 0
         && u64::from(width) * u64::from(height) <= 4_194_304
 }
-fn admission_ram(runtime: &str, model_bytes: u64) -> u64 {
-    if runtime.starts_with("ComfyUI") {
-        512 * 1024 * 1024
-    } else {
-        model_bytes.saturating_add(1024 * 1024 * 1024)
-    }
+fn admission_ram(model_bytes: u64) -> u64 {
+    model_bytes.saturating_add(1024 * 1024 * 1024)
 }
 pub(crate) fn validate(request: &ImageRequest) -> Result<()> {
     if let Some(reference) = &request.reference {
@@ -721,21 +717,25 @@ impl ImageEngine {
         let mut peak_memory = None;
         let result = (|| -> Result<String> {
             self.update(&job.id, true, |j| j.phase = "waiting".into())?;
-            let _admission = crate::resources::shared()
-                .acquire(
+            let resources = crate::resources::shared();
+            let _admission = if job.runtime.starts_with("ComfyUI") {
+                resources.acquire_unmeasured(&job.id, "image", true, &cancel)
+            } else {
+                resources.acquire(
                     &job.id,
                     "image",
-                    admission_ram(&job.runtime, job.model_bytes),
+                    admission_ram(job.model_bytes),
                     true,
                     &cancel,
                 )
-                .map_err(|e| {
-                    if e == "resource_cancelled" {
-                        "image_cancelled".to_string()
-                    } else {
-                        e
-                    }
-                })?;
+            }
+            .map_err(|e| {
+                if e == "resource_cancelled" {
+                    "image_cancelled".to_string()
+                } else {
+                    e
+                }
+            })?;
             started = Instant::now();
             let _directory_pins = crate::gallery::directory_guards(&directory)?;
             let mut model = read_locked(Path::new(&job.request.model_path))?;
@@ -1351,16 +1351,9 @@ mod tests {
         assert!(runtime_files(dir.path()).is_err());
     }
     #[test]
-    fn comfy_admission_does_not_require_checkpoint_size_as_free_system_ram() {
+    fn native_admission_includes_checkpoint_size_and_working_memory() {
         let model = 7 * 1024 * 1024 * 1024;
-        assert_eq!(
-            admission_ram("ComfyUI · local HTTP API", model),
-            512 * 1024 * 1024
-        );
-        assert_eq!(
-            admission_ram("stable-diffusion.cpp · Vulkan", model),
-            8 * 1024 * 1024 * 1024
-        );
+        assert_eq!(admission_ram(model), 8 * 1024 * 1024 * 1024);
     }
 }
 
