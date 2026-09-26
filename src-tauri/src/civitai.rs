@@ -213,14 +213,18 @@ fn danbooru_id(input: &str) -> Result<u64> {
     parts[1].parse().map_err(|_| "tag_post".into())
 }
 fn site(url: &Url) -> bool {
+    let trusted_host = url.host_str().is_some_and(|host| {
+        host == "civitai.com"
+            || host.ends_with(".civitai.com")
+            || host == "civitai.red"
+            || host.ends_with(".civitai.red")
+            || host == "danbooru.donmai.us"
+    });
     url.scheme() == "https"
         && url.port().is_none()
         && url.username().is_empty()
         && url.password().is_none()
-        && matches!(
-            url.host_str(),
-            Some("civitai.com" | "civitai.red" | "danbooru.donmai.us")
-        )
+        && trusted_host
 }
 fn local(caller: &Webview) -> Result<()> {
     if caller.label() == "main" {
@@ -1118,6 +1122,26 @@ mod tests {
             "javascript:alert(1)",
         ] {
             assert!(image_id(url).is_err(), "{url}");
+        }
+    }
+
+    #[test]
+    fn browser_allows_civitai_auth_subdomains_but_not_lookalikes() {
+        for url in [
+            "https://civitai.com/login",
+            "https://auth.civitai.com/login",
+            "https://civitai.red/models",
+            "https://blue.civitai.red/models",
+        ] {
+            assert!(site(&Url::parse(url).unwrap()), "{url}");
+        }
+        for url in [
+            "http://auth.civitai.com/login",
+            "https://civitai.com.evil.test/login",
+            "https://evilcivitai.com/login",
+            "https://user@civitai.com/login",
+        ] {
+            assert!(!site(&Url::parse(url).unwrap()), "{url}");
         }
     }
 

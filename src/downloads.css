@@ -16,4 +16,3 @@
 .download-plan dt { color: var(--muted); }.download-plan dd { margin: 0; overflow-wrap: anywhere; }
 .download-file-list { padding-left: 20px; font-size: 12px; }.download-file-list li { margin: 16px 0; overflow-wrap: anywhere; }
 .download-file-list span { margin-left: 12px; color: var(--muted); }.download-file-list code { display: block; margin-top: 5px; font-size: 10px; }
-.local-model-tabs { margin-bottom: 20px; }

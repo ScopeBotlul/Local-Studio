@@ -1,5 +1,7 @@
 # Local Studio
 
+Version 0.36.18 ordnet die Modellbibliothek über eine eigene Leiste für **Lokal gespeichert**, **Hugging Face** und **Civitai**. Civitai erhält einen integrierten Konto-/Webbereich, Typfilter und die bestehende geprüfte Downloadansicht. [Änderungen und Grenzen](docs/RELEASE_0.36.18.md).
+
 Version 0.36.17 nennt den Arbeitsbereich wieder **Studio** und aktualisiert die Akzentfarbe jetzt über Windows' großes Fenstericon, das für die laufende Taskleistenschaltfläche verwendet wird. [Änderungen und Grenzen](docs/RELEASE_0.36.17.md).
 
 Version 0.36.16 korrigiert die **Oberflächenskalierung**, färbt das laufende Windows-Fenstericon passend zum Akzent und unterstützt **LoRAs über die Vulkan-Engine auf AMD-/Intel-Handhelds**. [Änderungen und Grenzen](docs/RELEASE_0.36.16.md).

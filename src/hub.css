@@ -33,6 +33,15 @@
 .hub-files td:first-child { overflow-wrap: anywhere; }.hub-files td:last-child { white-space: nowrap; width: 120px; color: var(--muted); }.hub-files small { display: block; font-size: 10px; color: var(--faint); margin-top: 5px; }
 .hub-card { margin-top: 24px; }.hub-card summary { cursor: pointer; font-size: 13px; }.hub-card pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 520px; overflow: auto; background: var(--field); padding: 18px; font: 12px/1.7 Consolas, monospace; color: var(--muted); border-radius: 7px; }
 .civitai-models .hub-filter-support { display:flex; align-items:flex-start; gap:8px; }
+.civitai-account { margin-bottom: 18px; }
+.civitai-account .hub-account-title { margin-bottom: 14px; }
+.civitai-account .hub-account-title > div { flex: 1; min-width: 0; }
+.civitai-account .hub-hint { margin-bottom: 0; }
+.civitai-website { margin: 0 0 22px; min-width: 0; }
+.civitai-website .civitai-browser { margin: 0; }
+.civitai-website .civitai-browser-surface { height: min(560px, calc(100vh / var(--ui-scale, 1) - 300px)); min-height: 320px; }
+.compact-tags { gap: 6px; margin: 0 0 9px; }
+.compact-tags .pill { padding: 3px 7px; font-size: 10px; }
 .civitai-version { border-top:1px solid var(--line); padding:16px 0; }.civitai-version > summary { justify-content:space-between; }.civitai-version > summary span { margin-left:auto; color:var(--muted); }.civitai-version .hub-files { margin-top:14px; }.civitai-version td:last-child { width:120px; }.civitai-version .button { white-space:nowrap; }
 @media (max-width: 1120px) { .hub-model { flex-wrap: wrap; }.hub-model .button { margin-left: 57px; }.hub-token-field { flex-wrap: wrap; }.hub-token-field input { min-width: 180px; }.hub-revision { flex-wrap: wrap; } }
 

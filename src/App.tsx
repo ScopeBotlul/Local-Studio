@@ -40,12 +40,12 @@ import ExitDialog, { type ExitPrompt, type ExitChoice } from './ExitDialog';
 import { useImageWorkspace } from './useImageWorkspace';
 import DownloadsPage from './DownloadsPage';
 import { downloads, activeDownload } from './download-api';
-import HubPage from './HubPage';
+import HubPage, {type ModelSource} from './HubPage';
 import './hub.css';
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { open } from '@tauri-apps/plugin-dialog';
-import { ArrowLeft, ArrowRight, Box, Check, CheckCircle2, ChevronDown, Circle, CircleHelp, Cpu, Download, FileCheck2, Film, Folder, HardDrive, Images, LoaderCircle, Monitor, Palette, PanelLeftClose, PanelLeftOpen, RefreshCw, Settings2, ShieldCheck, Sparkles, Square, Terminal, TriangleAlert, Workflow, X, type LucideIcon } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Box, Check, CheckCircle2, ChevronDown, Circle, CircleHelp, Cloud, Cpu, Download, FileCheck2, Film, Folder, HardDrive, Images, LoaderCircle, Monitor, Palette, PanelLeftClose, PanelLeftOpen, RefreshCw, Settings2, ShieldCheck, Sparkles, Square, Terminal, TriangleAlert, Workflow, X, type LucideIcon } from 'lucide-react';
 import { api, inDesktop } from './api';
 import { clampScale, errorMessage, fileName, formatBytes, formatDate, initialLanguage, isActiveJob, ZOOM_STEP } from './helpers';
 import { translations, type Translations } from './i18n';
@@ -62,6 +62,7 @@ const utilityNav: { id: Page; icon: LucideIcon }[] = [
   { id: 'hub', icon: CircleHelp }, { id: 'downloads', icon: Download }, { id: 'jobs', icon: Workflow },
 ];
 const studioTabs = ['generate', 'canvas', 'timeline', 'gif'] as const;
+const modelSources: ModelSource[] = ['local', 'huggingface', 'civitai'];
 const pathKeys: { key: keyof StoragePaths; label: keyof Translations }[] = [
   { key: 'models', label: 'pathsModels' }, { key: 'assistantModels', label: 'pathsAssistantModels' },
   { key: 'visionModels', label: 'pathsVisionModels' }, { key: 'downloads', label: 'pathsDownloads' },
@@ -150,7 +151,9 @@ export default function App() {
   const [snapshot, setSnapshot] = useState<AppSnapshot | null>(null);
   const [draft, setDraft] = useState<Settings | null>(null);
   const [page, setPage] = useState<Page>(()=>{const saved=sessionStorage.getItem('local-studio-page') as Page|null;return saved&&['home','studio','models','downloads','jobs','gallery','hub','assistant','settings'].includes(saved)?saved:'home';});
+  const [modelSource,setModelSource]=useState<ModelSource>(()=>{const saved=sessionStorage.getItem('local-studio-model-source');return saved==='local'||saved==='civitai'||saved==='huggingface'?saved:'local';});
   useEffect(()=>{sessionStorage.setItem('local-studio-page',page);setProjectDetailsOpen(false);},[page]);
+  useEffect(()=>{sessionStorage.setItem('local-studio-model-source',modelSource);},[modelSource]);
   const [selectedImageJob, setSelectedImageJob] = useState<string | null>(null);
   const [imageJobs, setImageJobs] = useState<ImageJob[]>([]);
   const [exitPrompt, setExitPrompt] = useState<ExitPrompt | null>(null);
@@ -493,6 +496,35 @@ export default function App() {
         ><Icon size={15}/><span>{label}</span></button>;
       })}
     </nav>}
+    {page === 'models' && !projectDetailsOpen && <nav className="create-nav model-source-nav" aria-label={language === 'de' ? 'Modellquellen' : 'Model sources'}>
+      {modelSources.map(source => {
+        const Icon = source === 'local' ? HardDrive : source === 'huggingface' ? Cloud : Circle;
+        const label = source === 'local' ? (language === 'de' ? 'Lokal gespeichert' : 'Stored locally') : source === 'huggingface' ? 'Hugging Face' : 'Civitai';
+        return <button
+          key={source}
+          aria-current={modelSource === source ? 'page' : undefined}
+          className={modelSource === source ? 'selected' : ''}
+          tabIndex={modelSource === source ? 0 : -1}
+          onKeyDown={event => {
+            const index = modelSources.indexOf(source);
+            const next = event.key === 'ArrowRight'
+              ? modelSources[(index + 1) % modelSources.length]
+              : event.key === 'ArrowLeft'
+                ? modelSources[(index + modelSources.length - 1) % modelSources.length]
+                : event.key === 'Home'
+                  ? modelSources[0]
+                  : event.key === 'End'
+                    ? modelSources[modelSources.length - 1]
+                    : null;
+            if (!next) return;
+            event.preventDefault();
+            setModelSource(next);
+            event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>('button')[modelSources.indexOf(next)]?.focus();
+          }}
+          onClick={() => setModelSource(source)}
+        ><Icon size={15}/><span>{label}</span></button>;
+      })}
+    </nav>}
     <div className="main-shell" inert={exitBusy}><CoreFeatures settings={snapshot.settings} de={language==='de'} onJobs={()=>setPage('jobs')}/>
       <main id="main-content" className="main-content">
         {projectDetailsOpen&&<ProjectPanel onClose={()=>setProjectDetailsOpen(false)} shortcuts={snapshot.settings.shortcuts} maxUndo={snapshot.settings.maxUndo} controller={projects} language={language} disabled={!studio.ready || studio.recovery || saving} changed={!!projects.project && JSON.stringify(projects.project.request) !== JSON.stringify(studio.request)} />}
@@ -504,7 +536,7 @@ export default function App() {
         {page === 'jobs' && <VideoJobs de={language==='de'}/>}
         {page === 'jobs' && <div className="page"><header className="page-heading"><div><div className="eyebrow">{t.workspace}</div><h1>{t.jobs}</h1><p>{language === 'de' ? 'Lokale Bildgenerierungen und Dateiprüfungen mit Fortschritt, Ergebnis und Abbruch.' : 'Local image generations and file checks with progress, results and cancellation.'}</p></div>{hashButton}</header><section className="panel jobs-panel"><div className="jobs-toolbar"><div className="segmented" aria-label={t.jobs}>{(['all', 'active', 'finished'] as JobFilter[]).map(filter => <button key={filter} aria-pressed={jobFilter === filter} className={jobFilter === filter ? 'active' : ''} onClick={() => setJobFilter(filter)}>{filter === 'all' ? t.all : filter === 'active' ? t.activeFilter : t.finishedFilter}</button>)}</div><span className="subtle">{combinedJobs.length} {t.jobCount} · {activeCount} {t.active}</span></div>{visibleJobs.length ? visibleJobs.slice(0, jobLimit).map(item => item.kind === 'file' ? <JobRow key={item.job.id} job={item.job} t={t} language={language} onCancel={id => void cancelJob(id)} pending={jobPending} /> : <ImageJobRow key={item.job.id} job={item.job} language={language} pending={jobPending} onResume={() => { setJobPending(true); void imageApi.resume(item.job.id).catch(e => reportError(imageError(e, language === 'de'))).finally(() => setJobPending(false)); }} onOpen={() => { setSelectedImageJob(item.job.id); setStudioTab('generate'); setPage('studio'); }} onCancel={() => { setJobPending(true); void imageApi.cancel(item.job.id).catch(reportError).finally(() => setJobPending(false)); }} />) : <EmptyJobs t={t} filtered={combinedJobs.length > 0} />}{visibleJobs.length > jobLimit && <button className="button secondary" onClick={() => setJobLimit(n => n + 100)}>{language === 'de' ? 'Weitere Aufträge anzeigen' : 'Show more jobs'}</button>}</section><p className="under-panel-note"><ShieldCheck size={16} />{t.hashNote}</p></div>}
         {page === 'settings' && draft && <div className="page settings-page"><header className="page-heading"><div><div className="eyebrow">LOCAL STUDIO</div><h1>{t.settings}</h1><p>{t.settingsIntro}</p></div><span className="pill">{snapshot.portable ? t.portable : t.standard}</span></header><form onSubmit={(event: FormEvent) => { event.preventDefault(); void persist(draft); }}><section className="panel settings-section"><div className="settings-section-title"><Palette size={20} /><div><h2>{t.appearance}</h2><p>{t.appearanceHint}</p></div></div><div className="setting-row"><label htmlFor="language">{t.language}</label><select id="language" disabled={saving} value={draft.language} onChange={event => updateDraft('language', event.target.value as Language)}><option value="de">Deutsch</option><option value="en">English</option></select></div><div className="setting-row"><label htmlFor="restore-session">{language === 'de' ? 'Studio beim Start' : 'Studio on startup'}</label><select id="restore-session" disabled={saving} value={String(draft.restoreSession)} onChange={event => updateDraft('restoreSession', event.target.value === 'true')}><option value="false">{language === 'de' ? 'Leere Sitzung' : 'Empty session'}</option><option value="true">{language === 'de' ? 'Letzten Bild-Arbeitsstand wiederherstellen' : 'Restore last image workspace'}</option></select></div><div className="setting-row"><label htmlFor="theme">{t.theme}</label><select id="theme" disabled={saving} value={draft.theme} onChange={event => updateDraft('theme', event.target.value as Settings['theme'])}><option value="system">{t.themeSystem}</option><option value="light">{t.themeLight}</option><option value="dark">{t.themeDark}</option></select></div><div className="setting-row"><label htmlFor="accent">{t.accent}</label><div className="color-field"><span>{draft.accentColor.toUpperCase()}</span><input id="accent" disabled={saving} type="color" value={draft.accentColor} onChange={event => updateDraft('accentColor', event.target.value)} /></div></div><div className="setting-row scale-setting"><div><label htmlFor="scale">{t.scale}</label><small>{t.scaleHint}</small></div><div className="scale-control"><input id="scale" disabled={saving} type="range" min="0.75" max="1.5" step="0.05" value={draft.uiScale} onChange={event => updateDraft('uiScale', clampScale(Number(event.target.value)))} /><output htmlFor="scale">{Math.round(draft.uiScale * 100)} %</output><IconButton title={t.resetScale} disabled={saving} onClick={() => updateDraft('uiScale', 1)}><RefreshCw size={14} /></IconButton></div></div></section><section className="panel settings-section"><div className="settings-section-title"><Folder size={20} /><div><h2>{t.dataFolder}</h2><p>{t.dataHint}</p></div></div><div className="path-field"><input aria-label={t.dataFolder} disabled={saving} value={draft.dataRoot} onChange={event => updateDraft('dataRoot', event.target.value)} spellCheck={false} required /><button type="button" className="button secondary" disabled={saving} onClick={() => void chooseDataRoot()}><Folder size={16} />{t.browse}</button></div><StorageSettings settings={draft} de={language === 'de'} disabled={saving} onChange={value => updateDraft('storageOverrides', value)} chooseFolder={chooseFolder} /><details className="storage-paths"><summary>{t.dataPaths}<ChevronDown size={14} /></summary><dl>{pathKeys.map(({ key, label }) => <div key={key}><dt>{t[label]}</dt><dd>{snapshot.paths[key]}</dd></div>)}<div><dt>{t.database}</dt><dd>{snapshot.databasePath}</dd></div></dl></details></section><CoreSettings settings={draft} de={language==='de'} disabled={saving} onChange={patch=>{if(canEditSettings())setDraft(value=>value?{...value,...patch}:value);}}/><ShortcutSettings value={draft.shortcuts} de={language === 'de'} disabled={saving} onChange={value => updateDraft('shortcuts', value)} /><StorageMaintenance settings={draft} de={language === 'de'} disabled={saving} dirty={dirty} onChange={patch => { if (canEditSettings()) setDraft(value => value ? { ...value, ...patch } : value); }} /><div className="settings-actions"><span>{dirty ? t.unsaved : ''}</span><button type="button" className="button secondary" disabled={!dirty || saving} onClick={discardSettings}>{t.discard}</button><button className="button primary" type="submit" disabled={!dirty || saving || !draft.dataRoot.trim()}>{saving ? <LoaderCircle size={16} className="spin" /> : <Check size={16} />}{saving ? t.saving : t.save}</button></div></form><LearnedPreferences de={language==='de'} disabled={saving}/><section className="panel settings-section"><div className="settings-section-title"><Terminal size={20} /><div><h2>{t.diagnostics}</h2><p>{t.diagnosticsText}</p></div></div><button className="button secondary" disabled={logsBusy} onClick={() => void toggleLogs()}>{logsBusy ? <LoaderCircle size={16} className="spin" /> : <Terminal size={16} />}{logs === null ? t.showLogs : t.hideLogs}</button>{logs !== null && <pre className="log-output" tabIndex={0}>{logs || t.noLogs}</pre>}</section></div>}
-        {(page === 'hub' || page === 'models') && <HubPage key={page} language={language} showImage={path => { studio.selectModel(path); setSelectedImageJob(null); setStudioTab('generate'); setPage('studio'); }} mode={page} showDownloads={() => setPage('downloads')} initialRepo={page === 'models' ? initialModelRepo : null} showModels={repo => { setInitialModelRepo(repo ?? null); setPage('models'); }} />}
+        {(page === 'hub' || page === 'models') && <HubPage key={page} language={language} modelSource={modelSource} onModelSource={setModelSource} showImage={path => { studio.selectModel(path); setSelectedImageJob(null); setStudioTab('generate'); setPage('studio'); }} mode={page} showDownloads={() => setPage('downloads')} initialRepo={page === 'models' ? initialModelRepo : null} showModels={repo => { setInitialModelRepo(repo ?? null); setModelSource('huggingface'); setPage('models'); }} />}
         {page === 'assistant' && <AssistantPage de={language==='de'} onGallery={()=>setPage('gallery')} onApply={request=>{if(!studio.ready||studio.recovery){setError(language==='de'?'Zuerst den Bild-Arbeitsstand wiederherstellen oder verwerfen.':'First restore or discard the image workspace.');return;}studio.restore(request);setSelectedImageJob(null);setStudioTab('generate');setPage('studio');}}/>}
         {page === 'downloads' && <DownloadsPage language={language} />}
         {page === 'studio' && <>{studioTab === 'generate' && <ImageStudio projectDisabled={!projects.ready || projects.busy || !!projects.project?.recovery || studio.recovery} onAddToProject={projects.addImage} shortcuts={snapshot.settings.shortcuts} removeCensorTags={snapshot.settings.removeCensorTags} key={page} language={language} request={studio.request} setRequest={studio.setRequest} selectModel={studio.selectModel} onRestore={request => { studio.restore(request); setSelectedImageJob(null); setStudioTab('generate'); setPage('studio'); }} selectedJob={selectedImageJob} disabled={!studio.ready || studio.recovery}  />}{studioTab==='canvas'&&<CanvasStudio workspace={creative} projects={projects} de={language==='de'}/>} {studioTab==='timeline'&&<TimelineStudio workspace={creative} projects={projects} de={language==='de'}/>}{studioTab==='gif'&&<GifStudio de={language==='de'}/>}</>}

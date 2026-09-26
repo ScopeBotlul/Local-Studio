@@ -22,10 +22,26 @@ export async function checkCivitai31({getPage,invoke,artifactRoot,record}) {
 
   const setupLater=page.getByRole('button',{name:/Set up later|Später einrichten/});
   if(await setupLater.isVisible().catch(()=>false)) await setupLater.click();
-  await page.getByRole('button',{name:'Models',exact:true}).first().click();
-  await page.getByRole('button',{name:'Civitai',exact:true}).click();
+  await page.getByRole('button',{name:/Models|Modelle/,exact:true}).first().click();
+  const sourceNav=page.getByRole('navigation',{name:/Model sources|Modellquellen/});
+  await sourceNav.waitFor();
+  assert.equal(await sourceNav.getByRole('button').count(),3);
+  await sourceNav.getByRole('button',{name:'Civitai',exact:true}).click();
+  await page.getByRole('heading',{name:'Civitai',exact:true}).waitFor();
+  await page.getByRole('button',{name:/Sign in with Civitai|Mit Civitai anmelden/,exact:true}).click();
+  await page.locator('.civitai-browser-surface').waitFor({state:'visible'});
+  for(let attempt=0;attempt<40;attempt++){
+    const browser=await invoke('civitai_browser_state').catch(()=>null);
+    if(browser?.visible&&browser.url.includes('civitai.com'))break;
+    await new Promise(resolve=>setTimeout(resolve,250));
+  }
+  const browser=await invoke('civitai_browser_state');
+  assert.equal(browser.visible,true);
+  assert.match(browser.url,/^https:\/\/(?:auth\.)?civitai\.com\//);
+  await page.getByRole('button',{name:/Close browser|Browser schließen/,exact:true}).click();
+  record('Civitai account opens in the isolated integrated website profile');
   await page.getByLabel('Search Civitai',{exact:true}).fill('Realistic Vision');
-  await page.locator('.civitai-models .hub-filters select').first().selectOption('Checkpoint');
+  await page.getByRole('button',{name:'Checkpoints',exact:true}).click();
   await page.getByRole('button',{name:'Search',exact:true}).click();
   await page.locator('.hub-results .hub-model').first().waitFor({state:'visible',timeout:30000});
   assert.ok(await page.locator('.hub-results .hub-model').count()>0);

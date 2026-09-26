@@ -67,6 +67,12 @@ Neu in 0.36.17: Der Hauptarbeitsbereich heisst wieder Studio. Die Akzentfarbe
 wird als grosses Windows-Fenstericon gesetzt, damit auch die laufende
 Taskleistenschaltflaeche statt nur des kleinen Fenstericons aktualisiert wird.
 
+Neu in 0.36.18: Modelle hat jetzt eine eigene Werkzeugleiste fuer lokal
+gespeicherte Modelle, Hugging Face und Civitai. Civitai bietet Anmeldung und
+Website im getrennten integrierten Browserprofil, schnelle Typfilter sowie die
+bestehende sichere Detail- und Downloadpruefung. Die Website-Sitzung wird nicht
+als API-Schluessel ausgelesen oder in Downloadauftraegen gespeichert.
+
 Neu in 0.36.12: AMD-Systeme mit hoechstens 16 GB gemeinsamem Speicher starten
 ComfyUI ohne DynamicVRAM und mit Low-VRAM-Modus. Der SDXL-Textencoder laeuft
 dadurch auf der CPU und umgeht den auf dem ROG Ally abgestuerzten ROCm-Pfad.
