@@ -1,8 +1,8 @@
-# Release 0.36.17 vorbereitet – echtes Taskleistenicon und Studio-Name (2026-09-27)
+# Release 0.36.17 veröffentlicht – echtes Taskleistenicon und Studio-Name (2026-09-27)
 
 Der zentrale Arbeitsbereich heißt in der Hauptnavigation wieder **Studio**; die Unterleiste für Bild, Editor, Video und GIF bleibt bestehen. Die Akzentfarbe wird nicht länger nur über Tauri als kleines Windows-Fenstericon gesetzt. Ein eng begrenzter nativer IPC-Pfad validiert das lokal erzeugte 64×64-PNG, setzt `ICON_BIG`, `ICON_SMALL` und `ICON_SMALL2` am Hauptfenster und liest `ICON_BIG` anschließend mit `WM_GETICON` zurück. Damit erhält die laufende Taskleistenschaltfläche den Akzent, während Datei-, Desktop- und Startmenüicons statisch bleiben.
 
-11 gezielte Frontendtests, der neue Rust-Grenztest, Rust-Compilercheck, Produktions- und optimierter Tauri-Build sowie die reale isolierte Release-App sind bestanden. Der native Lauf öffnet **Studio**, wechselt die Akzentfarbe mehrfach, bestätigt den erfolgreichen großen Windows-Iconpfad ohne IPC-Fehler und hält die bestehenden Skalierungs- und Vulkan-LoRA-Prüfungen grün. Installer, Portable-ZIP, 80 Paketdateien, Runtime-Manifeste, Hashes und signierte Update-Metadaten sind lokal geprüft.
+11 gezielte Frontendtests, der neue Rust-Grenztest, Rust-Compilercheck, Produktions- und optimierter Tauri-Build sowie die reale isolierte Release-App sind bestanden. Der native Lauf öffnet **Studio**, wechselt die Akzentfarbe mehrfach, bestätigt den erfolgreichen großen Windows-Iconpfad ohne IPC-Fehler und hält die bestehenden Skalierungs- und Vulkan-LoRA-Prüfungen grün. Version 0.36.17 ist unter https://github.com/ScopeBotlul/Local-Studio/releases/tag/v0.36.17 öffentlich als Latest verfügbar; Tag `v0.36.17` verweist auf Release-Commit `938d57a`. Installer und Portable-ZIP wurden vollständig von GitHub zurückgeladen; alle fünf Asset-Digests, Größen, Paket-Hashes und die Update-Signatur stimmen.
 
 # Release 0.36.16 veröffentlicht – UI-Skalierung, Akzenticon und Vulkan-LoRAs (2026-09-27)
 

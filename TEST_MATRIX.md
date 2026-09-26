@@ -5,6 +5,7 @@
 - `scripts/desktop.ps1 check`, Frontend-Produktionsbuild und optimierter Tauri-Release-Build sind bestanden. Die neue Tauri-Berechtigung ist ausschließlich dem lokalen Haupt-WebView zugeordnet; `core:window:allow-set-icon` wurde entfernt.
 - Echte isolierte Release-App: 3/3 bestanden. Die Navigation heißt **Studio**; der Akzentwechsel ruft den nativen Befehl auf, der `ICON_BIG`, `ICON_SMALL` und `ICON_SMALL2` setzt und den großen Handle über `WM_GETICON` verifiziert. Kein IPC- oder Frontendfehler. Skalierungsgrenzen und Vulkan-LoRA-Auswahl bleiben grün. Nachweis: `.artifacts/native-1790462955879/report.json` und `.artifacts/native-1790462955879/release36-scaled-lora.png`.
 - Paketprüfung bestanden: Portable-ZIP mit 80 erlaubten Dateien und allen vier Runtime-Manifsten, Installer, Prüfsummen und signierte Update-Metadaten. Portable SHA-256 `e4e0b15bf8b3a5eec0fef16368f06631be277d4f951b3940ff64c279db8a678e`; Installer SHA-256 `a5a90941fcbe94c477228485b69842edb7abf61121caf457a189f394f0e25a55`.
+- Veröffentlichung bestanden: `v0.36.17` ist öffentlich und als Latest markiert. Installer und Portable-ZIP wurden vollständig von GitHub zurückgeladen; alle fünf Asset-Digests, Größen, Paket-Hashes und die Update-Signatur stimmen. Nachweis: `.artifacts/github-release-verification-0.36.17.json`.
 - Grenze: Datei-, Desktop-, Startmenü- und angeheftete Verknüpfungsicons stammen weiterhin aus der EXE beziehungsweise dem Windows-Iconcache. Dynamisch geändert wird das Icon der laufenden Hauptfenster-/Taskleistenschaltfläche.
 
 # Releaseprüfung 0.36.16 – 2026-09-27
