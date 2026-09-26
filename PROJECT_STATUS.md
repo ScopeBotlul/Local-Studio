@@ -1,8 +1,8 @@
-# Release 0.36.6 vorbereitet – alte Auftragsfehler vom aktuellen Formular getrennt (2026-09-26)
+# Release 0.36.6 veröffentlicht – alte Auftragsfehler vom aktuellen Formular getrennt (2026-09-26)
 
 Die sofort sichtbare RAM-Meldung ohne Modellauswahl war keine neue Ressourcenprüfung. Das Bildstudio wählte beim Öffnen automatisch den neuesten gespeicherten Auftrag aus; dessen alter `resource_memory`-Fehler erschien dadurch im aktuellen Canvasbereich.
 
-Ohne bewusste Auswahl zeigt das Studio nun einen leeren Canvas. Nur laufende oder wartende Aufträge werden automatisch eingeblendet. Historische Aufträge bleiben im Verlauf auswählbar, und ihre Fehler werden ausdrücklich als Meldung dieses gespeicherten Auftrags gekennzeichnet. Frontend-Produktionsbuild, optimierter Rust-/Tauri-Build, Installer, portables Archiv und signierte Update-Metadaten sind bestanden. Die Veröffentlichung wird nach der GitHub-Rückprüfung ergänzt.
+Ohne bewusste Auswahl zeigt das Studio nun einen leeren Canvas. Nur laufende oder wartende Aufträge werden automatisch eingeblendet. Historische Aufträge bleiben im Verlauf auswählbar, und ihre Fehler werden ausdrücklich als Meldung dieses gespeicherten Auftrags gekennzeichnet. Frontend-Produktionsbuild, optimierter Rust-/Tauri-Build, Installer, portables Archiv und signierte Update-Metadaten sind bestanden. Version 0.36.6 ist unter https://github.com/ScopeBotlul/Local-Studio/releases/tag/v0.36.6 öffentlich als Latest verfügbar; Tag `v0.36.6` verweist auf Release-Commit `c16f114`. Installer und portables Archiv wurden vollständig von GitHub zurückgeladen, und Signatur, Größen, Hashes sowie alle fünf Asset-Digests stimmen.
 
 # Release 0.36.5 veröffentlicht – verbleibende ComfyUI-RAM-Sperre entfernt (2026-09-26)
 

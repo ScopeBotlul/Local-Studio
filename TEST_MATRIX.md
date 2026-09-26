@@ -3,7 +3,8 @@
 - Geändert ist ausschließlich die Auswahl und Beschriftung des im Bildstudio angezeigten Auftrags. Ohne explizite Auswahl fällt die Ansicht nur noch auf laufende beziehungsweise wartende Aufträge zurück; ein terminaler historischer Fehler wird nicht automatisch eingeblendet.
 - Historische Aufträge bleiben in „Letzte Aufträge“ erhalten und lassen sich bewusst öffnen. Ihre Meldung ist als Fehler des gespeicherten Auftrags gekennzeichnet.
 - Frontend-Produktionsbuild sowie optimierter Rust-/Tauri-Release-Build und Inno-Installer: bestanden. Das portable ZIP enthält exakt 80 erlaubte Dateien; 77 Runtime-Dateien entsprechen ihren Manifesten. EXE SHA-256 `ce0a53fa500ec8b0e4c543799b85875d6e789be9b5b916b8949b0d7f8b6658c2`, ZIP `e9f400e31aeff6a367f277a2bb889f9607c05e700e70376473c13ba7c1a0d2a6`, Installer `b2ac81b809e3d1fe96806e0e6af28cc52f12fbbecf813df8ba37f3bb14ada0e7`. Das signierte Manifest stimmt mit Version, URLs, Größen, Hashes und eingebettetem öffentlichen Schlüssel überein.
-- Rust-, ComfyUI- und Ressourcenplaner-Tests wurden nicht erneut ausgeführt, weil diese Pfade gegenüber dem vollständig geprüften Release 0.36.5 unverändert sind. Die native visuelle Kontrolle auf dem ROG Ally sowie Veröffentlichung und GitHub-Rückprüfung bleiben offen.
+- Rust-, ComfyUI- und Ressourcenplaner-Tests wurden nicht erneut ausgeführt, weil diese Pfade gegenüber dem vollständig geprüften Release 0.36.5 unverändert sind. Die native visuelle Kontrolle auf dem ROG Ally bleibt offen.
+- Veröffentlichung: `v0.36.6` ist öffentlich und als Latest markiert. Installer und Portable-ZIP wurden vollständig von GitHub zurückgeladen; alle fünf Asset-Digests, Größen, SHA-256-Werte und die Update-Signatur stimmen. Nachweis: `.artifacts/github-release-verification-0.36.6.json`.
 
 # Releaseprüfung 0.36.5 – 2026-09-26
 
