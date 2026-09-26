@@ -1,10 +1,10 @@
-# Version 0.35.0 – direktes ComfyUI-Update vorbereitet (2026-09-26)
+# Release 0.35.0 veröffentlicht (2026-09-26)
 
 Das Update-Center kann den offiziellen stabilen Core-Updater einer portablen ComfyUI-Installation jetzt direkt nach einem bewussten Klick ausführen. Eine von Local Studio gestartete Engine wird vorher beendet und danach wieder gestartet. Währenddessen zeigt der Dialog den laufenden Zustand und das lokale Updater-Protokoll; parallele Bildaufträge und extern gestartete Instanzen werden abgewiesen.
 
 Der Updater läuft mit der eingebetteten Python-Laufzeit und dem zur Installation gehörenden offiziellen `update.py`. Der Prozess ist an den Lebenszyklus von Local Studio gebunden und auf 30 Minuten begrenzt. Erforderliche ComfyUI-Core-Abhängigkeiten können durch den offiziellen Updater angepasst werden. Custom Nodes werden nicht aktualisiert. Die automatische Startprüfung installiert weiterhin nichts ohne Nutzeraktion.
 
-Gezielte Quellprüfungen für Frontend, Update-Dialog, Rust/Tauri und ComfyUI sind bestanden. Optimierte EXE, Inno-Installer, portables Archiv, Prüfsummen und signierte Update-Metadaten wurden erstellt und lokal vollständig geprüft. Ein reales Update der persönlichen ComfyUI-Installation und eine anschließende Inferenz wurden nicht ausgeführt. Die Veröffentlichung folgt in diesem Arbeitsgang.
+Gezielte Quellprüfungen für Frontend, Update-Dialog, Rust/Tauri und ComfyUI sind bestanden. Optimierte EXE, Inno-Installer, portables Archiv, Prüfsummen und signierte Update-Metadaten wurden erstellt und lokal vollständig geprüft. Version 0.35.0 ist unter https://github.com/ScopeBotlul/Local-Studio/releases/tag/v0.35.0 öffentlich als Latest verfügbar; Tag `v0.35.0` verweist auf Release-Commit `1964498`. Installer und portables Archiv wurden vollständig von GitHub zurückgeladen, und Signatur, Größen, Hashes sowie alle fünf Asset-Digests stimmen. Ein reales Update der persönlichen ComfyUI-Installation und eine anschließende Inferenz wurden nicht ausgeführt.
 
 # Release 0.34.0 veröffentlicht (2026-09-26)
 
