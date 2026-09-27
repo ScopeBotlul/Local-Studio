@@ -142,6 +142,18 @@ fn set_window_accent_icon(png: &[u8], app: &tauri::AppHandle) -> Result<(), Stri
     let window = app
         .get_webview_window("main")
         .ok_or("window_icon_update")?;
+    // Tauri updates the window class icon as well as the window icon. Windows
+    // uses the class icon for a grouped taskbar button, which WM_SETICON alone
+    // does not reliably replace.
+    let decoded = image::load_from_memory(png)
+        .map_err(|_| "window_icon_update")?
+        .to_rgba8();
+    let (width, height) = decoded.dimensions();
+    let tauri_icon = tauri::image::Image::new_owned(decoded.into_raw(), width, height);
+    window.set_icon(tauri_icon.clone()).map_err(|_| "window_icon_update")?;
+    if let Some(tray) = app.tray_by_id("background") {
+        tray.set_icon(Some(tauri_icon)).map_err(|_| "window_icon_update")?;
+    }
     let hwnd = window.hwnd().map_err(|_| "window_icon_update")?.0 as _;
     use windows_sys::Win32::UI::WindowsAndMessaging::*;
     let icon = unsafe {

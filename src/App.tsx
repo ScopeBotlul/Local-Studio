@@ -241,8 +241,17 @@ export default function App() {
 
   useEffect(() => {
     if (!inDesktop()) return;
-    void applyAccentWindowIcon(snapshot?.settings.accentColor ?? '#4b9f91').catch(reportError);
-  }, [snapshot?.settings.accentColor, reportError]);
+    let live=true;
+    const configured=snapshot?.settings.accentColor ?? '#4b9f91';
+    const apply=async()=>{
+      let accent=configured;
+      if(snapshot?.settings.systemAccent)accent=await invoke<string|null>('desktop_accent').catch(()=>null)??configured;
+      if(live)await applyAccentWindowIcon(accent).catch(reportError);
+    };
+    void apply();
+    const timer=snapshot?.settings.systemAccent?setInterval(()=>void apply(),3000):undefined;
+    return()=>{live=false;if(timer)clearInterval(timer);};
+  }, [snapshot?.settings.accentColor, snapshot?.settings.systemAccent, reportError]);
 
   useEffect(() => { if (!toast) return; const timer = setTimeout(() => setToast(''), 3200); return () => clearTimeout(timer); }, [toast]);
 

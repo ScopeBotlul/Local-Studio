@@ -1081,3 +1081,9 @@ ZIP-Inhalt/CRC, Anleitung, EXE-Identität und Prüfsummen geprüft. Vollständig
 - `npm.cmd run build`: bestanden; TypeScript und Vite-Produktionsbuild prüfen die neue Studio-Galerie, Ordnererstellung und Thumbnail-Einbindung. Die bekannte Bundlegrößenwarnung bleibt unverändert.
 - `npm.cmd test -- --run src/thumbnail-queue.test.ts`: 1/1 bestanden. Die vorhandene lokale Warteschlange für sichtbare Vorschaubilder bleibt funktionsfähig.
 - Keine Inferenz-, Rust-, Galerie-Dateioperations-, Update- oder Installerprüfungen wiederholt: Der bestehende, typisierte Ordner-IPC blieb unverändert; geändert wurden ausschließlich Studio-React-Ansicht und CSS.
+
+## 2026-09-27 – Dynamisches Windows-App-Icon (gezielte Prüfung)
+
+- `npm.cmd run build`: bestanden; die Akzentwahl und der IPC-Aufruf kompilieren im Produktions-Frontend.
+- `cargo test --manifest-path src-tauri/Cargo.toml desktop_features::tests`: 1/1 bestanden. Geprüft wurde die enge Annahme ausschließlich decodierbarer 64×64-PNG-Daten für das native Icon.
+- Eine visuelle Taskleistenabnahme benötigt einen Neustart einer neu gebauten Windows-EXE; Installer, Inferenz und übrige Oberflächen wurden nicht erneut geprüft.

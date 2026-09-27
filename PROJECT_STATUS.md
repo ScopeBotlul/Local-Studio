@@ -910,3 +910,8 @@ Als Nächstes stehen die noch offenen M0-Punkte und anschließend M1 gemäß `PL
 - Die rechte Studio-Galerie verwendet jetzt ein gemeinsames quadratisches Raster für Ordner und Medien. Ordnerkacheln haben damit dieselbe Größe wie Bildvorschauen und öffnen den jeweiligen Ordner direkt.
 - Die Vorschau-Komponente erhält im Studio nun ihre erforderliche Positionierung und Größe; geladene Bildminiaturen füllen die Kachel zuverlässig aus. Der Ladevorgang und die bereits vorhandene lokale Thumbnail-Queue bleiben unverändert.
 - Im Studio kann direkt ein Ordnername eingegeben und ein neuer Unterordner angelegt werden. Ungültige Namen und bestehende Namen werden weiterhin vom bestehenden sicheren Galerie-IPC abgewiesen.
+
+## 2026-09-27 – Dynamisches Windows-App-Icon
+
+- Das Akzent-Icon wird nun über Tauri sowohl am Hauptfenster als auch am Infobereich-Icon gesetzt. Dadurch aktualisiert Windows auch das für den gruppierten Taskleistenbutton verwendete Fensterklassen-Icon, statt nur eine Fenster-Nachricht zu erhalten.
+- Bei aktivierter Windows-Akzentfarbe wird das Icon beim Start und bei der laufenden Akzentabfrage mit derselben Systemfarbe neu gesetzt. Zuvor änderte sich in diesem Modus nur das CSS.
