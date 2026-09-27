@@ -1,7 +1,7 @@
 export const hubCategories=['all','image','video','audio','speech','text','analysis'] as const;
 export type HubCategory=typeof hubCategories[number];
 export const hubCategoryLabels:Record<HubCategory,[string,string]>={
- all:['Alle','All'],image:['Bild','Image'],video:['Video','Video'],audio:['Audio & Musik','Audio & music'],speech:['Sprache','Speech'],text:['Text & Chat','Text & chat'],analysis:['Analyse','Analysis'],
+ all:['Alle','All'],image:['Bild','Image'],video:['Video & GIF','Video & GIF'],audio:['Audio & Musik','Audio & music'],speech:['Sprache','Speech'],text:['Text & Chat','Text & chat'],analysis:['Analyse','Analysis'],
 };
 // These are Hub search tags, not promises of local model compatibility.
 export const hubTasks=[
