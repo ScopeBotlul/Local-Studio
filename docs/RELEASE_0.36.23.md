@@ -14,3 +14,4 @@
 - Optimierter Windows-Build und Inno-Installer: erfolgreich erstellt.
 - Das Portable ZIP enthält 80 erlaubte Dateien, davon 77 geprüfte Dateien in den vier Runtime-Manifests.
 - Ein echter ComfyUI-Generierungslauf nach dem Routing-Fix steht noch aus. Der Regressionstest belegt gezielt, dass Auto bei NVIDIA/ComfyUI-Checkpoint nicht auf Vulkan zurückfällt, wenn die ComfyUI-Prüfung fehlschlägt.
+- Veröffentlicht als Latest: https://github.com/ScopeBotlul/Local-Studio/releases/tag/v0.36.23. Alle fünf Release-Dateien wurden öffentlich zurückgeladen und gegen lokale Größen und SHA-256-Werte geprüft.

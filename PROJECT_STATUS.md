@@ -3,6 +3,7 @@
 - Bei NVIDIA bleibt die automatische Bildengine bei einem als ComfyUI-Checkpoint registrierten Modell auf ComfyUI, auch wenn dessen API-Prüfung kurzzeitig fehlschlägt. So startet Local Studio nicht unbemerkt den RAM-intensiveren Vulkan-Worker.
 - Die `resource_memory`-Meldung nennt jetzt ausdrücklich die Bildengine und bietet ComfyUI als alternative Engine an.
 - Die lokale Auftragsdatenbank zeigte vier erfolgreiche ComfyUI-Aufträge und anschließend zwei sofortige Vulkan-Abbrüche mit `resource_memory`; Generierung und Checkpoint waren dabei nicht fehlgeschlagen.
+- Version 0.36.23 ist unter https://github.com/ScopeBotlul/Local-Studio/releases/tag/v0.36.23 als Latest veröffentlicht.
 - Releasehinweise: [docs/RELEASE_0.36.23.md](docs/RELEASE_0.36.23.md).
 
 # Version 0.36.22 — Implementierung (2026-09-27)
