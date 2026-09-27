@@ -930,3 +930,8 @@ Als Nächstes stehen die noch offenen M0-Punkte und anschließend M1 gemäß `PL
 
 - Der eigenstaendige Chat-Einstieg wurde aus der Hauptnavigation entfernt.
 - Das Studio hat nun die Kategorien `Video erstellen` und `Programmieren`. Beide zeigen bewusst nur einen WIP-Hinweis; es werden keine simulierten Video- oder Coding-Funktionen angeboten.
+
+## 2026-09-27 – Release 0.36.26 vorbereitet
+
+- Portable Archiv und Windows-Installer wurden fuer 0.36.26 erzeugt. Die portable Anleitung verwendet nun die aktuelle Release-Version statt einer fest eingebauten alten Versionsnummer.
+- Die signierte Update-Beschreibung nennt die beiden neuen WIP-Studio-Bereiche und stellt sie nicht als fertige KI-Video- oder Coding-Funktionen dar.

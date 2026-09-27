@@ -1104,3 +1104,10 @@ ZIP-Inhalt/CRC, Anleitung, EXE-Identität und Prüfsummen geprüft. Vollständig
 
 - `npm.cmd run build`: bestanden; TypeScript und Vite-Produktionsbuild pruefen die entfernte Chat-Navigation sowie die beiden neuen Studio-Tabs.
 - Keine Inferenz-, ComfyUI-, Rust-, Installer- oder vollstaendige native UI-Pruefung wiederholt: Geaendert wurden nur React-Navigation, WIP-Inhalt und dessen CSS.
+
+## 2026-09-27 – Release 0.36.26 (gezielte Pruefung)
+
+- `scripts/native-25.mjs release36`: 3/3 bestanden mit der neuen Release-EXE; Skalierung bei 75 % und 125 %, Canvas, Akzent/Icon und LoRA-Auswahl liefen ohne Frontendfehler.
+- `scripts/verify-package-bytes.ps1`: bestanden; portable Archiv und Installer enthalten dieselben EXE-Bytes sowie 80 erwartete Dateien und die vier Runtime-Saetze.
+- `scripts/verify-release.mjs`: bestanden; Installer und Portable stimmen in Groesse und SHA-256 mit dem lokal signierten Update-Manifest fuer 0.36.26 ueberein.
+- Nicht erneut ausgefuehrt: Inferenz, ComfyUI, Modell-Downloads, Galerie-Dateioperationen und eine vollstaendige Installer-Installation. Diese Pfade waren von Navigation, WIP-Inhalt, Versionierung und Paket-Anleitung nicht betroffen.

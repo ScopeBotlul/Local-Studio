@@ -420,7 +420,7 @@ Der Importstatus allein bestaetigt keine Ausfuehrbarkeit; SDXL seit 0.6.0 im Stu
 
 Neu in 0.4.2: Installer und Deinstallation passen sich beim Start an Windows an.
 
-Neu in 0.4.1: Modellgroessen in GB in Suche, Details, Dateiauswahl und lokaler Liste.
+Neu in {VERSION}: Studio-Navigation mit den Bereichen Video erstellen und Programmieren. Beide Bereiche sind als WIP markiert und enthalten noch keine simulierten Funktionen.
 Repository-Gesamtgroesse umfasst alle Varianten; die Auswahl bestimmt den Download.
 
 Neu in 0.4.0: Dateien in den Modell-Details selbst auswählen, Download prüfen
