@@ -1,20 +1,43 @@
-import {useEffect,useState} from 'react';
-import {ArrowLeft,Folder,RefreshCw} from 'lucide-react';
+import {useEffect,useRef,useState} from 'react';
+import type {FormEvent} from 'react';
+import {ArrowLeft,Folder,FolderPlus,Plus,RefreshCw,X} from 'lucide-react';
 import {galleryApi,galleryError,type GalleryListing} from './gallery-api';
 import GalleryThumbnail from './GalleryThumbnail';
 import type {Language} from './types';
 
 export default function StudioGallery({language,folder,onFolder,refreshKey}:{language:Language;folder:string;onFolder:(folder:string)=>void;refreshKey:number}){
- const de=language==='de';const [listing,setListing]=useState<GalleryListing|null>(null),[error,setError]=useState(''),[tick,setTick]=useState(0);
- useEffect(()=>{let live=true;setError('');void galleryApi.list({folder,search:'',kind:'all',recursive:false,offset:0,favoritesOnly:false,tag:'',sort:'modifiedDesc'}).then(data=>{if(live)setListing(data);}).catch(e=>{if(live)setError(galleryError(e,de));});return()=>{live=false;};},[folder,refreshKey,tick,de]);
+ const de=language==='de';
+ const [listing,setListing]=useState<GalleryListing|null>(null),[error,setError]=useState(''),[tick,setTick]=useState(0),[creating,setCreating]=useState(false),[name,setName]=useState(''),[busy,setBusy]=useState(false);
+ const request=useRef(0);
+ useEffect(()=>{
+ const id=++request.current;
+  let live=true;
+  setError('');
+  void galleryApi.list({folder,search:'',kind:'all',recursive:false,offset:0,favoritesOnly:false,tag:'',sort:'modifiedDesc'})
+   .then(data=>{if(live&&request.current===id)setListing(data);})
+   .catch(e=>{if(live&&request.current===id){setListing(null);setError(galleryError(e,de));}});
+  return()=>{live=false;};
+ },[folder,refreshKey,tick,de]);
  const parent=folder.includes('/')?folder.slice(0,folder.lastIndexOf('/')):'';
+ async function createFolder(event:FormEvent){
+  event.preventDefault();const next=name.trim();if(!next||busy)return;
+  setBusy(true);setError('');
+  try {await galleryApi.createFolder(folder,next);setName('');setCreating(false);setTick(value=>value+1);}
+  catch(e){setError(galleryError(e,de));}
+  finally{setBusy(false);}
+ }
+ const folders=listing?.folders??[];
+ const items=folder?[{kind:'parent',path:parent,name:'..'},...folders]:folders;
  return <aside className="studio-gallery panel" aria-label={de?'Studio-Galerie':'Studio gallery'}>
-  <div className="studio-gallery-heading"><div><strong>{de?'Galerie':'Gallery'}</strong><small>{folder||(de?'Hauptordner':'Main folder')}</small></div><button className="text-button" aria-label={de?'Galerie aktualisieren':'Refresh gallery'} onClick={()=>setTick(n=>n+1)}><RefreshCw size={15}/></button></div>
-  <p className="hub-hint">{de?'Neue Bilder werden in diesen geöffneten Ordner gespeichert.':'New images are saved in this open folder.'}</p>
-  {folder&&<button className="studio-gallery-folder" onClick={()=>onFolder(parent)}><ArrowLeft size={15}/><span>..</span></button>}
-  {listing?.folders.map(entry=><button className="studio-gallery-folder" key={entry.path} onClick={()=>onFolder(entry.path)}><Folder size={16}/><span>{entry.name}</span></button>)}
-  <div className="studio-gallery-media">{listing?.entries.slice(0,30).map(entry=><div key={entry.path} title={entry.name}><GalleryThumbnail entry={entry} rootId={listing.rootId} epoch={refreshKey} de={de}/><small>{entry.name}</small></div>)}</div>
-  {listing&&!listing.folders.length&&!listing.entries.length&&<p className="hub-hint">{de?'Dieser Ordner ist leer.':'This folder is empty.'}</p>}
+  <div className="studio-gallery-heading"><div><strong>{de?'Galerie':'Gallery'}</strong><small title={folder}>{folder||(de?'Hauptordner':'Main folder')}</small></div><button className="icon-button" aria-label={de?'Galerie aktualisieren':'Refresh gallery'} title={de?'Galerie aktualisieren':'Refresh gallery'} onClick={()=>setTick(n=>n+1)}><RefreshCw size={15}/></button></div>
+  <p className="hub-hint">{de?'Neue Bilder werden direkt in diesem Ordner gespeichert.':'New images are saved directly in this folder.'}</p>
+  <div className="studio-gallery-actions"><button className="button secondary" disabled={busy} onClick={()=>setCreating(value=>!value)}><FolderPlus size={14}/>{de?'Ordner':'Folder'}</button></div>
+  {creating&&<form className="studio-gallery-create" onSubmit={createFolder}><input aria-label={de?'Name des neuen Ordners':'New folder name'} value={name} onChange={event=>setName(event.target.value)} maxLength={100} placeholder={de?'Ordnername':'Folder name'} autoFocus disabled={busy}/><button className="icon-button" aria-label={de?'Ordner anlegen':'Create folder'} title={de?'Ordner anlegen':'Create folder'} disabled={busy||!name.trim()}><Plus size={15}/></button><button className="icon-button" type="button" aria-label={de?'Abbrechen':'Cancel'} title={de?'Abbrechen':'Cancel'} onClick={()=>{setCreating(false);setName('');}} disabled={busy}><X size={15}/></button></form>}
+  <div className="studio-gallery-grid">
+   {items.map(entry=><button className="studio-gallery-tile studio-gallery-folder-tile" key={`${entry.kind}:${entry.path}`} onClick={()=>onFolder(entry.path)} title={entry.kind==='parent'?(de?'Übergeordneter Ordner':'Parent folder'):entry.name}><span className="studio-gallery-folder-icon">{entry.kind==='parent'?<ArrowLeft size={27}/>:<Folder size={30}/>}</span><small>{entry.name}</small></button>)}
+   {listing?.entries.slice(0,30).map(entry=><div className="studio-gallery-tile studio-gallery-media-tile" key={entry.path} title={entry.name}><GalleryThumbnail entry={entry} rootId={listing.rootId} epoch={refreshKey+tick} de={de}/><small>{entry.name}</small></div>)}
+  </div>
+  {listing&&!items.length&&!listing.entries.length&&<p className="hub-hint">{de?'Dieser Ordner ist leer.':'This folder is empty.'}</p>}
   {error&&<p className="notice warning" role="alert">{error}</p>}
  </aside>;
 }

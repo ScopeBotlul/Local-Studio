@@ -1075,3 +1075,9 @@ ZIP-Inhalt/CRC, Anleitung, EXE-Identität und Prüfsummen geprüft. Vollständig
 - Releasepakete 0.36.21: 80 Dateien im Portable-ZIP, davon 77 gegen die vier Runtime-Manifeste geprüft. EXE SHA-256 `5687af15e74bc5b2fadb7c6098326eec77889d2577079f7833feb0a13520356d`, ZIP `d013563a62aae9eb69105a6cc439007a17194d61021861ea96e3f71a53488e12`, Installer `65c9980ca97328a6be2bc0a53241e21f08649313834e0b9e8cef7b40bfbcaaef`. Versionen, URLs, Größen, Hashes, Runtime-Manifeste und Ed25519-Signatur wurden lokal geprüft.
 - GitHub-Release `v0.36.21` veröffentlicht. Der vollständige öffentliche Rückdownload bestätigte Installer und Portable-ZIP, beide Größen und SHA-256-Werte, alle fünf Asset-Digests, Latest-Release-Status und die Ed25519-Signatur. Bericht: `.artifacts/github-release-verification-0.36.21.json`.
 - Unveränderte Inferenz-, Projekt-, Galerie-, Update- und Installationsabläufe wurden gemäß dem gezielten Prüfumfang nicht erneut ausgeführt.
+
+## 2026-09-27 – Studio-Galerie (gezielte Prüfung)
+
+- `npm.cmd run build`: bestanden; TypeScript und Vite-Produktionsbuild prüfen die neue Studio-Galerie, Ordnererstellung und Thumbnail-Einbindung. Die bekannte Bundlegrößenwarnung bleibt unverändert.
+- `npm.cmd test -- --run src/thumbnail-queue.test.ts`: 1/1 bestanden. Die vorhandene lokale Warteschlange für sichtbare Vorschaubilder bleibt funktionsfähig.
+- Keine Inferenz-, Rust-, Galerie-Dateioperations-, Update- oder Installerprüfungen wiederholt: Der bestehende, typisierte Ordner-IPC blieb unverändert; geändert wurden ausschließlich Studio-React-Ansicht und CSS.

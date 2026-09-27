@@ -904,3 +904,9 @@ Als Nächstes stehen die noch offenen M0-Punkte und anschließend M1 gemäß `PL
 - Beide integrierten Browsersysteme schneiden ihre Flächen jetzt am echten `.window-content`-Rechteck ab und blenden zu kleine oder vollständig herausgescrollte Flächen aus. Das gilt auch für Hugging Face, dessen bisherige Offscreen-Behandlung eine alte native Position stehen lassen konnte.
 - Rust verweigert für beide Browsercontroller jede Position oberhalb von 36 Pixeln. Die Menüöffnung erlaubt nach zehn Sekunden einen neuen Versuch, falls ein nativer Popup-Aufruf wider Erwarten nicht zurückkehrt.
 - Version 0.36.21 wurde als Installer, portables Archiv und signierte Update-Metadaten unter `ScopeBotlul/Local-Studio` veröffentlicht. Beide Pakete wurden vollständig öffentlich zurückgeladen und gegen Größen, SHA-256-Prüfsummen und Signatur geprüft.
+
+## 2026-09-27 – Studio-Galerie: Vorschauraster und Ordner
+
+- Die rechte Studio-Galerie verwendet jetzt ein gemeinsames quadratisches Raster für Ordner und Medien. Ordnerkacheln haben damit dieselbe Größe wie Bildvorschauen und öffnen den jeweiligen Ordner direkt.
+- Die Vorschau-Komponente erhält im Studio nun ihre erforderliche Positionierung und Größe; geladene Bildminiaturen füllen die Kachel zuverlässig aus. Der Ladevorgang und die bereits vorhandene lokale Thumbnail-Queue bleiben unverändert.
+- Im Studio kann direkt ein Ordnername eingegeben und ein neuer Unterordner angelegt werden. Ungültige Namen und bestehende Namen werden weiterhin vom bestehenden sicheren Galerie-IPC abgewiesen.
