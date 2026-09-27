@@ -2,6 +2,7 @@
 
 - ComfyUI darf bis zu 180 Sekunden für den lokalen API-Start brauchen. Eine Start-Sperre verhindert parallele Startprozesse, wenn automatischer Start, UI-Klick und Studio-Auftrag zeitlich zusammentreffen.
 - Das laufende Windows-Icon zeichnet jetzt dieselben drei schrägen Balken wie das Produktlogo und übernimmt weiterhin die gewählte Akzentfarbe.
+- Version 0.36.22 ist unter https://github.com/ScopeBotlul/Local-Studio/releases/tag/v0.36.22 als Latest veröffentlicht.
 - Releasehinweise: [docs/RELEASE_0.36.22.md](docs/RELEASE_0.36.22.md).
 
 # Release 0.36.17 veröffentlicht – echtes Taskleistenicon und Studio-Name (2026-09-27)

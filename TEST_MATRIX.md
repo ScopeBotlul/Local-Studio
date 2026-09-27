@@ -5,6 +5,7 @@
 - ComfyUI-Rusttests: 6/6 bestanden. `cargo test --manifest-path src-tauri/Cargo.toml comfy::tests`.
 - Optimierter Windows-Release-Build und Inno-Installer: erfolgreich erstellt.
 - Paketprüfung: bestanden. Portable ZIP mit 80 erlaubten Dateien; 77 Runtime-Dateien (Image 24, Video 13, Assistant 25, Speech 15). Signierte Manifestgrößen, Hashes und Ed25519-Signatur geprüft.
+- GitHub: `v0.36.22` ist als Latest veröffentlicht. Installer, Portable ZIP, Prüfsummen, `update.json` und `update.sig` wurden öffentlich zurückgeladen; alle fünf Größen und SHA-256-Werte stimmen.
 - Einschränkung: kein realer ComfyUI-Start auf ROG Ally/Xbox Ally und keine native visuelle Abnahme des Taskleistenicons in dieser Umgebung.
 
 # Releaseprüfung 0.36.17 – 2026-09-27

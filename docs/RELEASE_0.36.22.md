@@ -19,3 +19,4 @@
 - Optimierter Windows-Build und Inno-Installer: erfolgreich erstellt.
 - Portable ZIP enthält 80 erlaubte Dateien und alle vier geprüften Runtime-Manifeste. Installer und ZIP stimmen mit den signierten Größen und SHA-256-Werten überein; das Ed25519-Update-Manifest wurde gegen den eingebetteten öffentlichen Schlüssel geprüft.
 - Ein realer ComfyUI-Start auf ROG Ally/Xbox Ally und die sichtbare Taskleistenabnahme unter Windows stehen noch aus. Die lokale Prüfung belegt Kompilierung und bestehende ComfyUI-Regeln, aber keinen Geräte-Start mit dem neuen Zeitlimit.
+- Veröffentlicht als Latest: https://github.com/ScopeBotlul/Local-Studio/releases/tag/v0.36.22. Alle fünf Release-Dateien wurden öffentlich zurückgeladen und gegen lokale Größen und SHA-256-Werte geprüft.
