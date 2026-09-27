@@ -893,6 +893,11 @@ Als Nächstes stehen die noch offenen M0-Punkte und anschließend M1 gemäß `PL
 - Andere Fehler werden nicht automatisch wiederholt. Dadurch bleiben echte Schreib-, Bild- oder Datenbankprobleme sichtbar.
 - Version 0.36.20 wurde als Installer, portables Archiv und signierte Update-Metadaten unter `ScopeBotlul/Local-Studio` veröffentlicht. Beide Pakete wurden vollständig öffentlich zurückgeladen und gegen Größen und SHA-256-Prüfsummen geprüft.
 
+## 2026-09-27 – Bilder ohne Einzelordner in der Galerie speichern
+
+- `In Galerie speichern` legt ein erzeugtes Bild unmittelbar im gewählten Galerieordner ab. Der eindeutige Dateiname `Local-Studio-<UUID>.png` verhindert Kollisionen, ohne pro Bild einen Ordner mit `image.png` und Metadaten anzulegen.
+- Herkunft, Prompt und Modellbezug bleiben über die bestehende lokale Galerie-Datenbank und die gespeicherte Auftragsbindung erhalten. Bereits vorhandene ältere Galerieordner werden nicht verändert.
+
 ## 2026-09-27 – Blockierte obere Menüleiste
 
 - Die Ursache war eine native Child-WebView-Fläche: Beim Scrollen begrenzte der gemeinsame Civitai-/Danbooru-/Rule34-Browser seine Oberkante auf Fensterkoordinate `0`. Da native Child-WebViews über dem React-Inhalt liegen, konnte die unsichtbar gewordene Fläche Klicks auf der weiterhin sichtbaren 36-Pixel-Menüleiste abfangen.

@@ -1057,6 +1057,11 @@ ZIP-Inhalt/CRC, Anleitung, EXE-Identität und Prüfsummen geprüft. Vollständig
 - Releasepakete 0.36.20: 80 Dateien im Portable-ZIP, davon 77 gegen die vier Runtime-Manifeste geprüft. EXE SHA-256 `43dd1adbca86014c6245a0fae2fc938f7eaf86fd2681555ee0d299b61da664fc`, ZIP `0d389074bfe039e1c176dce1b844e2d744f36bd1d77ade7c88729f678f00d1fe`, Installer `c1acbffb15489b92183cc66c7f6e7c33aee4834b86b674bd7253d951983a0e67`. Versionen, URLs, Größen, Hashes, Runtime-Manifeste und Ed25519-Signatur wurden lokal geprüft. Der unveränderte Installer-Lebenszyklus wurde nicht erneut ausgeführt.
 - GitHub-Release `v0.36.20` veröffentlicht. Der vollständige öffentliche Rückdownload bestätigte Installer und Portable-ZIP, beide Größen und SHA-256-Werte, alle fünf Asset-Digests, Latest-Release-Status und die Ed25519-Signatur. Bericht: `.artifacts/github-release-verification-0.36.20.json`.
 
+## 2026-09-27 – Direkte Galerieablage (gezielte Prüfung)
+
+- `cargo test --manifest-path src-tauri/Cargo.toml image_engine::workspace::tests`: 11/11 bestanden. Der angepasste Speichertest prüft, dass die erzeugte PNG direkt im gewählten Galerieordner liegt, einen eindeutigen Local-Studio-Dateinamen trägt und dort kein Unterordner entsteht.
+- Frontend, Inferenz, Downloads, Projekte, Update- und Installerabläufe wurden nicht wiederholt, weil sich ausschließlich der lokale Rust-Dateizielpfad beim manuellen Speichern änderte.
+
 ## 2026-09-27 – Menüleiste und native Browserflächen (gezielte Prüfung)
 
 - `npm.cmd test -- --run src/native-surface.test.ts src/image-api.test.ts`: 5/5 bestanden. Neu geprüft wurden das Abschneiden einer nach oben gescrollten Fläche bei exakt 36 Pixeln, vollständiges Ausblenden außerhalb des Inhalts und Begrenzung aller vier Kanten.

@@ -60,6 +60,15 @@ fn gallery_relocation_preserves_job_and_purge_retires_output_without_deleting_un
     let gallery = t.path().join("gallery");
     fs::create_dir(&gallery).unwrap();
     let saved = engine.save(&job.id, &gallery).unwrap();
+    assert_eq!(Path::new(&saved).parent(), Some(gallery.as_path()));
+    assert!(Path::new(&saved)
+        .file_name()
+        .unwrap()
+        .to_string_lossy()
+        .starts_with("Local-Studio-"));
+    assert!(fs::read_dir(&gallery)
+        .unwrap()
+        .all(|entry| entry.unwrap().file_type().unwrap().is_file()));
     let renamed = Path::new(&saved).with_file_name("renamed.png");
     fs::rename(&saved, &renamed).unwrap();
     engine

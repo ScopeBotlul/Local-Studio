@@ -1335,9 +1335,9 @@ impl ImageEngine {
             return Err("image_path".into());
         }
         let bytes = png_bytes(Path::new(output), job.request.width, job.request.height)?;
-        let destination = gallery.join(format!("Local-Studio-{}", uuid::Uuid::new_v4()));
-        fs::create_dir(&destination).map_err(|_| "image_storage")?;
-        let image = destination.join("image.png");
+        // Keep generated media in the selected gallery folder.  A UUID in the
+        // filename prevents collisions without creating a directory per image.
+        let image = gallery.join(format!("Local-Studio-{}.png", uuid::Uuid::new_v4()));
         let mut file = OpenOptions::new()
             .create_new(true)
             .write(true)
@@ -1351,15 +1351,6 @@ impl ImageEngine {
         }
         job.saved_binding = Some(crate::gallery::saved_binding(&image)?);
         job.saved_path = Some(image.to_string_lossy().into());
-        let mut metadata = OpenOptions::new()
-            .create_new(true)
-            .write(true)
-            .open(destination.join("metadata.json"))
-            .map_err(|_| "image_storage")?;
-        metadata
-            .write_all(&serde_json::to_vec_pretty(&job).map_err(|_| "image_storage")?)
-            .map_err(|_| "image_storage")?;
-        metadata.sync_all().map_err(|_| "image_storage")?;
         persist(&state, &job)?;
         if let Some(existing) = state.jobs.iter_mut().find(|j| j.id == id) {
             *existing = job.clone();
