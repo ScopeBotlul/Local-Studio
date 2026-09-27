@@ -1099,3 +1099,8 @@ ZIP-Inhalt/CRC, Anleitung, EXE-Identität und Prüfsummen geprüft. Vollständig
 - `npm.cmd run build`: bestanden.
 - `npm.cmd test -- --run src/window-icon.test.ts`: 1/1 bestanden; Kontrastfarbe des gemeinsamen Logos bleibt für helle und dunkle Akzentfarben lesbar.
 - Keine native Sichtprüfung oder Installer-Prüfung wiederholt. Die sichtbare Windows-Taskleistenaktualisierung erfordert weiterhin einen neu gestarteten Prozess.
+
+## 2026-09-27 – Studio-Kategorien fuer Video und Programmieren (gezielte Pruefung)
+
+- `npm.cmd run build`: bestanden; TypeScript und Vite-Produktionsbuild pruefen die entfernte Chat-Navigation sowie die beiden neuen Studio-Tabs.
+- Keine Inferenz-, ComfyUI-, Rust-, Installer- oder vollstaendige native UI-Pruefung wiederholt: Geaendert wurden nur React-Navigation, WIP-Inhalt und dessen CSS.

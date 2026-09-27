@@ -925,3 +925,8 @@ Als Nächstes stehen die noch offenen M0-Punkte und anschließend M1 gemäß `PL
 
 - Die wirksame Akzentfarbe wird jetzt beim App-Start zentral gesetzt. Das fest platzierte Logo links in der eigenen Titelleiste und das dynamische Windows-/Taskleisten-Icon erhalten damit dieselbe konfigurierte Farbe.
 - Ist „Windows-Akzentfarbe verwenden“ aktiv, wird die Systemfarbe zentral in CSS und für das Windows-Icon aktualisiert. Die bisherige doppelte Aktualisierung nur innerhalb der Einstellungen wurde entfernt.
+
+## 2026-09-27 – Studio-Kategorien fuer Video und Programmieren
+
+- Der eigenstaendige Chat-Einstieg wurde aus der Hauptnavigation entfernt.
+- Das Studio hat nun die Kategorien `Video erstellen` und `Programmieren`. Beide zeigen bewusst nur einen WIP-Hinweis; es werden keine simulierten Video- oder Coding-Funktionen angeboten.

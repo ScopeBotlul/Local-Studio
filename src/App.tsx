@@ -55,13 +55,13 @@ import { accentInk, applyAccentWindowIcon } from './window-icon';
 type Page = 'home' | 'studio' | 'models' | 'downloads' | 'jobs' | 'gallery' | 'hub' | 'assistant' | 'settings';
 type JobFilter = 'all' | 'active' | 'finished';
 const primaryNav: { id: Page; icon: LucideIcon }[] = [
-  { id: 'assistant', icon: Sparkles }, { id: 'studio', icon: Palette },
+  { id: 'studio', icon: Palette },
   { id: 'gallery', icon: Images }, { id: 'models', icon: Box },
 ];
 const utilityNav: { id: Page; icon: LucideIcon }[] = [
   { id: 'hub', icon: CircleHelp }, { id: 'downloads', icon: Download }, { id: 'jobs', icon: Workflow },
 ];
-const studioTabs = ['generate', 'canvas', 'timeline', 'gif'] as const;
+const studioTabs = ['generate', 'canvas', 'video-generate', 'timeline', 'gif', 'code'] as const;
 const modelSources: ModelSource[] = ['local', 'huggingface', 'civitai'];
 const pathKeys: { key: keyof StoragePaths; label: keyof Translations }[] = [
   { key: 'models', label: 'pathsModels' }, { key: 'assistantModels', label: 'pathsAssistantModels' },
@@ -73,6 +73,11 @@ const pathKeys: { key: keyof StoragePaths; label: keyof Translations }[] = [
 
 function Logo({ small = false }: { small?: boolean }) {
   return <span aria-hidden="true" className={`logo ${small ? 'logo-small' : ''}`}><span /><span /><span /></span>;
+}
+
+function StudioWorkInProgress({kind,de}:{kind:'video'|'code';de:boolean}) {
+  const video=kind==='video', Icon=video?Film:Terminal;
+  return <section className="panel studio-wip"><Icon size={38}/><span className="pill">WIP</span><h2>{video?(de?'Video erstellen':'Create video'):(de?'Lokales Programmieren':'Local coding')}</h2><p>{video?(de?'Der echte ComfyUI-Videopfad für Prompt, Bildvorlage und kurze Videoausgaben wird hier aufgebaut.':'The real ComfyUI video path for prompts, image references and short video output is being built here.'):(de?'Der eigene lokale Coding-Bereich mit Projektzugriff und überprüfbaren Änderungen wird hier aufgebaut.':'The dedicated local coding workspace with project access and reviewable changes is being built here.')}</p></section>;
 }
 
 function IconButton({ title, onClick, children, disabled = false }: { title: string; onClick: () => void; children: ReactNode; disabled?: boolean }) {
@@ -164,7 +169,7 @@ export default function App() {
   const [language, setLanguage] = useState<Language>(initialLanguage);
   const projects = useProject(!!snapshot, studio, language === 'de', snapshot?.paths.projects ?? '');
   const creative=useCreative(projects,language==='de',snapshot?.settings.maxUndo??100);
-  const [studioTab,setStudioTab]=useState<'generate'|'canvas'|'timeline'|'gif'>(()=>{const s=sessionStorage.getItem('local-studio-create');return s==='canvas'||s==='timeline'||s==='gif'?s:'generate';});
+  const [studioTab,setStudioTab]=useState<typeof studioTabs[number]>(()=>{const s=sessionStorage.getItem('local-studio-create');return studioTabs.includes(s as typeof studioTabs[number])?s as typeof studioTabs[number]:'generate';});
   useEffect(()=>{sessionStorage.setItem('local-studio-create',studioTab);},[studioTab]);
   useEffect(()=>{if(projectDetailsOpen||page!=='studio'||studioTab==='generate')return;return setMenuContext('creative',{priority:1,actions:{...(creative.canUndo?{undo:creative.undo}:{}),...(creative.canRedo?{redo:creative.redo}:{})}});},[projectDetailsOpen,page,studioTab,creative.canUndo,creative.canRedo,creative.data]);
   useEffect(()=>{const handler=(e:KeyboardEvent)=>{if(!snapshot||projectDetailsOpen||page!=='studio'||studioTab==='generate'||document.querySelector('dialog[open]')||(e.target instanceof HTMLElement&&e.target.closest('input,textarea,select,[contenteditable=true]')))return;const action=shortcutFor(e,snapshot.settings.shortcuts);if(action==='undo'){e.preventDefault();creative.undo();}if(action==='redo'){e.preventDefault();creative.redo();}};window.addEventListener('keydown',handler);return()=>window.removeEventListener('keydown',handler);},[projectDetailsOpen,page,studioTab,creative.data,snapshot?.settings.shortcuts]);
@@ -480,14 +485,18 @@ export default function App() {
     </nav>
     {page === 'studio' && !projectDetailsOpen && <nav className="create-nav" aria-label={language === 'de' ? 'Studio-Werkzeuge' : 'Studio tools'}>
       {studioTabs.map(tab => {
-        const Icon = tab === 'generate' ? Sparkles : tab === 'canvas' ? Palette : tab === 'timeline' ? Film : Images;
+        const Icon = tab === 'generate' ? Sparkles : tab === 'canvas' ? Palette : tab === 'video-generate' ? Film : tab === 'timeline' ? Film : tab === 'gif' ? Images : Terminal;
         const label = tab === 'generate'
           ? (language === 'de' ? 'Bild erstellen' : 'Image')
           : tab === 'canvas'
             ? (language === 'de' ? 'Bild bearbeiten' : 'Edit')
+            : tab === 'video-generate'
+              ? (language === 'de' ? 'Video erstellen' : 'Create video')
             : tab === 'timeline'
               ? (language === 'de' ? 'Video bearbeiten' : 'Video')
-              : (language === 'de' ? 'GIF erstellen' : 'GIF');
+              : tab === 'gif'
+                ? (language === 'de' ? 'GIF erstellen' : 'GIF')
+                : (language === 'de' ? 'Programmieren' : 'Code');
         return <button
           key={tab}
           aria-current={studioTab === tab ? 'page' : undefined}
@@ -556,7 +565,7 @@ export default function App() {
         {(page === 'hub' || page === 'models') && <HubPage key={page} language={language} modelSource={modelSource} onModelSource={setModelSource} showImage={path => { studio.selectModel(path); setSelectedImageJob(null); setStudioTab('generate'); setPage('studio'); }} mode={page} showDownloads={() => setPage('downloads')} initialRepo={page === 'models' ? initialModelRepo : null} showModels={repo => { setInitialModelRepo(repo ?? null); setModelSource('huggingface'); setPage('models'); }} />}
         {page === 'assistant' && <AssistantPage de={language==='de'} onGallery={()=>setPage('gallery')} onApply={request=>{if(!studio.ready||studio.recovery){setError(language==='de'?'Zuerst den Bild-Arbeitsstand wiederherstellen oder verwerfen.':'First restore or discard the image workspace.');return;}studio.restore(request);setSelectedImageJob(null);setStudioTab('generate');setPage('studio');}}/>}
         {page === 'downloads' && <DownloadsPage language={language} />}
-        {page === 'studio' && <>{studioTab === 'generate' && <ImageStudio projectDisabled={!projects.ready || projects.busy || !!projects.project?.recovery || studio.recovery} onAddToProject={projects.addImage} shortcuts={snapshot.settings.shortcuts} removeCensorTags={snapshot.settings.removeCensorTags} key={page} language={language} request={studio.request} setRequest={studio.setRequest} selectModel={studio.selectModel} onRestore={request => { studio.restore(request); setSelectedImageJob(null); setStudioTab('generate'); setPage('studio'); }} selectedJob={selectedImageJob} disabled={!studio.ready || studio.recovery}  />}{studioTab==='canvas'&&<CanvasStudio workspace={creative} projects={projects} de={language==='de'}/>} {studioTab==='timeline'&&<TimelineStudio workspace={creative} projects={projects} de={language==='de'}/>}{studioTab==='gif'&&<GifStudio de={language==='de'}/>}</>}
+        {page === 'studio' && <>{studioTab === 'generate' && <ImageStudio projectDisabled={!projects.ready || projects.busy || !!projects.project?.recovery || studio.recovery} onAddToProject={projects.addImage} shortcuts={snapshot.settings.shortcuts} removeCensorTags={snapshot.settings.removeCensorTags} key={page} language={language} request={studio.request} setRequest={studio.setRequest} selectModel={studio.selectModel} onRestore={request => { studio.restore(request); setSelectedImageJob(null); setStudioTab('generate'); setPage('studio'); }} selectedJob={selectedImageJob} disabled={!studio.ready || studio.recovery}  />}{studioTab==='canvas'&&<CanvasStudio workspace={creative} projects={projects} de={language==='de'}/>} {studioTab==='video-generate'&&<StudioWorkInProgress kind="video" de={language==='de'}/>} {studioTab==='timeline'&&<TimelineStudio workspace={creative} projects={projects} de={language==='de'}/>}{studioTab==='gif'&&<GifStudio de={language==='de'}/>} {studioTab==='code'&&<StudioWorkInProgress kind="code" de={language==='de'}/>}</>}
         {page === 'gallery' && <Gallery onReference={reference=>{if(!studio.ready||studio.recovery)return;studio.setRequest(r=>({...r,reference,width:reference.width,height:reference.height}));setSelectedImageJob(null);setStudioTab('generate');setPage('studio');}} onAddEdit={async(selection,ops)=>{if(!await projects.addEdit(selection,ops))return null;const p=projects.get()!;const a=p.assets.at(-1)!;return {id:p.id,assetId:a.id,sha256:a.sha256};}} onSaveEdit={projects.saveEdit} maxUndo={snapshot.settings.maxUndo} projectDisabled={!projects.ready || projects.busy || !!projects.project?.recovery || studio.recovery} onAddToProject={projects.addGallery} shortcuts={snapshot.settings.shortcuts} language={language} restoreDisabled={!studio.ready || studio.recovery} onRestore={request => { studio.restore(request); setSelectedImageJob(null); setStudioTab('generate'); setPage('studio'); }} />}
         {!['home', 'jobs', 'settings', 'hub', 'models', 'downloads', 'studio', 'gallery', 'assistant'].includes(page) && <PlannedPage page={page as Exclude<Page, 'home' | 'jobs' | 'settings'>} t={t} goHome={() => setPage('home')} />}
         </div>
