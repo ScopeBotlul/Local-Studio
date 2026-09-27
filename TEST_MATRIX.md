@@ -1111,3 +1111,4 @@ ZIP-Inhalt/CRC, Anleitung, EXE-Identität und Prüfsummen geprüft. Vollständig
 - `scripts/verify-package-bytes.ps1`: bestanden; portable Archiv und Installer enthalten dieselben EXE-Bytes sowie 80 erwartete Dateien und die vier Runtime-Saetze.
 - `scripts/verify-release.mjs`: bestanden; Installer und Portable stimmen in Groesse und SHA-256 mit dem lokal signierten Update-Manifest fuer 0.36.26 ueberein.
 - Nicht erneut ausgefuehrt: Inferenz, ComfyUI, Modell-Downloads, Galerie-Dateioperationen und eine vollstaendige Installer-Installation. Diese Pfade waren von Navigation, WIP-Inhalt, Versionierung und Paket-Anleitung nicht betroffen.
+- `scripts/verify-published-release.mjs`: bestanden. Installer und Portable-ZIP wurden vollstaendig von GitHub zurueckgeladen; alle fuenf Asset-Digests, Release-Status und die Ed25519-Signatur stimmen mit den lokalen Release-Dateien ueberein. Bericht: `.artifacts/github-release-verification-0.36.26.json`.

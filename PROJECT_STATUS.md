@@ -935,3 +935,4 @@ Als Nächstes stehen die noch offenen M0-Punkte und anschließend M1 gemäß `PL
 
 - Portable Archiv und Windows-Installer wurden fuer 0.36.26 erzeugt. Die portable Anleitung verwendet nun die aktuelle Release-Version statt einer fest eingebauten alten Versionsnummer.
 - Die signierte Update-Beschreibung nennt die beiden neuen WIP-Studio-Bereiche und stellt sie nicht als fertige KI-Video- oder Coding-Funktionen dar.
+- GitHub-Release `v0.36.26` ist oeffentlich unter `ScopeBotlul/Local-Studio` verfuegbar. Er enthaelt Windows-Installer, Portable-ZIP, SHA-256-Pruefsummen sowie das Ed25519-signierte Update-Manifest.
