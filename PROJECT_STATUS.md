@@ -920,3 +920,8 @@ Als Nächstes stehen die noch offenen M0-Punkte und anschließend M1 gemäß `PL
 
 - Downloadübersicht und Benachrichtigungsfenster beginnen jetzt am oberen Rand des App-Inhalts direkt unter der Windows-Menüleiste. Der frühere zusätzliche 44-Pixel-Abstand ließ beide erst unter der Hauptnavigation erscheinen.
 - Die gemeinsame Skalierung und die vorhandene Tastatur-/Außenklick-Behandlung bleiben unverändert.
+
+## 2026-09-27 – Einheitliche Akzentfarbe für Titelleisten- und Windows-Icon
+
+- Die wirksame Akzentfarbe wird jetzt beim App-Start zentral gesetzt. Das fest platzierte Logo links in der eigenen Titelleiste und das dynamische Windows-/Taskleisten-Icon erhalten damit dieselbe konfigurierte Farbe.
+- Ist „Windows-Akzentfarbe verwenden“ aktiv, wird die Systemfarbe zentral in CSS und für das Windows-Icon aktualisiert. Die bisherige doppelte Aktualisierung nur innerhalb der Einstellungen wurde entfernt.

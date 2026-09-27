@@ -1093,3 +1093,9 @@ ZIP-Inhalt/CRC, Anleitung, EXE-Identität und Prüfsummen geprüft. Vollständig
 - `npm.cmd run build`: bestanden.
 - `node scripts/check-download-overview.mjs`: bestanden. Der echte React-/WindowFrame-Dialogpfad prüft weiterhin aktive Downloads, Fortschritt, Escape, Außenklick, Fokusrückgabe und 150%-Skalierung.
 - Die Benachrichtigungsansicht nutzt dieselbe geänderte Positionsregel; keine Netzwerk-, Inferenz-, Installer- oder vollständige native Desktopprüfung wiederholt.
+
+## 2026-09-27 – Einheitlicher App-Akzent (gezielte Prüfung)
+
+- `npm.cmd run build`: bestanden.
+- `npm.cmd test -- --run src/window-icon.test.ts`: 1/1 bestanden; Kontrastfarbe des gemeinsamen Logos bleibt für helle und dunkle Akzentfarben lesbar.
+- Keine native Sichtprüfung oder Installer-Prüfung wiederholt. Die sichtbare Windows-Taskleistenaktualisierung erfordert weiterhin einen neu gestarteten Prozess.

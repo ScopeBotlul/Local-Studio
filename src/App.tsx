@@ -228,16 +228,22 @@ export default function App() {
   useEffect(() => {
     const root = document.documentElement;
     const theme = snapshot?.settings.theme ?? 'system';
+    const configured = snapshot?.settings.accentColor ?? '#4b9f91';
+    const apply = (accent:string) => { root.style.setProperty('--accent', accent); root.style.setProperty('--accent-ink', accentInk(accent)); };
     root.dataset.theme = theme;
     root.lang = language;
-    const accent = snapshot?.settings.accentColor ?? '#4b9f91';
-    root.style.setProperty('--accent', accent);
-    root.style.setProperty('--accent-ink', accentInk(accent));
+    apply(configured);
     const uiScale = snapshot?.settings.uiScale ?? 1;
     root.style.setProperty('--ui-scale', String(uiScale));
     root.style.setProperty('--ui-scale-inverse', String(1 / uiScale));
     root.style.colorScheme = theme === 'system' ? 'light dark' : theme;
-  }, [snapshot?.settings.theme, snapshot?.settings.accentColor, snapshot?.settings.uiScale, language]);
+    if (!snapshot?.settings.systemAccent) return;
+    let live=true;
+    const systemAccent=async()=>{const accent=await invoke<string|null>('desktop_accent').catch(()=>null);if(live&&accent)apply(accent);};
+    void systemAccent();
+    const timer=setInterval(()=>void systemAccent(),3000);
+    return()=>{live=false;clearInterval(timer);};
+  }, [snapshot?.settings.theme, snapshot?.settings.accentColor, snapshot?.settings.systemAccent, snapshot?.settings.uiScale, language]);
 
   useEffect(() => {
     if (!inDesktop()) return;
