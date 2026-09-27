@@ -1087,3 +1087,9 @@ ZIP-Inhalt/CRC, Anleitung, EXE-Identität und Prüfsummen geprüft. Vollständig
 - `npm.cmd run build`: bestanden; die Akzentwahl und der IPC-Aufruf kompilieren im Produktions-Frontend.
 - `cargo test --manifest-path src-tauri/Cargo.toml desktop_features::tests`: 1/1 bestanden. Geprüft wurde die enge Annahme ausschließlich decodierbarer 64×64-PNG-Daten für das native Icon.
 - Eine visuelle Taskleistenabnahme benötigt einen Neustart einer neu gebauten Windows-EXE; Installer, Inferenz und übrige Oberflächen wurden nicht erneut geprüft.
+
+## 2026-09-27 – Popup-Position unter der Menüleiste (gezielte Prüfung)
+
+- `npm.cmd run build`: bestanden.
+- `node scripts/check-download-overview.mjs`: bestanden. Der echte React-/WindowFrame-Dialogpfad prüft weiterhin aktive Downloads, Fortschritt, Escape, Außenklick, Fokusrückgabe und 150%-Skalierung.
+- Die Benachrichtigungsansicht nutzt dieselbe geänderte Positionsregel; keine Netzwerk-, Inferenz-, Installer- oder vollständige native Desktopprüfung wiederholt.

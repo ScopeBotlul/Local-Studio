@@ -915,3 +915,8 @@ Als Nächstes stehen die noch offenen M0-Punkte und anschließend M1 gemäß `PL
 
 - Das Akzent-Icon wird nun über Tauri sowohl am Hauptfenster als auch am Infobereich-Icon gesetzt. Dadurch aktualisiert Windows auch das für den gruppierten Taskleistenbutton verwendete Fensterklassen-Icon, statt nur eine Fenster-Nachricht zu erhalten.
 - Bei aktivierter Windows-Akzentfarbe wird das Icon beim Start und bei der laufenden Akzentabfrage mit derselben Systemfarbe neu gesetzt. Zuvor änderte sich in diesem Modus nur das CSS.
+
+## 2026-09-27 – Download- und Benachrichtigungsfenster an Menüleiste ausrichten
+
+- Downloadübersicht und Benachrichtigungsfenster beginnen jetzt am oberen Rand des App-Inhalts direkt unter der Windows-Menüleiste. Der frühere zusätzliche 44-Pixel-Abstand ließ beide erst unter der Hauptnavigation erscheinen.
+- Die gemeinsame Skalierung und die vorhandene Tastatur-/Außenklick-Behandlung bleiben unverändert.
