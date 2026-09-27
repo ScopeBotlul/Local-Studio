@@ -98,6 +98,11 @@ unbemerkt von ComfyUI auf den RAM-intensiveren Vulkan-Worker, wenn ein als
 ComfyUI-Checkpoint registriertes Modell kurzzeitig nicht ueber die ComfyUI-API
 erreichbar ist. Die Bildfehlermeldung erklaert die RAM-Grenze jetzt genauer.
 
+Neu in 0.36.24: Die nativen Datei-, Bearbeiten-, Ansicht- und Hilfe-Menues
+bleiben nach wiederholtem Oeffnen bedienbar. Download- und Benachrichtigungs-
+fenster blockieren die Titelleiste nicht mehr und folgen dem eingestellten
+Oberflaechenzoom.
+
 Neu in 0.36.12: AMD-Systeme mit hoechstens 16 GB gemeinsamem Speicher starten
 ComfyUI ohne DynamicVRAM und mit Low-VRAM-Modus. Der SDXL-Textencoder laeuft
 dadurch auf der CPU und umgeht den auf dem ROG Ally abgestuerzten ROCm-Pfad.

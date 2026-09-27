@@ -1,5 +1,7 @@
 # Local Studio
 
+Version 0.36.24 stabilisiert die **native Menüleiste** und korrigiert die **UI-Skalierung der Download- und Benachrichtigungsfenster**. Die Dropdowns blockieren die Titelleiste nicht mehr und folgen der eingestellten Skalierung. [Änderungen und Grenzen](docs/RELEASE_0.36.24.md).
+
 Version 0.36.23 verhindert, dass die automatische Engine nach erfolgreichen ComfyUI-Bildern unbemerkt zu Vulkan wechselt und dort an der RAM-Grenze stoppt. [Änderungen und Grenzen](docs/RELEASE_0.36.23.md).
 
 Version 0.36.22 verbessert den ComfyUI-Start auf langsameren PCs und gleicht das laufende Taskleisten-Icon an das Logo in der App an. [Änderungen und Grenzen](docs/RELEASE_0.36.22.md).

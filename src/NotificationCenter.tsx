@@ -36,10 +36,17 @@ export default function NotificationCenter({language, disabled=false, entries, o
   const dialog=useRef<HTMLDialogElement>(null), button=useRef<HTMLButtonElement>(null);
   useEffect(()=>{
     const element=dialog.current;
-    if(shown) element?.showModal(); else element?.close();
+    if(shown) element?.show(); else element?.close();
     return()=>element?.close();
   },[shown]);
   function close(){setShown(false);button.current?.focus();}
+  useEffect(()=>{
+    if(!shown)return;
+    const dismiss=(event:PointerEvent)=>{const target=event.target as Node|null;if(target&&!dialog.current?.contains(target)&&!button.current?.contains(target))close();};
+    const escape=(event:KeyboardEvent)=>{if(event.key==='Escape'){event.preventDefault();close();}};
+    window.addEventListener('pointerdown',dismiss,true);window.addEventListener('keydown',escape,true);
+    return()=>{window.removeEventListener('pointerdown',dismiss,true);window.removeEventListener('keydown',escape,true);};
+  },[shown]);
   function toggle(){
     if(shown){close();return;}
     if(document.querySelector('dialog[open],[aria-modal="true"]'))return;

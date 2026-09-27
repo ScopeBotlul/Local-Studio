@@ -73,16 +73,18 @@ pub async fn app_menu_update(mut state: MenuState, app: tauri::AppHandle) -> Res
     if title.len() > 1000 || title.chars().any(char::is_control) {
         return Err("menu_state".into());
     }
-    window.set_title(title).map_err(|e| e.to_string())?;
-    window.remove_menu().map_err(|e| e.to_string())?;
-    window
-        .set_theme(match state.theme.as_str() {
-            "light" => Some(tauri::Theme::Light),
-            "dark" => Some(tauri::Theme::Dark),
-            _ => None,
-        })
-        .map_err(|e| e.to_string())?;
     let Some(popup) = state.popup else {
+        // State refreshes update the window chrome only. Removing the window's
+        // attached menu here can race a native popup opened by another IPC call
+        // and makes the custom title-bar menus stop responding intermittently.
+        window.set_title(title).map_err(|e| e.to_string())?;
+        window
+            .set_theme(match state.theme.as_str() {
+                "light" => Some(tauri::Theme::Light),
+                "dark" => Some(tauri::Theme::Dark),
+                _ => None,
+            })
+            .map_err(|e| e.to_string())?;
         return Ok(());
     };
     let size = window

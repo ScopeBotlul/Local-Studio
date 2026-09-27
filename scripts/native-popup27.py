@@ -6,6 +6,8 @@ u.SetProcessDpiAwarenessContext.argtypes=[c.c_void_p]
 u.SetProcessDpiAwarenessContext(c.c_void_p(-4))
 u.SendMessageW.argtypes=[w.HWND,w.UINT,w.WPARAM,w.LPARAM];u.SendMessageW.restype=c.c_ssize_t
 u.PostMessageW.argtypes=[w.HWND,w.UINT,w.WPARAM,w.LPARAM]
+u.GetWindow.argtypes=[w.HWND,w.UINT];u.GetWindow.restype=w.HWND
+u.PostThreadMessageW.argtypes=[w.DWORD,w.UINT,w.WPARAM,w.LPARAM]
 u.GetSubMenu.argtypes=[w.HMENU,c.c_int];u.GetSubMenu.restype=w.HMENU
 u.GetMenuItemCount.argtypes=[w.HMENU];u.GetMenuItemCount.restype=c.c_int
 u.GetMenuItemID.argtypes=[w.HMENU,c.c_int];u.GetMenuItemID.restype=w.UINT
@@ -23,6 +25,8 @@ def visit(hwnd,_):
  return True
 u.EnumWindows(visit,0)
 if not popups or not owners:raise RuntimeError('No native popup found for test process')
+popup_owner=u.GetWindow(popups[0],4) or owners[0]
+popup_thread=u.GetWindowThreadProcessId(popups[0],None)
 def items(menu):
  result=[]
  for i in range(u.GetMenuItemCount(menu)):
@@ -43,10 +47,12 @@ if len(sys.argv)>2:
  # global pointer. Disabled rows also consume one Down key in Win32 menus.
  for _ in range(len(result)+2):
   if u.GetMenuState(handle,target['position'],0x400)&0x80:break
-  u.PostMessageW(owners[0],0x0100,0x28,1);time.sleep(.1)
- else:raise RuntimeError('Native menu did not highlight the requested item')
- u.PostMessageW(owners[0],0x0100,0x0d,1)
+  u.PostThreadMessageW(popup_thread,0x0100,0x28,1);time.sleep(.1)
+ else:
+  u.PostMessageW(popup_owner,0x0100,0x1b,1)
+  raise RuntimeError('Native menu did not highlight the requested item')
+ u.PostThreadMessageW(popup_thread,0x0100,0x0d,1)
 else:
- u.PostMessageW(owners[0],0x001f,0,0)
+ u.PostMessageW(popup_owner,0x001f,0,0)
  time.sleep(.15)
 print(json.dumps(result,ensure_ascii=True))

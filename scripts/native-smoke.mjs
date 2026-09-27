@@ -150,7 +150,7 @@ try {
   assert.equal(snapshot.settings.setupComplete, true);
   record('First-run setup through real UI');
 
-  await page.getByRole('button', { name: 'Create', exact: true }).click();
+  await page.getByRole('button', { name: /^(?:Create|Studio)$/ }).first().click();
   const createNav = page.getByRole('navigation', { name: /Studio-Werkzeuge|Studio tools/ });
   await createNav.waitFor();
   const createButtons = createNav.getByRole('button');

@@ -233,7 +233,9 @@ export default function App() {
     const accent = snapshot?.settings.accentColor ?? '#4b9f91';
     root.style.setProperty('--accent', accent);
     root.style.setProperty('--accent-ink', accentInk(accent));
-    root.style.setProperty('--ui-scale', String(snapshot?.settings.uiScale ?? 1));
+    const uiScale = snapshot?.settings.uiScale ?? 1;
+    root.style.setProperty('--ui-scale', String(uiScale));
+    root.style.setProperty('--ui-scale-inverse', String(1 / uiScale));
     root.style.colorScheme = theme === 'system' ? 'light dark' : theme;
   }, [snapshot?.settings.theme, snapshot?.settings.accentColor, snapshot?.settings.uiScale, language]);
 

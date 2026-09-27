@@ -1,7 +1,7 @@
 .window-frame{height:100vh;display:flex;flex-direction:column;overflow:hidden}
 .window-chrome-slot{height:36px;flex:none}
 .window-chrome-host{height:36px}
-.window-chrome-modal{position:fixed;inset:0 0 auto;height:36px;width:100vw;zoom:calc(1 / var(--ui-scale));z-index:1000;color:var(--text);font-family:var(--font-sans,inherit)}
+.window-chrome-modal{position:fixed;inset:0 0 auto;height:36px;width:100vw;transform:scale(var(--ui-scale-inverse));transform-origin:top left;z-index:1000;color:var(--text);font-family:var(--font-sans,inherit)}
 .window-titlebar{height:36px;flex:none;position:relative;display:flex;align-items:stretch;background:var(--sidebar);border-bottom:1px solid var(--border);user-select:none;font-size:12px}
 .window-left{position:relative;z-index:2;display:flex;align-items:center;max-width:38%;background:var(--sidebar)}
 .window-logo{width:42px;display:flex;align-items:center;justify-content:center;flex:none}

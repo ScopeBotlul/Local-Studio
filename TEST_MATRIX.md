@@ -1,3 +1,11 @@
+# Version 0.36.24 — gezielte Prüfung (2026-09-27)
+
+- Frontend-Produktionsbuild: bestanden. 17/17 gezielte Tests für Downloadfortschritt, Benachrichtigungsbeschriftung und Skalierungshelfer bestanden.
+- Optimierter Windows-Release-Build und Inno-Installer: erfolgreich erstellt.
+- Echte isolierte Windows-App: Datei-, Bearbeiten-, Ansicht- und Hilfe-Menüs sowie Projekt-, Editor-, Hilfe- und Updateaktionen bestanden.
+- UI-Zoom 125 %: Downloadfenster übernimmt den gespeicherten Zoom; die Titelleiste bleibt bei 36 Pixeln, an Position 0/0 und bedienbar. Keine unbehandelten WebView-Fehler. Nachweis: `.artifacts/native-1790511657493/report.json`.
+- Unveränderte Modell-, Inferenz-, Video-, Datenschutz- und ComfyUI-Pfade wurden nicht erneut geprüft.
+
 # Version 0.36.23 — gezielte Prüfung (2026-09-27)
 
 - Neue Routing-Regression: `cargo test --manifest-path src-tauri/Cargo.toml image_engine::tests::auto_does_not_switch_nvidia_comfy_checkpoints_to_vulkan_during_api_hiccup`: 1/1 bestanden.
