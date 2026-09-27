@@ -1,6 +1,8 @@
 # Bildstudio — anpassbare Arbeitsbereiche (2026-09-27)
 
 - Frontend-Produktionsbuild: bestanden. TypeScript kompiliert die gespeicherten Panelbreiten, die ziehbaren Trennleisten und die responsive Umschaltung.
+- Echte isolierte Windows-App: gespeicherte Startbreiten, Pfeiltasten, Pos1/Ende und Doppelklick-Rücksetzen der Bildstudio-Seitenleisten bestanden. Nachweis: `.artifacts/native-1790512580103/report.json`.
+- GitHub: `v0.36.25` ist als Latest veröffentlicht. Installer, Portable-ZIP, Prüfsummen, `update.json` und `update.sig` wurden öffentlich geprüft; alle Größen, SHA-256-Werte und die Signatur stimmen. Nachweis: `.artifacts/github-release-verification-0.36.25.json`.
 - Abgrenzung: keine neue Generierung oder Runtime-Prüfung; diese Änderung betrifft ausschließlich das Bildstudio-Layout.
 
 # Version 0.36.24 — gezielte Prüfung (2026-09-27)

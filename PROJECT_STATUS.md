@@ -3,6 +3,7 @@
 - Die linke Konfiguration startet mit 410 px, die rechte Studio-Galerie mit 300 px.
 - Zwei Trennleisten erlauben das Ziehen der Breite; Pfeiltasten, Pos1/Ende und Doppelklick sind als zugängliche Alternativen vorhanden.
 - Die Breiten werden ausschließlich lokal im Browserprofil gespeichert. Bei schmalen Fenstern wird die Galerie weiterhin unter den Arbeitsbereich gelegt.
+- Version 0.36.25 ist unter https://github.com/ScopeBotlul/Local-Studio/releases/tag/v0.36.25 als Latest veröffentlicht und über vollständige öffentliche Downloads verifiziert.
 
 # Version 0.36.24 — Implementierung (2026-09-27)
 
