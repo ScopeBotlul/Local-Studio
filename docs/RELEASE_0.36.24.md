@@ -6,3 +6,5 @@ Diese Version behebt zwei Fehler der Titelleiste:
 - Das Download- und Benachrichtigungsfenster folgt jetzt der eingestellten Oberflächenskalierung. Die Titelleiste bleibt während eines geöffneten Fensters in korrekter Größe und Position.
 
 Geprüft: TypeScript-/Vite-Produktionsbuild, gezielte Downloadübersichtstests, Rust-Build sowie native Windows-Menü- und Skalierungsprüfung. Kein neuer Inferenz- oder Modellgenerierungstest; diese Pfade sind unverändert.
+
+Veröffentlicht als Latest unter https://github.com/ScopeBotlul/Local-Studio/releases/tag/v0.36.24. Installer, Portable-ZIP, Prüfsummen und signierte Update-Metadaten wurden nach dem Upload vollständig öffentlich verifiziert.

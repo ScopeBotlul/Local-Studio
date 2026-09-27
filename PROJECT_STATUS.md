@@ -3,6 +3,7 @@
 - Zustandsaktualisierungen entfernen kein natives Popup-Menü mehr während es geöffnet ist. Dadurch bleiben Datei, Bearbeiten, Ansicht und Hilfe auch nach wiederholter Nutzung bedienbar.
 - Download- und Benachrichtigungsübersicht sind nicht-blockierende Dropdowns. Sie schließen per Escape oder Klick außerhalb, lassen die Titelleiste aber aktiv.
 - Beide Dropdowns übernehmen den gespeicherten UI-Zoom. Die Titelleiste behält bei geöffnetem Dropdown ihre feste Windows-Höhe und Position.
+- Version 0.36.24 ist unter https://github.com/ScopeBotlul/Local-Studio/releases/tag/v0.36.24 als Latest veröffentlicht und über vollständige öffentliche Downloads verifiziert.
 - Releasehinweise: [docs/RELEASE_0.36.24.md](docs/RELEASE_0.36.24.md).
 
 # Version 0.36.23 — Implementierung (2026-09-27)

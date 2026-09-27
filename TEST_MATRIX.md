@@ -4,6 +4,8 @@
 - Optimierter Windows-Release-Build und Inno-Installer: erfolgreich erstellt.
 - Echte isolierte Windows-App: Datei-, Bearbeiten-, Ansicht- und Hilfe-Menüs sowie Projekt-, Editor-, Hilfe- und Updateaktionen bestanden.
 - UI-Zoom 125 %: Downloadfenster übernimmt den gespeicherten Zoom; die Titelleiste bleibt bei 36 Pixeln, an Position 0/0 und bedienbar. Keine unbehandelten WebView-Fehler. Nachweis: `.artifacts/native-1790511657493/report.json`.
+- Paketprüfung: Portable-ZIP mit 80 erlaubten Dateien und 77 Runtime-Dateien; lokale Größen, SHA-256-Werte und Ed25519-Signatur bestanden. Portable SHA-256 `ba6bc01590b86c18b3e47ff1863fd6f3f9a9befbbff6bc602ca69f651214de31`, Installer SHA-256 `dd87370262f312c1462d0f2a2954d58ff213536216f45958bae419d7cf082320`.
+- GitHub: `v0.36.24` ist als Latest veröffentlicht. Installer, Portable-ZIP, Prüfsummen, `update.json` und `update.sig` wurden öffentlich geprüft; alle fünf Größen und Asset-Digests stimmen. Nachweis: `.artifacts/github-release-verification-0.36.24.json`.
 - Unveränderte Modell-, Inferenz-, Video-, Datenschutz- und ComfyUI-Pfade wurden nicht erneut geprüft.
 
 # Version 0.36.23 — gezielte Prüfung (2026-09-27)
