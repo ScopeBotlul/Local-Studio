@@ -1,3 +1,10 @@
+# Version 0.36.23 — Implementierung (2026-09-27)
+
+- Bei NVIDIA bleibt die automatische Bildengine bei einem als ComfyUI-Checkpoint registrierten Modell auf ComfyUI, auch wenn dessen API-Prüfung kurzzeitig fehlschlägt. So startet Local Studio nicht unbemerkt den RAM-intensiveren Vulkan-Worker.
+- Die `resource_memory`-Meldung nennt jetzt ausdrücklich die Bildengine und bietet ComfyUI als alternative Engine an.
+- Die lokale Auftragsdatenbank zeigte vier erfolgreiche ComfyUI-Aufträge und anschließend zwei sofortige Vulkan-Abbrüche mit `resource_memory`; Generierung und Checkpoint waren dabei nicht fehlgeschlagen.
+- Releasehinweise: [docs/RELEASE_0.36.23.md](docs/RELEASE_0.36.23.md).
+
 # Version 0.36.22 — Implementierung (2026-09-27)
 
 - ComfyUI darf bis zu 180 Sekunden für den lokalen API-Start brauchen. Eine Start-Sperre verhindert parallele Startprozesse, wenn automatischer Start, UI-Klick und Studio-Auftrag zeitlich zusammentreffen.

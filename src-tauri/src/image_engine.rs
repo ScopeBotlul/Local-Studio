@@ -163,6 +163,9 @@ pub(crate) fn valid_dimensions(width: u32, height: u32) -> bool {
 fn admission_ram(model_bytes: u64) -> u64 {
     model_bytes.saturating_add(1024 * 1024 * 1024)
 }
+fn keep_comfy_route_for_auto(has_nvidia: bool, checkpoint_registered: bool, comfy_ready: bool) -> bool {
+    checkpoint_registered && (comfy_ready || has_nvidia)
+}
 pub(crate) fn validate(request: &ImageRequest) -> Result<()> {
     if let Some(reference) = &request.reference {
         reference::validate(reference, request.width, request.height)?;
@@ -825,9 +828,11 @@ impl ImageEngine {
             let comfy = self.comfy_probe(path);
             return if comfy.ready { comfy } else { native };
         }
-        if self.comfy.checkpoint_path(Path::new(path)) {
+        let has_comfy_checkpoint = self.comfy.checkpoint_path(Path::new(path));
+        if has_comfy_checkpoint {
             let comfy = self.comfy_probe(path);
-            if comfy.ready {
+            let has_nvidia = hardware.gpus.iter().any(|gpu| gpu.vendor == "NVIDIA");
+            if keep_comfy_route_for_auto(has_nvidia, has_comfy_checkpoint, comfy.ready) {
                 return comfy;
             }
         }
@@ -1559,6 +1564,14 @@ mod tests {
     fn native_admission_includes_checkpoint_size_and_working_memory() {
         let model = 7 * 1024 * 1024 * 1024;
         assert_eq!(admission_ram(model), 8 * 1024 * 1024 * 1024);
+    }
+    #[test]
+    fn auto_does_not_switch_nvidia_comfy_checkpoints_to_vulkan_during_api_hiccup() {
+        assert!(keep_comfy_route_for_auto(true, true, false));
+        assert!(keep_comfy_route_for_auto(true, true, true));
+        assert!(!keep_comfy_route_for_auto(true, false, false));
+        assert!(!keep_comfy_route_for_auto(false, true, false));
+        assert!(keep_comfy_route_for_auto(false, true, true));
     }
     #[test]
     fn vulkan_device_selection_accepts_amd_intel_and_prefers_detected_vendor_order() {

@@ -93,6 +93,11 @@ den ersten API-Start; gleichzeitige Startauftraege oeffnen keinen zweiten
 Prozess. Das laufende Taskleistenicon verwendet nun dieselben drei Balken wie
 das Local-Studio-Logo und folgt der eingestellten Akzentfarbe.
 
+Neu in 0.36.23: NVIDIA-Systeme wechseln im automatischen Modus nicht mehr
+unbemerkt von ComfyUI auf den RAM-intensiveren Vulkan-Worker, wenn ein als
+ComfyUI-Checkpoint registriertes Modell kurzzeitig nicht ueber die ComfyUI-API
+erreichbar ist. Die Bildfehlermeldung erklaert die RAM-Grenze jetzt genauer.
+
 Neu in 0.36.12: AMD-Systeme mit hoechstens 16 GB gemeinsamem Speicher starten
 ComfyUI ohne DynamicVRAM und mit Low-VRAM-Modus. Der SDXL-Textencoder laeuft
 dadurch auf der CPU und umgeht den auf dem ROG Ally abgestuerzten ROCm-Pfad.

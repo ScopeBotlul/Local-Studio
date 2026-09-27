@@ -1,3 +1,11 @@
+# Version 0.36.23 — gezielte Prüfung (2026-09-27)
+
+- Neue Routing-Regression: `cargo test --manifest-path src-tauri/Cargo.toml image_engine::tests::auto_does_not_switch_nvidia_comfy_checkpoints_to_vulkan_during_api_hiccup`: 1/1 bestanden.
+- Fehlermeldung im Bildstudio: `npm.cmd test -- --run src/image-api.test.ts`: 2/2 bestanden.
+- Optimierter Windows-Release-Build und Inno-Installer: erfolgreich erstellt.
+- Portable ZIP: 80 erlaubte Dateien und 77 geprüfte Runtime-Dateien; Paket- und Update-Signaturprüfung folgen nach dem signierten Manifest.
+- Einschränkung: kein realer ComfyUI-Generierungslauf nach dem Routing-Fix.
+
 # Version 0.36.22 — gezielte Prüfung (2026-09-27)
 
 - Frontend-Produktionsbuild: bestanden. `npm.cmd run build` kompilierte TypeScript und Vite.

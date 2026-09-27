@@ -52,7 +52,7 @@ export const imageApi = {
 
 const errors: Record<string, [string, string]> = {
   image_mask:['Die Maske muss ein undurchsichtiges PNG mit gleichen RGB-Grauwerten und mindestens einem hellen Bereich sein. Weiß wird bearbeitet, Schwarz bleibt erhalten.','The mask must be an opaque grayscale PNG with at least one non-black area. White is edited, black is preserved.'],
-  resource_memory:['Nicht genug freier RAM. Andere Modelle entladen und erneut versuchen.','Not enough available RAM. Unload other models and try again.'],
+  resource_memory:['Zu wenig freier RAM für diese Bild-Engine. Schließe speicherintensive Programme oder wähle ComfyUI.','Not enough free RAM for this image engine. Close memory-heavy apps or select ComfyUI.'],
   resource_timeout:['Zu lange auf Ressourcen gewartet. Den Auftrag bei Bedarf erneut einreihen.','Resource wait timed out. Queue the job again if needed.'],
   image_batch: ['Stapelgröße 1 bis 20 wählen. Bei aufsteigenden Seeds darf der letzte Seed 4294967295 nicht überschreiten.', 'Choose a batch size from 1 to 20. With increasing seeds, the last seed must not exceed 4294967295.'],
   image_dimensions: ['Breite/Höhe: 256–4096 Pixel in 64er-Schritten; maximal 4.194.304 Pixel insgesamt.', 'Width/height: 256–4096 pixels in steps of 64; at most 4,194,304 total pixels.'],
