@@ -1,5 +1,7 @@
 # Local Studio
 
+Version 0.36.20 repariert **In Galerie speichern**, wenn der zuletzt im Studio geöffnete Galerie-Unterordner inzwischen fehlt oder nicht mehr erreichbar ist. Local Studio setzt das Ziel dann sicher auf den Galerie-Hauptordner zurück. [Änderungen und Grenzen](docs/RELEASE_0.36.20.md).
+
 Version 0.36.19 ergänzt **Rule34 als direkte Quelle beim Tag-Import**. Einzelne Posts lassen sich im integrierten Browser öffnen; Local Studio liest deren Tags lokal aus der geladenen Seite und gruppiert sie für den Bildprompt. [Änderungen und Grenzen](docs/RELEASE_0.36.19.md).
 
 Version 0.36.18 ordnet die Modellbibliothek über eine eigene Leiste für **Lokal gespeichert**, **Hugging Face** und **Civitai**. Civitai erhält einen integrierten Konto-/Webbereich, Typfilter und die bestehende geprüfte Downloadansicht. [Änderungen und Grenzen](docs/RELEASE_0.36.18.md).

@@ -855,3 +855,10 @@ Als Nächstes stehen die noch offenen M0-Punkte und anschließend M1 gemäß `PL
 - Die Tags werden direkt aus der bereits geladenen Post-Seite gelesen, nach den vorhandenen Kategorien gruppiert und anschließend durch denselben lokalen Tag-Parser wie eingefügte Listen verarbeitet. Es gibt keinen zusätzlichen HTML-Abruf und keine Speicherung von Website-Zugangsdaten oder API-Schlüsseln.
 - Der neue typisierte IPC-Befehl akzeptiert ausschließlich exakte Rule34-Post-URLs über HTTPS, gleicht die angeforderte ID mit der tatsächlich geöffneten Child-WebView-Seite ab und begrenzt Anzahl, Länge und Gesamtgröße der übernommenen Tags.
 - Das manuelle Einfügen von Taglisten sowie der Danbooru-Import bleiben erhalten. Version 0.36.19 wurde als Windows-Installer und portables Archiv unter `ScopeBotlul/Local-Studio` veröffentlicht; die öffentlichen Downloads, Prüfsummen und signierten Update-Metadaten wurden vollständig zurückgeladen und verifiziert.
+
+## 2026-09-27 – Galerie-Speicherziel repariert
+
+- Die lokale Diagnose zeigte vier zuletzt fertiggestellte, gültige temporäre PNG-Ergebnisse ohne neuen Galerieeintrag. Der Speicherweg scheiterte damit vor dem Kopieren in die Galerie; die persönlichen Bilder wurden nicht verändert.
+- Das Studio merkt sich den geöffneten Galerie-Unterordner in der Sitzung. Existiert dieses Ziel später nicht mehr oder wird es als unsicherer Pfad abgewiesen, setzt `In Galerie speichern` den Zielordner jetzt auf die Galerie-Wurzel zurück und wiederholt den Vorgang genau einmal.
+- Andere Fehler werden nicht automatisch wiederholt. Dadurch bleiben echte Schreib-, Bild- oder Datenbankprobleme sichtbar.
+- Version 0.36.20 ist für Installer, portables Archiv und signierte Update-Metadaten vorbereitet.

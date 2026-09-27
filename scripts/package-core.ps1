@@ -78,6 +78,11 @@ Danbooru. Einzelne Posts werden im getrennten integrierten Browser geoeffnet;
 Local Studio liest die sichtbaren Tags lokal aus der geladenen Seite und
 gruppiert sie fuer die Uebernahme in den Bildprompt.
 
+Neu in 0.36.20: In Galerie speichern erkennt einen nicht mehr vorhandenen oder
+ungueltigen zuletzt geoeffneten Galerie-Unterordner. Der Speichervorgang wird
+einmal sicher im Galerie-Hauptordner wiederholt und das veraltete Sitzungsziel
+zurueckgesetzt. Andere Speicherfehler bleiben sichtbar.
+
 Neu in 0.36.12: AMD-Systeme mit hoechstens 16 GB gemeinsamem Speicher starten
 ComfyUI ohne DynamicVRAM und mit Low-VRAM-Modus. Der SDXL-Textencoder laeuft
 dadurch auf der CPU und umgeht den auf dem ROG Ally abgestuerzten ROCm-Pfad.

@@ -26,6 +26,14 @@ export function suggestImageDimensions(width:number,height:number):{width:number
 export interface ImageWorkspace { request: ImageRequest | null; models: Record<string, ImageRequest>; }
 export interface WorkspaceSnapshot {locked?:boolean; workspace: ImageWorkspace; recoveryAvailable: boolean; unsaved: number; }
 export const activeImage = (job: ImageJob) => job.status === 'running' || job.status === 'queued';
+export function unavailableGalleryFolder(error:unknown){return ['gallery_missing','gallery_path'].includes(String(error));}
+export async function saveWithGalleryFallback(id:string,folder:string,save:(id:string,folder:string)=>Promise<string>){
+ try{return {path:await save(id,folder),folder};}
+ catch(error){
+  if(!folder||!unavailableGalleryFolder(error))throw error;
+  return {path:await save(id,''),folder:''};
+ }
+}
 export const imageApi = {
   reference:(path:string)=>invoke<ImageReference>('image_reference',{path}),
   generateBatch:(request:ImageRequest,count:number,incrementSeed:boolean)=>invoke<{jobs:ImageJob[];error:string|null}>('image_generate_batch',{request,count,incrementSeed}),
@@ -77,6 +85,8 @@ const errors: Record<string, [string, string]> = {
   image_memory: ['Zu wenig verfügbarer Speicher für die Generierung. Bei knappem VRAM „VAE auf CPU“ wählen oder andere GPU-Aufgaben beenden und erneut starten.', 'Insufficient available memory for generation. If VRAM is limited, select “Run VAE on CPU” or finish other GPU tasks before trying again.'],
   image_output: ['Der Worker hat kein gültiges PNG in der gewünschten Auflösung geliefert.', 'The worker did not return a valid PNG at the requested resolution.'],
   image_storage: ['Lokale Bilddaten konnten nicht gespeichert oder gelesen werden.', 'Unable to read or save local image data.'],
+  gallery_missing: ['Der gewählte Galerieordner existiert nicht mehr. Local Studio verwendet wieder den Galerie-Hauptordner.', 'The selected gallery folder no longer exists. Local Studio is using the main gallery folder again.'],
+  gallery_path: ['Der gewählte Galerieordner ist nicht mehr sicher erreichbar. Local Studio verwendet wieder den Galerie-Hauptordner.', 'The selected gallery folder is no longer safely accessible. Local Studio is using the main gallery folder again.'],
   image_missing: ['Das Ergebnis ist nicht mehr verfügbar.', 'The result is no longer available.'],
   image_interrupted: ['Dieser Auftrag wurde durch einen App-Abbruch unterbrochen. Er wird nicht automatisch neu gestartet.', 'This job was interrupted by an app crash. It will not restart automatically.'],
   image_worker_guard: ['Der Bildworker konnte nicht sicher an die App gebunden werden.', 'The image worker could not be attached safely to the app.'],
