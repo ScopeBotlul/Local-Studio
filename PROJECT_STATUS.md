@@ -936,3 +936,9 @@ Als Nächstes stehen die noch offenen M0-Punkte und anschließend M1 gemäß `PL
 - Portable Archiv und Windows-Installer wurden fuer 0.36.26 erzeugt. Die portable Anleitung verwendet nun die aktuelle Release-Version statt einer fest eingebauten alten Versionsnummer.
 - Die signierte Update-Beschreibung nennt die beiden neuen WIP-Studio-Bereiche und stellt sie nicht als fertige KI-Video- oder Coding-Funktionen dar.
 - GitHub-Release `v0.36.26` ist oeffentlich unter `ScopeBotlul/Local-Studio` verfuegbar. Er enthaelt Windows-Installer, Portable-ZIP, SHA-256-Pruefsummen sowie das Ed25519-signierte Update-Manifest.
+
+## 2026-09-27 – Zusätzliche ComfyUI-LoRA-Ordner und Galerie-Rückfall
+
+- Wählt ein Bildauftrag eine LoRA aus einem beliebigen lokalen Ordner, registriert Local Studio den kanonischen Elternordner dauerhaft als zusätzliche sichere ComfyUI-LoRA-Quelle. Mehrere unterschiedliche Ordner sind möglich; nicht erreichbare, umgeleitete oder unsichere Einträge werden nicht an ComfyUI weitergegeben.
+- Die von Local Studio verwaltete ComfyUI-Engine wird nach einer neuen Registrierung einmal kontrolliert neu gestartet, damit sie die neue Quelle unmittelbar einliest. Eine extern gestartete Engine wird nicht angehalten; Local Studio fordert dort zu einem eigenen Neustart auf.
+- Zeigt die Studio-Galerie einen inzwischen gelöschten oder nicht mehr sicheren Sitzungsordner, setzt sie die Auswahl sofort auf den Galerie-Hauptordner zurück. Dadurch verwendet auch der nächste Speichervorgang ohne weiteren Fehler das sichere Ziel.

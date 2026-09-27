@@ -1,5 +1,5 @@
 use crate::{
-    image_engine::{ImageRequest, ProcessGroup},
+    image_engine::{ImageLora, ImageRequest, ProcessGroup},
     model_library,
 };
 use reqwest::blocking::Client;
@@ -36,6 +36,8 @@ const AMD_LOW_MEMORY_ENV: (&str, &str) = ("COMFY_KITCHEN_DISABLE_HIP", "1");
 struct Config {
     path: Option<String>,
     dismissed: bool,
+    #[serde(default)]
+    lora_paths: Vec<String>,
 }
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -516,11 +518,95 @@ impl Comfy {
             return Err("comfy_model_path".into());
         }
         let root = root.replace('\'', "''");
-        fs::write(
-            &self.extra_model_paths,
-            format!("local_studio:\n  checkpoints: '{root}'\n"),
-        )
-        .map_err(|_| "comfy_storage".into())
+        let lora_paths = self.configured_lora_paths()?;
+        let mut yaml = format!("local_studio:\n  checkpoints: '{root}'\n");
+        for (index, lora_path) in lora_paths.iter().enumerate() {
+            let lora_path = lora_path
+                .to_string_lossy()
+                .trim_start_matches(r"\\?\")
+                .replace('\'', "''");
+            yaml.push_str(&format!(
+                "local_studio_loras_{index}:\n  base_path: '{lora_path}'\n  loras: '.'\n"
+            ));
+        }
+        fs::write(&self.extra_model_paths, yaml).map_err(|_| "comfy_storage".into())
+    }
+    fn configured_lora_paths(&self) -> Result<Vec<PathBuf>> {
+        let configured = self
+            .config
+            .lock()
+            .map_err(|_| "comfy_storage")?
+            .lora_paths
+            .clone();
+        let mut paths = Vec::new();
+        for value in configured {
+            let candidate = PathBuf::from(value);
+            // A disconnected removable drive or an outdated entry must not stop
+            // ComfyUI from starting. Only existing, safe directories are exposed.
+            if !candidate.is_dir() || model_library::no_links(&candidate).is_err() {
+                continue;
+            }
+            let canonical = match fs::canonicalize(candidate) {
+                Ok(path) => path,
+                Err(_) => continue,
+            };
+            if !paths.iter().any(|path: &PathBuf| path == &canonical) {
+                paths.push(canonical);
+            }
+        }
+        Ok(paths)
+    }
+    fn register_lora_parents(&self, loras: &[ImageLora]) -> Result<bool> {
+        let mut added = Vec::new();
+        for lora in loras {
+            let parent = Path::new(&lora.path).parent().ok_or("image_lora_path")?;
+            if !parent.is_dir() {
+                return Err("image_lora_path".into());
+            }
+            model_library::no_links(parent).map_err(|_| "image_lora_path")?;
+            let canonical = fs::canonicalize(parent).map_err(|_| "image_lora_path")?;
+            if !added.iter().any(|path: &PathBuf| path == &canonical) {
+                added.push(canonical);
+            }
+        }
+        if added.is_empty() {
+            return Ok(false);
+        }
+        let mut changed = false;
+        {
+            let mut config = self.config.lock().map_err(|_| "comfy_storage")?;
+            for path in added {
+                let value = path.to_string_lossy().into_owned();
+                if !config.lora_paths.iter().any(|known| {
+                    fs::canonicalize(known)
+                        .ok()
+                        .is_some_and(|known| known == path)
+                }) {
+                    config.lora_paths.push(value);
+                    changed = true;
+                }
+            }
+        }
+        if changed {
+            self.save()?;
+            self.write_extra_model_paths()?;
+        }
+        Ok(changed)
+    }
+    fn reload_after_lora_registration(&self) -> Result<()> {
+        let managed = self
+            .process
+            .lock()
+            .ok()
+            .is_some_and(|process| process.is_some());
+        if probe_http().is_ok() && !managed {
+            // We must not stop a ComfyUI instance that Local Studio does not own.
+            return Err("comfy_lora_restart".into());
+        }
+        if managed {
+            self.stop();
+        }
+        self.start().map(|_| ())
     }
     fn save(&self) -> Result<()> {
         let data = serde_json::to_vec_pretty(&*self.config.lock().map_err(|_| "comfy_storage")?)
@@ -1208,8 +1294,16 @@ impl Comfy {
             return None;
         }
         let root = self.config.lock().ok()?.path.clone().map(PathBuf::from)?;
-        if let Some(relative) = relative_model_path(path, &root.join("ComfyUI/models").join(folder)) {
+        if let Some(relative) = relative_model_path(path, &root.join("ComfyUI/models").join(folder))
+        {
             return Some(relative);
+        }
+        if folder == "loras" {
+            for lora_root in self.configured_lora_paths().ok()? {
+                if let Some(relative) = relative_model_path(path, &lora_root) {
+                    return Some(relative);
+                }
+            }
         }
         (folder == "checkpoints")
             .then(|| relative_model_path(path, &self.external_checkpoints))
@@ -1230,6 +1324,9 @@ impl Comfy {
             .is_some_and(|state| state.phase == "updating")
         {
             return Err("comfy_update_busy".into());
+        }
+        if self.register_lora_parents(&request.loras)? {
+            self.reload_after_lora_registration()?;
         }
         self.active_generations.fetch_add(1, Ordering::SeqCst);
         let _active = ActiveGeneration(&self.active_generations);
@@ -1600,6 +1697,43 @@ mod tests {
         );
         assert!(relative_model_path(&checkpoint, &config).is_none());
         assert!(!comfy.checkpoint_path(&config.join("foreign.safetensors")));
+    }
+
+    #[test]
+    fn extra_model_paths_register_safe_external_lora_folders() {
+        let temp = tempfile::tempdir().unwrap();
+        let config = temp.path().join("config");
+        let models = temp.path().join("models");
+        let lora_dir = temp.path().join("any user chosen lora folder");
+        fs::create_dir_all(&config).unwrap();
+        fs::create_dir_all(&models).unwrap();
+        fs::create_dir_all(&lora_dir).unwrap();
+        let lora = lora_dir.join("clove.safetensors");
+        fs::write(&lora, b"lora").unwrap();
+        let comfy = Comfy::new_with_checkpoints(&config, Some(models)).unwrap();
+
+        assert!(comfy
+            .register_lora_parents(&[ImageLora {
+                path: lora.to_string_lossy().into_owned(),
+                strength: 1.0,
+                sha256: None,
+            }])
+            .unwrap());
+        assert!(!comfy
+            .register_lora_parents(&[ImageLora {
+                path: lora.to_string_lossy().into_owned(),
+                strength: 1.0,
+                sha256: None,
+            }])
+            .unwrap());
+
+        let yaml = fs::read_to_string(config.join("comfy-extra-model-paths.yaml")).unwrap();
+        assert!(yaml.contains("local_studio_loras_0:"));
+        assert!(yaml.contains("loras: '.'"));
+        assert_eq!(
+            comfy.configured_lora_paths().unwrap(),
+            vec![fs::canonicalize(lora_dir).unwrap()]
+        );
     }
 
     #[test]

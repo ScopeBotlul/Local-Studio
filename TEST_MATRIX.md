@@ -1112,3 +1112,10 @@ ZIP-Inhalt/CRC, Anleitung, EXE-Identität und Prüfsummen geprüft. Vollständig
 - `scripts/verify-release.mjs`: bestanden; Installer und Portable stimmen in Groesse und SHA-256 mit dem lokal signierten Update-Manifest fuer 0.36.26 ueberein.
 - Nicht erneut ausgefuehrt: Inferenz, ComfyUI, Modell-Downloads, Galerie-Dateioperationen und eine vollstaendige Installer-Installation. Diese Pfade waren von Navigation, WIP-Inhalt, Versionierung und Paket-Anleitung nicht betroffen.
 - `scripts/verify-published-release.mjs`: bestanden. Installer und Portable-ZIP wurden vollstaendig von GitHub zurueckgeladen; alle fuenf Asset-Digests, Release-Status und die Ed25519-Signatur stimmen mit den lokalen Release-Dateien ueberein. Bericht: `.artifacts/github-release-verification-0.36.26.json`.
+
+## 2026-09-27 – Zusätzliche ComfyUI-LoRA-Ordner und Galerie-Rückfall (gezielte Prüfung)
+
+- `cargo test --manifest-path src-tauri/Cargo.toml extra_model_paths_register_safe_external_lora_folders`: 1/1 bestanden. Der Test registriert einen frei benannten externen LoRA-Ordner, prüft den YAML-Eintrag für ComfyUI und die idempotente Wiederholung.
+- `npm.cmd test -- --run src/image-api.test.ts`: 2/2 bestanden. Der einmalige sichere Rückfall eines nicht mehr vorhandenen Galerie-Unterordners auf die Hauptgalerie bleibt abgedeckt.
+- `npm.cmd run build`: bestanden. Der Produktions-Frontendbuild kompiliert die sofortige Rücksetzung der Studio-Galerie sowie die erweiterten Fehlermeldungen. Die bekannte Bundlegrößenwarnung bleibt bestehen.
+- Kein echter ComfyUI-Neustart oder Inferenzlauf wurde ausgeführt; die Prüfung belegt die sichere Registrierung und den IPC-nahen Frontendpfad, nicht die Modellausführung mit einer konkreten LoRA. Installer, Update und übrige Galerie-Dateioperationen blieben unverändert.

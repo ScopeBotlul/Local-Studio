@@ -98,7 +98,8 @@ const errors: Record<string, [string, string]> = {
   comfy_model_path: ['Das Modell muss im Ordner ComfyUI\\models\\checkpoints liegen.', 'The model must be inside ComfyUI\\models\\checkpoints.'],
   comfy_reference: ['Referenzbild und Inpainting verwenden vorerst die bisherige Bildengine.', 'Reference image and inpainting currently use the existing image engine.'],
   image_lora: ['Maximal acht LoRAs mit einer Stärke von -2 bis 2 auswählen.', 'Select up to eight LoRAs with a strength from -2 to 2.'],
-  image_lora_path: ['Die LoRA-Datei ist nicht erreichbar oder gesperrt.', 'The LoRA file is unavailable or locked.'],
+  image_lora_path: ['Die LoRA-Datei oder ihr Ordner ist nicht sicher erreichbar.', 'The LoRA file or its folder is not safely accessible.'],
+  comfy_lora_restart: ['Der LoRA-Ordner wurde gespeichert. Extern gestartete ComfyUI bitte einmal neu starten, damit sie ihn einliest.', 'The LoRA folder was saved. Restart externally started ComfyUI once so it can load it.'],
   image_lora_changed: ['Eine ausgewählte LoRA-Datei wurde seit dem Einreihen verändert.', 'A selected LoRA file changed after the job was queued.'],
   image_lora_stage: ['Die LoRA konnte nicht sicher für den Vulkan-Worker bereitgestellt werden.', 'The LoRA could not be staged safely for the Vulkan worker.'],
 };

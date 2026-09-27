@@ -15,7 +15,12 @@ export default function StudioGallery({language,folder,onFolder,refreshKey}:{lan
   setError('');
   void galleryApi.list({folder,search:'',kind:'all',recursive:false,offset:0,favoritesOnly:false,tag:'',sort:'modifiedDesc'})
    .then(data=>{if(live&&request.current===id)setListing(data);})
-   .catch(e=>{if(live&&request.current===id){setListing(null);setError(galleryError(e,de));}});
+   .catch(e=>{if(live&&request.current===id){
+    // A saved session can still point at a folder that was removed outside the
+    // app. Reset it immediately, so the next save targets the main gallery.
+    if(folder&&['gallery_missing','gallery_path'].includes(String(e))){onFolder('');return;}
+    setListing(null);setError(galleryError(e,de));
+   }});
   return()=>{live=false;};
  },[folder,refreshKey,tick,de]);
  const parent=folder.includes('/')?folder.slice(0,folder.lastIndexOf('/')):'';
