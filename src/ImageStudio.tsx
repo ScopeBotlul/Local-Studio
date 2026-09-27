@@ -98,7 +98,6 @@ export default function ImageStudio({ onAddToProject, projectDisabled, shortcuts
     if ((event.target as HTMLElement).closest('input,textarea,select,[contenteditable="true"]') && !event.ctrlKey && !event.altKey) return;
     if (shortcutFor(event.nativeEvent, shortcuts) === 'generate') { const button = event.currentTarget.querySelector<HTMLButtonElement>('[data-image-generate]'); if (button && !button.disabled) { event.preventDefault(); button.click(); } }
   }}>
-    <header className="page-heading image-studio-heading"><div><div className="eyebrow">SDXL · {de?'LOKAL':'LOCAL'}</div><h1>{galleryOnly?(de?'Generierte Bilder':'Generated images'):(de?'Bildstudio':'Image studio')}</h1></div><span className="image-local-badge">{de?'Dein Modell. Deine Ideen. Dein PC.':'Your model. Your ideas. Your PC.'}</span></header>
     {error && <p className="notice warning" role="alert">{imageError(error, de)}</p>}
     {!galleryOnly && (active || waiting.length > 0) && <section className="notice image-queue-summary" role="status"><span>{active ? (de ? 'Ein Bildauftrag läuft.' : 'An image job is running.') : ''} {waiting.length} {de ? 'in der Warteschlange' : 'in the queue'}.</span>{active && <button className="text-button" onClick={() => setSelected(active.id)}>{de ? 'Laufenden Auftrag anzeigen' : 'Show running job'}</button>}</section>}
     <div className={`image-workspace ${galleryOnly?'gallery-only':''}`} style={galleryOnly?undefined:{'--image-left-panel':`${panelWidths.left}px`,'--image-right-panel':`${panelWidths.right}px`} as CSSProperties}>

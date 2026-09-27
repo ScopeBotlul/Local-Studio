@@ -33,9 +33,6 @@ fieldset.image-config { min-width: 0; }
 
 /* A working surface with controls alongside the result, using the active theme. */
 .page.image-studio { max-width: none; }
-.image-studio-heading { align-items: center; margin-bottom: 20px; gap: 20px; }
-.image-studio-heading h1 { font-size: 25px; margin-bottom: 0; }
-.image-local-badge { color: var(--muted); font-size: 11px; }
 .image-workspace { --image-left-panel:410px; --image-right-panel:300px; display: grid; grid-template-columns: minmax(320px,var(--image-left-panel)) 10px minmax(0,1fr) 10px minmax(250px,var(--image-right-panel)); gap: 8px; align-items: start; }
 .image-workspace.gallery-only { grid-template-columns: 1fr; }
 .image-panel-resizer { align-self:stretch; min-height:460px; position:relative; cursor:col-resize; touch-action:none; outline:0; }
