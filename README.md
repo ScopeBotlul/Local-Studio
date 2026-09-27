@@ -1,5 +1,7 @@
 # Local Studio
 
+Version 0.36.25 macht die Seitenbereiche des **Bildstudios anpassbar**. Modell-/Promptbereich und Studio-Galerie sind breiter, per Trennleiste verstellbar und merken sich die lokale Einstellung. [Änderungen und Grenzen](docs/RELEASE_0.36.25.md).
+
 Version 0.36.24 stabilisiert die **native Menüleiste** und korrigiert die **UI-Skalierung der Download- und Benachrichtigungsfenster**. Die Dropdowns blockieren die Titelleiste nicht mehr und folgen der eingestellten Skalierung. [Änderungen und Grenzen](docs/RELEASE_0.36.24.md).
 
 Version 0.36.23 verhindert, dass die automatische Engine nach erfolgreichen ComfyUI-Bildern unbemerkt zu Vulkan wechselt und dort an der RAM-Grenze stoppt. [Änderungen und Grenzen](docs/RELEASE_0.36.23.md).

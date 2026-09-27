@@ -160,6 +160,16 @@ try {
   assert.equal(await createButtons.nth(1).getAttribute('aria-current'), 'page');
   await createButtons.nth(0).click();
   await page.getByLabel(/Bildidee|Image prompt/, { exact: true }).waitFor();
+  const leftPanel=page.getByRole('separator',{name:/Breite der Einstellungen|Settings width/});
+  assert.equal(await leftPanel.getAttribute('aria-valuenow'),'410');
+  await leftPanel.focus();await page.keyboard.press('ArrowRight');
+  assert.equal(await leftPanel.getAttribute('aria-valuenow'),'430');
+  await page.keyboard.press('Home');assert.equal(await leftPanel.getAttribute('aria-valuenow'),'320');
+  await page.keyboard.press('End');assert.equal(await leftPanel.getAttribute('aria-valuenow'),'560');
+  await leftPanel.dblclick();assert.equal(await leftPanel.getAttribute('aria-valuenow'),'410');
+  const savedPanels=await page.evaluate(()=>JSON.parse(localStorage.getItem('image-studio-panel-widths')||'{}'));
+  assert.deepEqual(savedPanels,{left:410,right:300});
+  record('Image studio has persistent wider, keyboard-adjustable side panels with a reset action');
   await page.screenshot({ path: path.join(artifactRoot, '02-create-navigation.png') });
   record('Create navigation exposes image, editor, video and GIF studios with keyboard switching');
 

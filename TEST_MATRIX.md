@@ -1,3 +1,8 @@
+# Bildstudio — anpassbare Arbeitsbereiche (2026-09-27)
+
+- Frontend-Produktionsbuild: bestanden. TypeScript kompiliert die gespeicherten Panelbreiten, die ziehbaren Trennleisten und die responsive Umschaltung.
+- Abgrenzung: keine neue Generierung oder Runtime-Prüfung; diese Änderung betrifft ausschließlich das Bildstudio-Layout.
+
 # Version 0.36.24 — gezielte Prüfung (2026-09-27)
 
 - Frontend-Produktionsbuild: bestanden. 17/17 gezielte Tests für Downloadfortschritt, Benachrichtigungsbeschriftung und Skalierungshelfer bestanden.

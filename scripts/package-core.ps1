@@ -103,6 +103,10 @@ bleiben nach wiederholtem Oeffnen bedienbar. Download- und Benachrichtigungs-
 fenster blockieren die Titelleiste nicht mehr und folgen dem eingestellten
 Oberflaechenzoom.
 
+Neu in 0.36.25: Das Bildstudio besitzt breitere, lokal speicherbare Seiten-
+bereiche. Modell-/Promptbereich und Studio-Galerie lassen sich an Trennleisten
+ziehen oder mit der Tastatur anpassen.
+
 Neu in 0.36.12: AMD-Systeme mit hoechstens 16 GB gemeinsamem Speicher starten
 ComfyUI ohne DynamicVRAM und mit Low-VRAM-Modus. Der SDXL-Textencoder laeuft
 dadurch auf der CPU und umgeht den auf dem ROG Ally abgestuerzten ROCm-Pfad.

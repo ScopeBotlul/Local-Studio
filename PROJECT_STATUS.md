@@ -1,3 +1,9 @@
+# Bildstudio — anpassbare Arbeitsbereiche (2026-09-27)
+
+- Die linke Konfiguration startet mit 410 px, die rechte Studio-Galerie mit 300 px.
+- Zwei Trennleisten erlauben das Ziehen der Breite; Pfeiltasten, Pos1/Ende und Doppelklick sind als zugängliche Alternativen vorhanden.
+- Die Breiten werden ausschließlich lokal im Browserprofil gespeichert. Bei schmalen Fenstern wird die Galerie weiterhin unter den Arbeitsbereich gelegt.
+
 # Version 0.36.24 — Implementierung (2026-09-27)
 
 - Zustandsaktualisierungen entfernen kein natives Popup-Menü mehr während es geöffnet ist. Dadurch bleiben Datei, Bearbeiten, Ansicht und Hilfe auch nach wiederholter Nutzung bedienbar.

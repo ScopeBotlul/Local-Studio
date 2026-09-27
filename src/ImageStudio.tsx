@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type Dispatch, type PointerEvent as ReactPointerEvent, type SetStateAction } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import ImageCanvas from './ImageCanvas';
 import ImageDimensions from './ImageDimensions';
@@ -17,6 +17,9 @@ import CivitaiImport from './CivitaiImport';
 
 interface LoraCandidate {id:string;name:string;path:string;status:string;profile?:{role:string;family:string|null;baseFamily?:string|null}|null}
 interface ModelLibrarySnapshot {entries:LoraCandidate[]}
+type StudioPanelWidths={left:number;right:number};
+const defaultPanelWidths:StudioPanelWidths={left:410,right:300};
+function savedPanelWidths():StudioPanelWidths{try{const value=JSON.parse(localStorage.getItem('image-studio-panel-widths')??'{}');return {left:Number.isFinite(value.left)?Math.max(320,Math.min(560,value.left)):defaultPanelWidths.left,right:Number.isFinite(value.right)?Math.max(250,Math.min(440,value.right)):defaultPanelWidths.right};}catch{return defaultPanelWidths;}}
 
 // Advisory UI results only. Queue admission always checks current bytes and runtime.
 const readinessCache = new Map<string, {at:number;probe:ImageProbe}>();
@@ -26,6 +29,8 @@ export function randomSeed(random:()=>number=()=>crypto.getRandomValues(new Uint
 export default function ImageStudio({ onAddToProject, projectDisabled, shortcuts, language, request, setRequest, selectModel, onRestore, selectedJob, disabled = false, galleryOnly = false, removeCensorTags=false }: { onAddToProject: (id: string) => Promise<boolean>; projectDisabled: boolean; shortcuts: Shortcuts; language: Language; request: ImageRequest; setRequest: Dispatch<SetStateAction<ImageRequest>>; selectModel: (path: string) => void; onRestore: (request: ImageRequest) => void; selectedJob?: string | null; disabled?: boolean; galleryOnly?: boolean; removeCensorTags?:boolean }) {
   const de = language === 'de';
   const [historyLimit, setHistoryLimit] = useState(50);
+  const [panelWidths,setPanelWidths]=useState<StudioPanelWidths>(savedPanelWidths);
+  const panelDrag=useRef<{side:keyof StudioPanelWidths;startX:number;startWidth:number}|null>(null);
   const [galleryFolder,setGalleryFolder]=useState(()=>{try{return sessionStorage.getItem('studio-gallery-folder')??'';}catch{return '';}}),[galleryRefresh,setGalleryRefresh]=useState(0);
   const [dimensionsEditingValid,setDimensionsEditingValid]=useState(true);
   const [batchCount,setBatchCount]=useState(1),[incrementSeed,setIncrementSeed]=useState(true),[randomizeSeed,setRandomizeSeed]=useState(true);
@@ -60,6 +65,11 @@ export default function ImageStudio({ onAddToProject, projectDisabled, shortcuts
     return()=>{clearTimeout(timer);probeGeneration.current++;};
   }, [request.modelPath, request.engine, request.loras?.length, !!request.reference, galleryOnly]);
   useEffect(()=>{if(selectedJob)setSelected(selectedJob);},[selectedJob]);
+  useEffect(()=>{try{localStorage.setItem('image-studio-panel-widths',JSON.stringify(panelWidths));}catch{/* local preference only */}},[panelWidths]);
+  function adjustPanel(side:keyof StudioPanelWidths,delta:number){setPanelWidths(current=>({...current,[side]:Math.max(side==='left'?320:250,Math.min(side==='left'?560:440,current[side]+delta))}));}
+  function startPanelDrag(side:keyof StudioPanelWidths,event:ReactPointerEvent<HTMLDivElement>){event.preventDefault();panelDrag.current={side,startX:event.clientX,startWidth:panelWidths[side]};event.currentTarget.setPointerCapture(event.pointerId);}
+  function movePanelDrag(event:ReactPointerEvent<HTMLDivElement>){const drag=panelDrag.current;if(!drag)return;const scale=Number(getComputedStyle(document.documentElement).getPropertyValue('--ui-scale'))||1;const direction=drag.side==='left'?1:-1;const value=drag.startWidth+(event.clientX-drag.startX)/scale*direction;setPanelWidths(current=>({...current,[drag.side]:Math.max(drag.side==='left'?320:250,Math.min(drag.side==='left'?560:440,value))}));}
+  function stopPanelDrag(){panelDrag.current=null;}
   function modelPath(value: string) { if(value===request.modelPath)return; probeGeneration.current++; setProbeBusy(false); setProbe(null); selectModel(value); }
   async function check(force=true) {
     const generation = ++probeGeneration.current; setProbeBusy(true); setError('');
@@ -91,7 +101,7 @@ export default function ImageStudio({ onAddToProject, projectDisabled, shortcuts
     <header className="page-heading image-studio-heading"><div><div className="eyebrow">SDXL · {de?'LOKAL':'LOCAL'}</div><h1>{galleryOnly?(de?'Generierte Bilder':'Generated images'):(de?'Bildstudio':'Image studio')}</h1></div><span className="image-local-badge">{de?'Dein Modell. Deine Ideen. Dein PC.':'Your model. Your ideas. Your PC.'}</span></header>
     {error && <p className="notice warning" role="alert">{imageError(error, de)}</p>}
     {!galleryOnly && (active || waiting.length > 0) && <section className="notice image-queue-summary" role="status"><span>{active ? (de ? 'Ein Bildauftrag läuft.' : 'An image job is running.') : ''} {waiting.length} {de ? 'in der Warteschlange' : 'in the queue'}.</span>{active && <button className="text-button" onClick={() => setSelected(active.id)}>{de ? 'Laufenden Auftrag anzeigen' : 'Show running job'}</button>}</section>}
-    <div className={`image-workspace ${galleryOnly?'gallery-only':''}`}>
+    <div className={`image-workspace ${galleryOnly?'gallery-only':''}`} style={galleryOnly?undefined:{'--image-left-panel':`${panelWidths.left}px`,'--image-right-panel':`${panelWidths.right}px`} as CSSProperties}>
     {!galleryOnly && <fieldset disabled={disabled} className="panel image-config">
       <div className="section-heading"><h2>{de?'Modell':'Model'}</h2><button type="button" className="text-button" disabled={busy} aria-label={de?'Modelldatei wählen':'Choose model file'} onClick={()=>void act(async()=>{const path=await open({multiple:false,filters:[{name:'SDXL · Safetensors',extensions:['safetensors']}]});if(typeof path==='string')modelPath(path);})}><FolderOpen size={17}/></button></div>
       <label className="field-label" htmlFor="image-model-library">{de?'SDXL-Checkpoints':'SDXL checkpoints'}</label>
@@ -153,6 +163,7 @@ export default function ImageStudio({ onAddToProject, projectDisabled, shortcuts
       <div className="image-generate-bar"><button data-image-generate className="button primary" disabled={busy || probeBusy || !dimensionsValid || !referenceValid || !parametersValid || !Number.isInteger(batchCount) || batchCount<1 || batchCount>20 || waiting.length+batchCount>20 || !probe?.ready || !request.prompt.trim()} onClick={() => void act(async () => { const seed=randomizeSeed?randomSeed():request.seed;const next={...request,seed};if(randomizeSeed)setRequest(r=>({...r,seed}));if(batchCount===1){const job=await imageApi.generate(next);setSelected(job.id);}else{const result=await imageApi.generateBatch(next,batchCount,incrementSeed);if(result.jobs[0])setSelected(result.jobs[0].id);if(result.error)setError((de?`${result.jobs.length} Aufträge eingereiht. `:`${result.jobs.length} jobs queued. `)+imageError(result.error,de));} })}><ImagePlus size={17} />{busy ? (de ? 'Modell für Auftrag prüfen …' : 'Verifying model for job …') : (batchCount>1?(de?`${batchCount} Bilder einreihen`:`Queue ${batchCount} images`):active || waiting.length ? (de ? 'Bild einreihen' : 'Queue image') : (de ? 'Bild generieren' : 'Generate image'))}</button>
       </div>
     </fieldset>}
+    {!galleryOnly&&<div className="image-panel-resizer left" role="separator" aria-orientation="vertical" aria-label={de?'Breite der Einstellungen':'Settings width'} aria-valuemin={320} aria-valuemax={560} aria-valuenow={Math.round(panelWidths.left)} tabIndex={0} title={de?'Ziehen zum Anpassen · Doppelklick zum Zurücksetzen':'Drag to resize · double-click to reset'} onPointerDown={event=>startPanelDrag('left',event)} onPointerMove={movePanelDrag} onPointerUp={stopPanelDrag} onPointerCancel={stopPanelDrag} onLostPointerCapture={stopPanelDrag} onDoubleClick={()=>setPanelWidths(defaultPanelWidths)} onKeyDown={event=>{if(event.key==='Home'){event.preventDefault();setPanelWidths(current=>({...current,left:320}));}else if(event.key==='End'){event.preventDefault();setPanelWidths(current=>({...current,left:560}));}else if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();adjustPanel('left',event.key==='ArrowLeft'?-20:20);}}}/>} {/* panel divider */}
     <div className="image-workspace-output">
     <ImageCanvas preview={preview?.id===current?.id&&!current?.discarded?preview?.data??'':''} job={current} width={request.width} height={request.height} de={de}/>
     {current && <section className="panel image-result" data-testid="image-result">
@@ -169,6 +180,6 @@ export default function ImageStudio({ onAddToProject, projectDisabled, shortcuts
       <details><summary>{de ? 'Auftrag und technische Details' : 'Job and technical details'}</summary><dl><dt>Prompt</dt><dd>{current.request.prompt}</dd><dt>{de ? 'Modell' : 'Model'}</dt><dd>{displayPath(current.request.modelPath)}</dd><dt>SHA-256</dt><dd>{current.modelSha256 ?? '—'}</dd><dt>Runtime</dt><dd>{current.runtime}</dd><dt>GPU</dt><dd>{current.device}</dd><dt>{de ? 'Parameter' : 'Parameters'}</dt><dd>{current.request.steps} steps · CFG {current.request.guidance} · {current.request.sampler} · Karras</dd></dl><pre>{current.logTail}</pre></details>
     </section>}
     <section className="image-history"><h2>{de ? 'Letzte Aufträge' : 'Recent jobs'}</h2>{visibleJobs.length === 0 && <p className="hub-hint">{galleryOnly ? (de ? 'Noch keine generierten Bilder in der Galerie gespeichert.' : 'No generated images saved to the gallery yet.') : (de ? 'Noch keine Bildgenerierung gestartet.' : 'No image generation started yet.')}</p>}{visibleJobs.slice(0, historyLimit).map(job => <button key={job.id} aria-pressed={current?.id===job.id} className={`image-history-row ${current?.id === job.id ? 'selected' : ''}`} onClick={() => setSelected(job.id)}><span>{job.request.prompt.slice(0,100)}</span><small>{formatDate(job.createdAt, language)} · {phases[job.phase]?.[de ? 0 : 1] ?? job.phase}</small></button>)}{visibleJobs.length > historyLimit && <button className="button secondary" onClick={() => setHistoryLimit(n => n + 50)}>{de ? 'Weitere Aufträge anzeigen' : 'Show more jobs'}</button>}</section>
-    </div>{!galleryOnly&&<StudioGallery language={language} folder={galleryFolder} refreshKey={galleryRefresh} onFolder={folder=>{setGalleryFolder(folder);try{sessionStorage.setItem('studio-gallery-folder',folder);}catch{/* session only */}}}/>}</div>
+    </div>{!galleryOnly&&<><div className="image-panel-resizer right" role="separator" aria-orientation="vertical" aria-label={de?'Breite der Studio-Galerie':'Studio gallery width'} aria-valuemin={250} aria-valuemax={440} aria-valuenow={Math.round(panelWidths.right)} tabIndex={0} title={de?'Ziehen zum Anpassen · Doppelklick zum Zurücksetzen':'Drag to resize · double-click to reset'} onPointerDown={event=>startPanelDrag('right',event)} onPointerMove={movePanelDrag} onPointerUp={stopPanelDrag} onPointerCancel={stopPanelDrag} onLostPointerCapture={stopPanelDrag} onDoubleClick={()=>setPanelWidths(defaultPanelWidths)} onKeyDown={event=>{if(event.key==='Home'){event.preventDefault();setPanelWidths(current=>({...current,right:250}));}else if(event.key==='End'){event.preventDefault();setPanelWidths(current=>({...current,right:440}));}else if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();adjustPanel('right',event.key==='ArrowLeft'?20:-20);}}}/><StudioGallery language={language} folder={galleryFolder} refreshKey={galleryRefresh} onFolder={folder=>{setGalleryFolder(folder);try{sessionStorage.setItem('studio-gallery-folder',folder);}catch{/* session only */}}}/></>}</div>
   </div>;
 }
