@@ -862,3 +862,10 @@ Als Nächstes stehen die noch offenen M0-Punkte und anschließend M1 gemäß `PL
 - Das Studio merkt sich den geöffneten Galerie-Unterordner in der Sitzung. Existiert dieses Ziel später nicht mehr oder wird es als unsicherer Pfad abgewiesen, setzt `In Galerie speichern` den Zielordner jetzt auf die Galerie-Wurzel zurück und wiederholt den Vorgang genau einmal.
 - Andere Fehler werden nicht automatisch wiederholt. Dadurch bleiben echte Schreib-, Bild- oder Datenbankprobleme sichtbar.
 - Version 0.36.20 wurde als Installer, portables Archiv und signierte Update-Metadaten unter `ScopeBotlul/Local-Studio` veröffentlicht. Beide Pakete wurden vollständig öffentlich zurückgeladen und gegen Größen und SHA-256-Prüfsummen geprüft.
+
+## 2026-09-27 – Blockierte obere Menüleiste
+
+- Die Ursache war eine native Child-WebView-Fläche: Beim Scrollen begrenzte der gemeinsame Civitai-/Danbooru-/Rule34-Browser seine Oberkante auf Fensterkoordinate `0`. Da native Child-WebViews über dem React-Inhalt liegen, konnte die unsichtbar gewordene Fläche Klicks auf der weiterhin sichtbaren 36-Pixel-Menüleiste abfangen.
+- Beide integrierten Browsersysteme schneiden ihre Flächen jetzt am echten `.window-content`-Rechteck ab und blenden zu kleine oder vollständig herausgescrollte Flächen aus. Das gilt auch für Hugging Face, dessen bisherige Offscreen-Behandlung eine alte native Position stehen lassen konnte.
+- Rust verweigert für beide Browsercontroller jede Position oberhalb von 36 Pixeln. Die Menüöffnung erlaubt nach zehn Sekunden einen neuen Versuch, falls ein nativer Popup-Aufruf wider Erwarten nicht zurückkehrt.
+- Version 0.36.21 ist für Installer, portables Archiv und signierte Update-Metadaten vorbereitet.

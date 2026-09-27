@@ -265,30 +265,30 @@ fn local(caller: &Webview) -> Result<()> {
         Err("browser_forbidden".into())
     }
 }
+fn checked_bounds(b: Bounds, width: f64, height: f64) -> Result<tauri::Rect> {
+    if [b.x, b.y, b.width, b.height].iter().any(|v| !v.is_finite())
+        || b.x < 0.
+        || b.y < 36.
+        || b.width < 30.
+        || b.height < 30.
+        || b.x + b.width > width + 2.
+        || b.y + b.height > height + 2.
+    {
+        return Err("browser_bounds".into());
+    }
+    Ok(tauri::Rect {
+        position: tauri::LogicalPosition::new(b.x, b.y).into(),
+        size: tauri::LogicalSize::new(b.width.min(width - b.x), b.height.min(height - b.y))
+            .into(),
+    })
+}
 fn rect(caller: &Webview, b: Bounds) -> Result<tauri::Rect> {
     let window = caller.window();
     let size = window
         .inner_size()
         .map_err(|_| "browser_bounds")?
         .to_logical::<f64>(window.scale_factor().map_err(|_| "browser_bounds")?);
-    if [b.x, b.y, b.width, b.height].iter().any(|v| !v.is_finite())
-        || b.x < 0.
-        || b.y < 0.
-        || b.width < 30.
-        || b.height < 30.
-        || b.x + b.width > size.width + 2.
-        || b.y + b.height > size.height + 2.
-    {
-        return Err("browser_bounds".into());
-    }
-    Ok(tauri::Rect {
-        position: tauri::LogicalPosition::new(b.x, b.y).into(),
-        size: tauri::LogicalSize::new(
-            b.width.min(size.width - b.x),
-            b.height.min(size.height - b.y),
-        )
-        .into(),
-    })
+    checked_bounds(b, size.width, size.height)
 }
 fn current(caller: &Webview, browser: &CivitaiBrowser) -> Result<BrowserState> {
     let url = caller
@@ -1343,6 +1343,18 @@ mod tests {
         ] {
             assert!(rule34_id(url).is_err(), "{url}");
         }
+    }
+
+    #[test]
+    fn browser_bounds_stay_below_the_window_menu() {
+        let valid = Bounds {
+            x: 200.0,
+            y: 36.0,
+            width: 700.0,
+            height: 450.0,
+        };
+        assert!(checked_bounds(valid, 1000.0, 720.0).is_ok());
+        assert!(checked_bounds(Bounds { y: 35.0, ..valid }, 1000.0, 720.0).is_err());
     }
 
     #[test]

@@ -3,8 +3,8 @@ import { invoke } from '@tauri-apps/api/core';
 import { ArrowLeft, ArrowRight, ExternalLink, Home, LoaderCircle, RefreshCw, ShieldCheck, X } from 'lucide-react';
 import type { Language } from './types';
 import { hubError } from './hub-i18n';
+import {clipNativeSurface,contentRect} from './native-surface';
 
-type Bounds = { x: number; y: number; width: number; height: number };
 type BrowserState = { url: string; title: string; loading: boolean; notice: string | null; modelRepo: string | null; visible: boolean };
 type Action = { kind: 'home' | 'back' | 'forward' | 'reload' | 'openExternal' | 'dismissNotice' } | { kind: 'visit'; url: string };
 // Serialize mount/layout/hide across React remounts, not just one component instance.
@@ -38,11 +38,17 @@ export default function HfBrowserPanel({ language, onModel, signingIn = false }:
         if (closed || suspended || !host.current) return;
         const initial = host.current.getBoundingClientRect();
         const zoom = Number(getComputedStyle(document.documentElement).getPropertyValue('--ui-scale')) || 1;
-        const available = window.innerHeight - initial.top - 38;
-        if (available < 32 || initial.width < 32) return;
+        const content = contentRect(host.current);
+        const visibleTop = Math.max(initial.top, content.top);
+        const available = Math.min(window.innerHeight, content.bottom) - visibleTop - 38;
+        if (available < 32 || initial.width < 32) {
+          if (mounted) { mounted = false; previous = ''; void mutate(() => invoke('hf_browser_hide', { owner: id })).catch(value => { if (!closed) setError(value); }); }
+          return;
+        }
         host.current.style.height = `${available / zoom}px`;
         const rect = host.current.getBoundingClientRect();
-        const bounds: Bounds = { x: rect.left, y: rect.top, width: rect.width, height: Math.min(rect.height, available) };
+        const bounds = clipNativeSurface(rect,content,{width:window.innerWidth,height:window.innerHeight});
+        if(!bounds){if(mounted){mounted=false;previous='';void mutate(()=>invoke('hf_browser_hide',{owner:id})).catch(value=>{if(!closed)setError(value);});}return;}
         const serialized = JSON.stringify(bounds);
         if (serialized === previous) return;
         previous = serialized;

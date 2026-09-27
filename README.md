@@ -1,5 +1,7 @@
 # Local Studio
 
+Version 0.36.21 hält die **obere Menüleiste dauerhaft bedienbar**. Integrierte Hugging-Face-, Civitai-, Danbooru- und Rule34-Webseiten können beim Scrollen nicht mehr unsichtbar über die Titelleiste ragen und Klicks abfangen. [Änderungen und Grenzen](docs/RELEASE_0.36.21.md).
+
 Version 0.36.20 repariert **In Galerie speichern**, wenn der zuletzt im Studio geöffnete Galerie-Unterordner inzwischen fehlt oder nicht mehr erreichbar ist. Local Studio setzt das Ziel dann sicher auf den Galerie-Hauptordner zurück. [Änderungen und Grenzen](docs/RELEASE_0.36.20.md).
 
 Version 0.36.19 ergänzt **Rule34 als direkte Quelle beim Tag-Import**. Einzelne Posts lassen sich im integrierten Browser öffnen; Local Studio liest deren Tags lokal aus der geladenen Seite und gruppiert sie für den Bildprompt. [Änderungen und Grenzen](docs/RELEASE_0.36.19.md).

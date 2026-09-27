@@ -222,7 +222,7 @@ fn checked_bounds(bounds: Bounds, width: f64, height: f64) -> Result<tauri::Rect
     .iter()
     .any(|v| !v.is_finite())
         || bounds.x < 0.0
-        || bounds.y < 0.0
+        || bounds.y < 36.0
         || bounds.width < 30.0
         || bounds.height < 30.0
         || bounds.x + bounds.width > width + 2.0
@@ -563,6 +563,7 @@ mod tests {
         };
         assert!(checked_bounds(valid, 1000.0, 720.0).is_ok());
         assert!(checked_bounds(Bounds { x: -1.0, ..valid }, 1000.0, 720.0).is_err());
+        assert!(checked_bounds(Bounds { y: 35.0, ..valid }, 1000.0, 720.0).is_err());
         assert!(checked_bounds(
             Bounds {
                 width: 2000.0,
