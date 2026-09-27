@@ -1,5 +1,7 @@
 # Local Studio
 
+Version 0.36.22 verbessert den ComfyUI-Start auf langsameren PCs und gleicht das laufende Taskleisten-Icon an das Logo in der App an. [Änderungen und Grenzen](docs/RELEASE_0.36.22.md).
+
 Version 0.36.21 hält die **obere Menüleiste dauerhaft bedienbar**. Integrierte Hugging-Face-, Civitai-, Danbooru- und Rule34-Webseiten können beim Scrollen nicht mehr unsichtbar über die Titelleiste ragen und Klicks abfangen. [Änderungen und Grenzen](docs/RELEASE_0.36.21.md).
 
 Version 0.36.20 repariert **In Galerie speichern**, wenn der zuletzt im Studio geöffnete Galerie-Unterordner inzwischen fehlt oder nicht mehr erreichbar ist. Local Studio setzt das Ziel dann sicher auf den Galerie-Hauptordner zurück. [Änderungen und Grenzen](docs/RELEASE_0.36.20.md).

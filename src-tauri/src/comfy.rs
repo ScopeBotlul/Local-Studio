@@ -82,6 +82,7 @@ pub struct Comfy {
     extra_model_paths: PathBuf,
     config: Mutex<Config>,
     process: Mutex<Option<Process>>,
+    start_lock: Mutex<()>,
     install: Mutex<ComfyInstallStatus>,
     update: Mutex<ComfyUpdateStatus>,
     update_log: PathBuf,
@@ -487,6 +488,7 @@ impl Comfy {
             extra_model_paths,
             config: Mutex::new(config),
             process: Mutex::new(None),
+            start_lock: Mutex::new(()),
             install: Mutex::new(ComfyInstallStatus {
                 phase: "idle".into(),
                 ..Default::default()
@@ -1006,6 +1008,9 @@ impl Comfy {
         Ok(self.status())
     }
     pub fn start(&self) -> Result<ComfyStatus> {
+        // Startup can take a while on handheld PCs. Serialize callers so a
+        // second click or generation request cannot launch a duplicate server.
+        let _start_guard = self.start_lock.lock().map_err(|_| "comfy_start")?;
         if probe_http().is_ok() {
             return if self
                 .process
@@ -1114,7 +1119,9 @@ impl Comfy {
             child,
             _group: group,
         });
-        for _ in 0..120 {
+        // ComfyUI imports PyTorch, GPU backends and custom nodes before its API
+        // becomes available. Give slower devices up to three minutes to finish.
+        for _ in 0..720 {
             if probe_http().is_ok() {
                 if let Ok(mut error) = self.runtime_error.lock() {
                     *error = None;

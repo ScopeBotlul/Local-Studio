@@ -88,6 +88,11 @@ unter der Titelleiste abgeschnitten oder ausgeblendet. Eine native Browserflaech
 kann dadurch nicht mehr unsichtbar die obere Menueleiste ueberdecken. Zusaetzlich
 kann sich die Menueoeffnung von einem haengenden Popup-Aufruf selbst erholen.
 
+Neu in 0.36.22: ComfyUI erhaelt auf langsameren PCs bis zu drei Minuten fuer
+den ersten API-Start; gleichzeitige Startauftraege oeffnen keinen zweiten
+Prozess. Das laufende Taskleistenicon verwendet nun dieselben drei Balken wie
+das Local-Studio-Logo und folgt der eingestellten Akzentfarbe.
+
 Neu in 0.36.12: AMD-Systeme mit hoechstens 16 GB gemeinsamem Speicher starten
 ComfyUI ohne DynamicVRAM und mit Low-VRAM-Modus. Der SDXL-Textencoder laeuft
 dadurch auf der CPU und umgeht den auf dem ROG Ally abgestuerzten ROCm-Pfad.

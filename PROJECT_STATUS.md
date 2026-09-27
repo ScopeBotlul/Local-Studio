@@ -1,3 +1,9 @@
+# Version 0.36.22 — Implementierung (2026-09-27)
+
+- ComfyUI darf bis zu 180 Sekunden für den lokalen API-Start brauchen. Eine Start-Sperre verhindert parallele Startprozesse, wenn automatischer Start, UI-Klick und Studio-Auftrag zeitlich zusammentreffen.
+- Das laufende Windows-Icon zeichnet jetzt dieselben drei schrägen Balken wie das Produktlogo und übernimmt weiterhin die gewählte Akzentfarbe.
+- Releasehinweise: [docs/RELEASE_0.36.22.md](docs/RELEASE_0.36.22.md).
+
 # Release 0.36.17 veröffentlicht – echtes Taskleistenicon und Studio-Name (2026-09-27)
 
 Der zentrale Arbeitsbereich heißt in der Hauptnavigation wieder **Studio**; die Unterleiste für Bild, Editor, Video und GIF bleibt bestehen. Die Akzentfarbe wird nicht länger nur über Tauri als kleines Windows-Fenstericon gesetzt. Ein eng begrenzter nativer IPC-Pfad validiert das lokal erzeugte 64×64-PNG, setzt `ICON_BIG`, `ICON_SMALL` und `ICON_SMALL2` am Hauptfenster und liest `ICON_BIG` anschließend mit `WM_GETICON` zurück. Damit erhält die laufende Taskleistenschaltfläche den Akzent, während Datei-, Desktop- und Startmenüicons statisch bleiben.

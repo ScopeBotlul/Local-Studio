@@ -1,3 +1,12 @@
+# Version 0.36.22 — gezielte Prüfung (2026-09-27)
+
+- Frontend-Produktionsbuild: bestanden. `npm.cmd run build` kompilierte TypeScript und Vite.
+- Taskleistenlogo-Kontrasttest: 1/1 bestanden. `npm.cmd test -- --run src/window-icon.test.ts`.
+- ComfyUI-Rusttests: 6/6 bestanden. `cargo test --manifest-path src-tauri/Cargo.toml comfy::tests`.
+- Optimierter Windows-Release-Build und Inno-Installer: erfolgreich erstellt.
+- Paketprüfung: bestanden. Portable ZIP mit 80 erlaubten Dateien; 77 Runtime-Dateien (Image 24, Video 13, Assistant 25, Speech 15). Signierte Manifestgrößen, Hashes und Ed25519-Signatur geprüft.
+- Einschränkung: kein realer ComfyUI-Start auf ROG Ally/Xbox Ally und keine native visuelle Abnahme des Taskleistenicons in dieser Umgebung.
+
 # Releaseprüfung 0.36.17 – 2026-09-27
 
 - `npm.cmd test -- --run src/window-icon.test.ts src/helpers.test.ts`: 11/11 bestanden. Akzentkontrast und bestehende Skalierungshelfer bleiben grün.

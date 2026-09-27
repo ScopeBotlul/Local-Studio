@@ -30,15 +30,18 @@ export async function applyAccentWindowIcon(accent: string): Promise<void> {
   canvas.height = 64;
   const context = canvas.getContext('2d');
   if (!context) throw new Error('window_icon_canvas');
-  roundedRect(context, 4, 4, 56, 56, 13);
+  // Keep the native icon in step with the three-bar mark rendered by Logo in
+  // App.tsx and styles.css (43px square, 12px corner radius, 4px bars).
+  const scale = 64 / 43;
+  roundedRect(context, 0, 0, 64, 64, 12 * scale);
   context.fillStyle = /^#[0-9a-f]{6}$/i.test(accent) ? accent : '#4b9f91';
   context.fill();
   context.fillStyle = accentInk(accent);
   context.save();
   context.translate(32, 32);
-  context.transform(1, -0.22, 0, 1, 0, 0);
-  for (const [x, height] of [[-13, 27], [-3, 37], [7, 21]] as const) {
-    roundedRect(context, x, -height / 2, 6, height, 3);
+  context.transform(1, -Math.tan(25 * Math.PI / 180), 0, 1, 0, 0);
+  for (const [x, height] of [[-9.5, 19], [-2.5, 25], [4.5, 14]] as const) {
+    roundedRect(context, x * scale, -height * scale / 2, 4 * scale, height * scale, 2 * scale);
     context.fill();
   }
   context.restore();
