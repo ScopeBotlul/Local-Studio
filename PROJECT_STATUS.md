@@ -861,4 +861,4 @@ Als Nächstes stehen die noch offenen M0-Punkte und anschließend M1 gemäß `PL
 - Die lokale Diagnose zeigte vier zuletzt fertiggestellte, gültige temporäre PNG-Ergebnisse ohne neuen Galerieeintrag. Der Speicherweg scheiterte damit vor dem Kopieren in die Galerie; die persönlichen Bilder wurden nicht verändert.
 - Das Studio merkt sich den geöffneten Galerie-Unterordner in der Sitzung. Existiert dieses Ziel später nicht mehr oder wird es als unsicherer Pfad abgewiesen, setzt `In Galerie speichern` den Zielordner jetzt auf die Galerie-Wurzel zurück und wiederholt den Vorgang genau einmal.
 - Andere Fehler werden nicht automatisch wiederholt. Dadurch bleiben echte Schreib-, Bild- oder Datenbankprobleme sichtbar.
-- Version 0.36.20 ist für Installer, portables Archiv und signierte Update-Metadaten vorbereitet.
+- Version 0.36.20 wurde als Installer, portables Archiv und signierte Update-Metadaten unter `ScopeBotlul/Local-Studio` veröffentlicht. Beide Pakete wurden vollständig öffentlich zurückgeladen und gegen Größen und SHA-256-Prüfsummen geprüft.
