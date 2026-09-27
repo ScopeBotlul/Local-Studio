@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $binary = Join-Path $projectRoot 'src-tauri\target\release\local-studio.exe'
 if (-not (Test-Path -LiteralPath $binary)) { throw 'Build the release executable first.' }
@@ -13,28 +13,28 @@ Copy-Item -LiteralPath $binary -Destination (Join-Path $portableRoot 'Local Stud
 & (Join-Path $PSScriptRoot 'stage-video-runtime.ps1') -Destination (Join-Path $portableRoot 'video-runtime')
 & (Join-Path $PSScriptRoot 'stage-ai-runtimes.ps1') -Destination $portableRoot
 $readme = @'
-LOCAL STUDIO {VERSION} — CORE + HUGGING FACE ENTWICKLUNGSSTAND
+LOCAL STUDIO {VERSION} â€” CORE + HUGGING FACE ENTWICKLUNGSSTAND
 
 Start: Local Studio.exe doppelklicken. Windows x64 mit installiertem WebView2.
-Daten: Local-Studio-Data neben der EXE. Zum Entpacken einen beschreibbaren Ordner wählen.
+Daten: Local-Studio-Data neben der EXE. Zum Entpacken einen beschreibbaren Ordner wÃ¤hlen.
 
-Update einer portablen Version: Alte App regulär schließen, dann die Programmdateien und alle vier Runtime-Ordner (image-runtime, video-runtime, assistant-runtime, speech-runtime)
+Update einer portablen Version: Alte App regulÃ¤r schlieÃŸen, dann die Programmdateien und alle vier Runtime-Ordner (image-runtime, video-runtime, assistant-runtime, speech-runtime)
 aus dem ZIP in den bisherigen App-Ordner entpacken und ersetzen. Den Ordner
-Local-Studio-Data behalten; er enthält die vorhandenen Einstellungen und Aufträge.
+Local-Studio-Data behalten; er enthÃ¤lt die vorhandenen Einstellungen und AuftrÃ¤ge.
 
 Enthalten: lokale Einstellungen, Deutsch/Englisch, Theme und UI-Zoom,
-Hardwareerkennung, SQLite, SHA-256-Prüfsummenberechnung im separaten Worker,
-Warteschlange, Abbruch, persistente Aufträge und Crash-Erkennung.
+Hardwareerkennung, SQLite, SHA-256-PrÃ¼fsummenberechnung im separaten Worker,
+Warteschlange, Abbruch, persistente AuftrÃ¤ge und Crash-Erkennung.
 Neu: echte Hugging-Face-Modellsuche mit Filtern/Seiten, Modell-Details, Revisionen,
 Dateiinformationen und Model Cards. Erweiterte Token-Anmeldung mit Windows-
-Anmeldespeicher. Der Nutzer hat App-Login und Konto-Prüfung bestätigt.
+Anmeldespeicher. Der Nutzer hat App-Login und Konto-PrÃ¼fung bestÃ¤tigt.
 OAuth/Browserlogin ist mit registrierter oeffentlicher Client-ID aktiviert.
 Unter Hugging Face auf Anmelden klicken: Die Anmeldung startet jetzt direkt
 im integrierten Browser. Nach Abschluss erscheint wieder die Kontoansicht.
 Unter Hugging Face > Website im Studio liegt jetzt die echte Website.
 Die Website-Anmeldung ist separat; ihre Cookies liegen im eigenen WebView-Profil.
 App-Tokens werden nicht in Website-Cookies umgewandelt. Modellseiten lassen sich
-über In Local Studio öffnen an die Modellansicht übergeben.
+Ã¼ber In Local Studio Ã¶ffnen an die Modellansicht Ã¼bergeben.
 
 Neu in 0.30.0: kompakte zentrierte Hauptnavigation nach Arbeitsbereichen.
 Create oeffnet eine zweite Werkzeugleiste fuer Bildgenerierung, Bildbearbeitung,
@@ -420,13 +420,13 @@ Der Importstatus allein bestaetigt keine Ausfuehrbarkeit; SDXL seit 0.6.0 im Stu
 
 Neu in 0.4.2: Installer und Deinstallation passen sich beim Start an Windows an.
 
-Neu in {VERSION}: Studio-Navigation mit den Bereichen Video erstellen und Programmieren. Beide Bereiche sind als WIP markiert und enthalten noch keine simulierten Funktionen.
+Neu in {VERSION}: Ausgewählte LoRAs können in mehreren frei gewählten lokalen Ordnern liegen. Local Studio registriert sichere Elternordner automatisch für ComfyUI und setzt nicht mehr erreichbare Studio-Galerieordner sofort auf den Hauptordner zurück.
 Repository-Gesamtgroesse umfasst alle Varianten; die Auswahl bestimmt den Download.
 
-Neu in 0.4.0: Dateien in den Modell-Details selbst auswählen, Download prüfen
+Neu in 0.4.0: Dateien in den Modell-Details selbst auswÃ¤hlen, Download prÃ¼fen
 und Auswahl herunterladen. Downloads mit echter Pause/Fortsetzung, Abbruch,
-Retry, Priorität und Neustart-Recovery. Lokale Dateien unter Modelle > Lokal
-gespeichert erneut prüfen. Hash-Prüfung bedeutet keine Ausführbarkeit.
+Retry, PrioritÃ¤t und Neustart-Recovery. Lokale Dateien unter Modelle > Lokal
+gespeichert erneut prÃ¼fen. Hash-PrÃ¼fung bedeutet keine AusfÃ¼hrbarkeit.
 
 Noch nicht enthalten: universelle Modell-/Runtime-Verwaltung, weitere Bildadapter,
 vollstaendiger Bildeditor, erweiterte Video-/Audiofunktionen, vollstaendige Galerie/Projekte,
@@ -455,3 +455,4 @@ $hashes = Get-FileHash -LiteralPath $packageFiles -Algorithm SHA256
 $checksums = ($hashes | ForEach-Object { "$($_.Hash.ToLowerInvariant())  $([IO.Path]::GetFileName($_.Path))" }) -join "`n"
 [IO.File]::WriteAllText((Join-Path $releaseRoot "SHA256SUMS-$version.txt"), ($checksums + "`n"), [Text.Encoding]::ASCII)
 $hashes | Format-Table Hash,Path -AutoSize
+

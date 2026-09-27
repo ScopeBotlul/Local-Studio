@@ -1119,3 +1119,8 @@ ZIP-Inhalt/CRC, Anleitung, EXE-Identität und Prüfsummen geprüft. Vollständig
 - `npm.cmd test -- --run src/image-api.test.ts`: 2/2 bestanden. Der einmalige sichere Rückfall eines nicht mehr vorhandenen Galerie-Unterordners auf die Hauptgalerie bleibt abgedeckt.
 - `npm.cmd run build`: bestanden. Der Produktions-Frontendbuild kompiliert die sofortige Rücksetzung der Studio-Galerie sowie die erweiterten Fehlermeldungen. Die bekannte Bundlegrößenwarnung bleibt bestehen.
 - Kein echter ComfyUI-Neustart oder Inferenzlauf wurde ausgeführt; die Prüfung belegt die sichere Registrierung und den IPC-nahen Frontendpfad, nicht die Modellausführung mit einer konkreten LoRA. Installer, Update und übrige Galerie-Dateioperationen blieben unverändert.
+
+## 2026-09-27 – Release 0.36.27 (Paketprüfung)
+
+- Produktionsbuild, Installer und Portable-ZIP erstellt. `verify-release.mjs` und `verify-package-bytes.ps1` bestätigen Version, Signatur, exakte Paketgrößen und SHA-256; das Portable-ZIP enthält 80 erwartete Dateien.
+- SHA-256: EXE `7aa4c135edaf6133f1cfbba5cf606d55eec0288efae34d830aff9283d226238d`, ZIP `c9c370d6794f67fb229f47005b5c46641a7f1c07bb1fd8ccfa3acfbde57d3067`, Installer `75138bee98b0ef03103996190635a55e2dd3968ba17b785c6aa3bf17891acd5d`.

@@ -942,3 +942,8 @@ Als Nächstes stehen die noch offenen M0-Punkte und anschließend M1 gemäß `PL
 - Wählt ein Bildauftrag eine LoRA aus einem beliebigen lokalen Ordner, registriert Local Studio den kanonischen Elternordner dauerhaft als zusätzliche sichere ComfyUI-LoRA-Quelle. Mehrere unterschiedliche Ordner sind möglich; nicht erreichbare, umgeleitete oder unsichere Einträge werden nicht an ComfyUI weitergegeben.
 - Die von Local Studio verwaltete ComfyUI-Engine wird nach einer neuen Registrierung einmal kontrolliert neu gestartet, damit sie die neue Quelle unmittelbar einliest. Eine extern gestartete Engine wird nicht angehalten; Local Studio fordert dort zu einem eigenen Neustart auf.
 - Zeigt die Studio-Galerie einen inzwischen gelöschten oder nicht mehr sicheren Sitzungsordner, setzt sie die Auswahl sofort auf den Galerie-Hauptordner zurück. Dadurch verwendet auch der nächste Speichervorgang ohne weiteren Fehler das sichere Ziel.
+
+## 2026-09-27 – Release 0.36.27 vorbereitet
+
+- Version 0.36.27 enthält die automatische sichere Registrierung mehrerer externer ComfyUI-LoRA-Ordner und den sofortigen Rückfall der Studio-Galerie auf ihren Hauptordner.
+- Installer, Portable-ZIP, Prüfsummen und signierte Update-Metadaten wurden erstellt. Der vollständige öffentliche Rückdownload und die GitHub-Veröffentlichung folgen als letzter Schritt.
