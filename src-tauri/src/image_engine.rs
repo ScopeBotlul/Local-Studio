@@ -1445,7 +1445,10 @@ pub async fn image_save(
 ) -> Result<String> {
     let privacy_epoch = crate::privacy::epoch();
     let privacy_result = (async {
-        let root = PathBuf::from(core.storage_paths()?.gallery);
+        // `gallery::resolve` compares canonical paths. Use the same canonical
+        // root as every other gallery command so the empty-folder fallback is
+        // accepted on Windows too.
+        let root = crate::gallery::root(&core)?;
         let gallery = crate::gallery::resolve(&root, folder.as_deref().unwrap_or(""))?;
         if !gallery.is_dir() {
             return Err("gallery_path".into());

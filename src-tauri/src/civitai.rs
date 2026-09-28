@@ -953,6 +953,12 @@ pub async fn civitai_image_info(url: String) -> Result<ImageInfo> {
         .map_err(|_| "civitai_network")?
 }
 #[tauri::command]
+pub fn civitai_auth_status(state: State<'_, Arc<crate::civitai_auth::CivitaiAuth>>) -> Result<crate::civitai_auth::Status> { state.status() }
+#[tauri::command]
+pub fn civitai_auth_connect(token: String, state: State<'_, Arc<crate::civitai_auth::CivitaiAuth>>) -> Result<crate::civitai_auth::Status> { state.connect(token) }
+#[tauri::command]
+pub fn civitai_auth_logout(state: State<'_, Arc<crate::civitai_auth::CivitaiAuth>>) -> Result<crate::civitai_auth::Status> { state.logout() }
+#[tauri::command]
 pub async fn civitai_lora_search(query: String, base_model: String) -> Result<Vec<Resource>> {
     tauri::async_runtime::spawn_blocking(move || lora_search(&query, &base_model))
         .await
