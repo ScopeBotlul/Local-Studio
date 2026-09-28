@@ -30,6 +30,8 @@ const AMD_COMPAT_ARGS: [&str; 3] = [
 ];
 const AMD_LOW_MEMORY_ARGS: [&str; 3] = ["--disable-dynamic-vram", "--lowvram", "--disable-mmap"];
 const AMD_LOW_MEMORY_ENV: (&str, &str) = ("COMFY_KITCHEN_DISABLE_HIP", "1");
+const QWEN_IMAGE21_ENCODER: &str = "qwen3vl_8b_int8_convrot.safetensors";
+const QWEN_IMAGE21_VAE: &str = "qwen_image_2.1_vae_bf16.safetensors";
 
 #[derive(Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -1268,6 +1270,42 @@ impl Comfy {
     pub fn checkpoint_path(&self, path: &Path) -> bool {
         self.checkpoint_candidate(path).is_some()
     }
+    /// Qwen Image 2.1 GGUF models are diffusion models, not checkpoints.  Keep this
+    /// narrow on purpose: a random GGUF (for example a chat model) must never be
+    /// submitted to the image engine.
+    pub fn qwen_image21_path(&self, path: &Path) -> bool {
+        self.qwen_image21_candidate(path).is_some()
+    }
+    fn qwen_image21_candidate(&self, path: &Path) -> Option<String> {
+        let name = path.file_name()?.to_str()?.to_ascii_lowercase();
+        if path.extension()?.to_str()?.eq_ignore_ascii_case("gguf") != true
+            || !name.starts_with("qwen-image-2.1")
+        {
+            return None;
+        }
+        let root = self.config.lock().ok()?.path.clone().map(PathBuf::from)?;
+        relative_model_path(path, &root.join("ComfyUI/models/diffusion_models"))
+    }
+    pub fn qwen_image21_missing(&self, path: &Path) -> Vec<String> {
+        let Some(requested) = self.qwen_image21_candidate(path) else {
+            return vec!["comfy_qwen_model_path".into()];
+        };
+        let Ok(client) = client(Duration::from_secs(5)) else {
+            return vec!["comfy_connection".into()];
+        };
+        let info = |node: &str| client.get(format!("{ENDPOINT}/object_info/{node}"))
+            .send().and_then(|response| response.error_for_status()).and_then(|response| response.json::<Value>());
+        let Ok(unet) = info("UnetLoaderGGUF") else { return vec!["comfy_qwen_loader".into()]; };
+        let Ok(clip) = info("CLIPLoader") else { return vec!["comfy_qwen_encoder".into()]; };
+        let Ok(vae) = info("VAELoader") else { return vec!["comfy_qwen_vae".into()]; };
+        let Ok(encode) = info("TextEncodeQwenImage21") else { return vec!["comfy_qwen_workflow".into()]; };
+        let mut missing = Vec::new();
+        if resolve_comfy_option(&unet, "UnetLoaderGGUF", "unet_name", &requested).is_none() { missing.push("comfy_qwen_model_unavailable".into()); }
+        if resolve_comfy_option(&clip, "CLIPLoader", "clip_name", QWEN_IMAGE21_ENCODER).is_none() { missing.push("comfy_qwen_encoder".into()); }
+        if resolve_comfy_option(&vae, "VAELoader", "vae_name", QWEN_IMAGE21_VAE).is_none() { missing.push("comfy_qwen_vae".into()); }
+        if encode.get("TextEncodeQwenImage21").is_none() { missing.push("comfy_qwen_workflow".into()); }
+        missing
+    }
     fn checkpoint_candidate(&self, path: &Path) -> Option<String> {
         let root = self.config.lock().ok()?.path.clone().map(PathBuf::from)?;
         relative_model_path(path, &root.join("ComfyUI/models/checkpoints"))
@@ -1324,6 +1362,9 @@ impl Comfy {
             .is_some_and(|state| state.phase == "updating")
         {
             return Err("comfy_update_busy".into());
+        }
+        if self.qwen_image21_path(Path::new(&request.model_path)) {
+            return self.generate_qwen_image21(request, output, cancel, update, log_detail);
         }
         if self.register_lora_parents(&request.loras)? {
             self.reload_after_lora_registration()?;
@@ -1522,6 +1563,84 @@ impl Comfy {
                     }
                     file.sync_all().map_err(|_| "image_storage")?;
                     return Ok(());
+                }
+            }
+            std::thread::sleep(Duration::from_millis(250));
+        }
+    }
+    fn generate_qwen_image21(
+        &self,
+        request: &ImageRequest,
+        output: &Path,
+        cancel: &AtomicBool,
+        mut update: impl FnMut(&str),
+        mut log_detail: impl FnMut(&str),
+    ) -> Result<()> {
+        if !request.loras.is_empty() {
+            return Err("comfy_qwen_lora".into());
+        }
+        let missing = self.qwen_image21_missing(Path::new(&request.model_path));
+        if let Some(error) = missing.first() {
+            return Err(error.clone());
+        }
+        self.active_generations.fetch_add(1, Ordering::SeqCst);
+        let _active = ActiveGeneration(&self.active_generations);
+        let requested = self.qwen_image21_candidate(Path::new(&request.model_path)).ok_or("comfy_qwen_model_path")?;
+        let client = client(Duration::from_secs(20))?;
+        let object = |node: &str| client.get(format!("{ENDPOINT}/object_info/{node}"))
+            .send().and_then(|response| response.error_for_status()).and_then(|response| response.json::<Value>())
+            .map_err(|_| "comfy_connection");
+        let unet = object("UnetLoaderGGUF")?;
+        let clip = object("CLIPLoader")?;
+        let vae = object("VAELoader")?;
+        let sampler_info = object("KSampler")?;
+        let model = resolve_comfy_option(&unet, "UnetLoaderGGUF", "unet_name", &requested).ok_or("comfy_qwen_model_unavailable")?;
+        let encoder = resolve_comfy_option(&clip, "CLIPLoader", "clip_name", QWEN_IMAGE21_ENCODER).ok_or("comfy_qwen_encoder")?;
+        let vae = resolve_comfy_option(&vae, "VAELoader", "vae_name", QWEN_IMAGE21_VAE).ok_or("comfy_qwen_vae")?;
+        let sampler = resolve_comfy_option(&sampler_info, "KSampler", "sampler_name", if request.sampler == "dpm++2m" { "dpmpp_2m" } else { "euler" }).ok_or("comfy_qwen_workflow")?;
+        let scheduler = resolve_comfy_option(&sampler_info, "KSampler", "scheduler", "simple").ok_or("comfy_qwen_workflow")?;
+        // TextEncodeQwenImage21 supplies the correctly shaped latent itself. Its
+        // autogrow image input is deliberately empty for text-to-image.
+        let workflow = json!({
+            "1":{"class_type":"UnetLoaderGGUF","inputs":{"unet_name":model}},
+            "2":{"class_type":"CLIPLoader","inputs":{"clip_name":encoder,"type":"qwen_image","device":"default"}},
+            "3":{"class_type":"VAELoader","inputs":{"vae_name":vae}},
+            "4":{"class_type":"TextEncodeQwenImage21","inputs":{"clip":["2",0],"prompt":request.prompt,"negative_prompt":request.negative_prompt,"vae":["3",0],"resolution":request.width.max(request.height),"images":{}}},
+            "5":{"class_type":"ModelSamplingAuraFlow","inputs":{"model":["1",0],"shift":3.1,"sampling":"flow"}},
+            "6":{"class_type":"KSampler","inputs":{"seed":request.seed,"steps":request.steps,"cfg":request.guidance,"sampler_name":sampler,"scheduler":scheduler,"denoise":1.0,"model":["5",0],"positive":["4",0],"negative":["4",1],"latent_image":["4",2]}},
+            "7":{"class_type":"VAEDecode","inputs":{"samples":["6",0],"vae":["3",0]}},
+            "8":{"class_type":"PreviewImage","inputs":{"images":["7",0]}}
+        });
+        self.submit_and_wait(&client, workflow, "8", output, cancel, &mut update, &mut log_detail)
+    }
+    fn submit_and_wait(
+        &self, client: &Client, workflow: Value, output_node: &str, output: &Path, cancel: &AtomicBool,
+        update: &mut impl FnMut(&str), log_detail: &mut impl FnMut(&str),
+    ) -> Result<()> {
+        let response = client.post(format!("{ENDPOINT}/prompt"))
+            .json(&json!({"prompt":workflow,"client_id":uuid::Uuid::new_v4().to_string()})).send().map_err(|_| "comfy_connection")?;
+        if !response.status().is_success() {
+            let status = response.status(); let mut body = String::new(); let _ = response.take(16 * 1024).read_to_string(&mut body);
+            let body: String = body.chars().map(|c| if c.is_control() { ' ' } else { c }).collect();
+            log_detail(&format!("ComfyUI HTTP {status}: {body}"));
+            if let Ok(mut log) = fs::OpenOptions::new().append(true).open(&self.runtime_log) { let _ = writeln!(log, "Local Studio: ComfyUI rejected workflow ({status}): {body}"); }
+            return Err("comfy_workflow".into());
+        }
+        let id = response.json::<Value>().map_err(|_| "comfy_response")?["prompt_id"].as_str().ok_or("comfy_response")?.to_owned();
+        update("processing"); let started = Instant::now(); let mut failures = 0u8;
+        loop {
+            if cancel.load(Ordering::Relaxed) { let _ = client.post(format!("{ENDPOINT}/interrupt")).send(); return Err("image_cancelled".into()); }
+            if started.elapsed() > Duration::from_secs(900) { let _ = client.post(format!("{ENDPOINT}/interrupt")).send(); return Err("image_timeout".into()); }
+            let history = client.get(format!("{ENDPOINT}/history/{id}")).send().and_then(|r| r.error_for_status()).and_then(|r| r.json::<Value>());
+            let history = match history { Ok(history) => { failures=0; history }, Err(_) => { if self.reap_runtime_exit() { log_detail("ComfyUI process exited during image generation."); return Err("comfy_runtime_exit".into()); } failures=failures.saturating_add(1); if failures>=3 { log_detail("ComfyUI API stopped responding during image generation."); return Err("comfy_connection".into()); } std::thread::sleep(Duration::from_millis(250)); continue; } };
+            if let Some(entry) = history.get(&id) {
+                if entry.pointer("/status/status_str").and_then(Value::as_str)==Some("error") || entry.pointer("/status/completed").and_then(Value::as_bool)==Some(false) { return Err("comfy_execution".into()); }
+                let pointer = format!("/outputs/{output_node}/images/0");
+                if let Some(image) = entry.pointer(&pointer) {
+                    let filename=image["filename"].as_str().ok_or("comfy_response")?; let subfolder=image["subfolder"].as_str().unwrap_or(""); let kind=image["type"].as_str().unwrap_or("output");
+                    let response=client.get(format!("{ENDPOINT}/view")).query(&[("filename",filename),("subfolder",subfolder),("type",kind)]).send().map_err(|_| "comfy_connection")?;
+                    if !response.status().is_success(){return Err("comfy_response".into());}
+                    let mut file=fs::OpenOptions::new().create_new(true).write(true).open(output).map_err(|_| "image_storage")?; let mut limited=response.take(24*1024*1024+1); let copied=std::io::copy(&mut limited,&mut file).map_err(|_| "image_storage")?; if copied>24*1024*1024{return Err("image_output".into());} file.sync_all().map_err(|_| "image_storage")?; return Ok(());
                 }
             }
             std::thread::sleep(Duration::from_millis(250));

@@ -773,6 +773,21 @@ impl ImageEngine {
     }
     fn comfy_probe(&self, path: &str) -> ImageProbe {
         if !path.is_empty() {
+            let canonical = fs::canonicalize(path).ok();
+            if canonical.as_ref().is_some_and(|path| self.comfy.qwen_image21_path(path)) {
+                let missing = self.comfy.qwen_image21_missing(canonical.as_deref().unwrap());
+                let model = canonical.as_ref().and_then(|path| fs::metadata(path).ok()).map(|meta| meta.len());
+                return ImageProbe {
+                    ready: missing.is_empty(),
+                    family: missing.is_empty().then_some("Qwen Image 2.1 GGUF".into()),
+                    model_bytes: model,
+                    missing,
+                    runtime: "ComfyUI · Qwen Image 2.1 · lokale HTTP-API".into(),
+                    device: Some("ComfyUI · 127.0.0.1".into()),
+                    vram_bytes: crate::hardware::discover().gpus.iter().find(|g| g.vendor == "NVIDIA").and_then(|g| g.vram_bytes),
+                    model_license: "unknown".into(), runtime_license: "GPL-3.0".into(),
+                };
+            }
             let checkpoint_ready = self.comfy.checkpoint(Path::new(path)).is_some();
             let model = fs::canonicalize(path)
                 .ok()
@@ -814,6 +829,9 @@ impl ImageEngine {
         }
     }
     fn automatic_probe(&self, path: &str) -> ImageProbe {
+        if self.comfy.qwen_image21_path(Path::new(path)) {
+            return self.comfy_probe(path);
+        }
         let hardware = crate::hardware::discover();
         let prefer_vulkan = !hardware.gpus.iter().any(|gpu| gpu.vendor == "NVIDIA")
             && hardware
@@ -842,7 +860,7 @@ impl ImageEngine {
         &self,
         path: &str,
         engine: ImageBackend,
-        _has_loras: bool,
+        has_loras: bool,
         needs_native: bool,
     ) -> ImageProbe {
         if needs_native && engine == ImageBackend::Comfy {
@@ -851,11 +869,16 @@ impl ImageEngine {
             probe.missing.push("comfy_reference".into());
             return probe;
         }
-        match (engine, needs_native) {
+        let mut probe = match (engine, needs_native) {
             (_, true) | (ImageBackend::Vulkan, _) => self.native_probe(path),
             (ImageBackend::Comfy, _) => self.comfy_probe(path),
             (ImageBackend::Auto, _) => self.automatic_probe(path),
+        };
+        if has_loras && probe.family.as_deref() == Some("Qwen Image 2.1 GGUF") {
+            probe.ready = false;
+            probe.missing.push("comfy_qwen_lora".into());
         }
+        probe
     }
     fn update(&self, id: &str, save: bool, change: impl FnOnce(&mut ImageJob)) -> Result<()> {
         let mut state = self.state.lock().map_err(|_| "image_storage")?;
@@ -911,7 +934,8 @@ impl ImageEngine {
             started = Instant::now();
             let _directory_pins = crate::gallery::directory_guards(&directory)?;
             let mut model = read_locked(Path::new(&job.request.model_path))?;
-            if model_parts(Path::new(&job.request.model_path))?.1.len() != 0 {
+            if !self.comfy.qwen_image21_path(Path::new(&job.request.model_path))
+                && model_parts(Path::new(&job.request.model_path))?.1.len() != 0 {
                 return Err("image_structure".into());
             }
             let mut reported = Instant::now();

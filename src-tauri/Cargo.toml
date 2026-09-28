@@ -1,6 +1,6 @@
 [package]
 name = "local-studio"
-version = "0.36.28"
+version = "0.36.29"
 description = "Local Studio desktop core"
 edition = "2021"
 rust-version = "1.88"

@@ -1,3 +1,9 @@
+# Qwen Image 2.1 GGUF — Implementierung (2026-09-28)
+
+- Das Bildstudio erkennt ausschließlich `qwen-image-2.1*.gguf` als Qwen-Image-Modell und leitet es automatisch an ComfyUI weiter. Andere GGUF-Dateien, insbesondere Chatmodelle, bleiben vom Bildadapter ausgeschlossen.
+- Der echte Workflow verwendet `UnetLoaderGGUF`, `qwen3vl_8b_int8_convrot.safetensors`, `qwen_image_2.1_vae_bf16.safetensors`, `TextEncodeQwenImage21`, AuraFlow-Sampling und ComfyUIs lokale HTTP-API. Modellnamen werden vor jedem Auftrag aus `object_info` aufgelöst.
+- Die Vorprüfung benennt fehlenden GGUF-Loader, Encoder, VAE oder Qwen-Knoten konkret. Der GGUF muss in `ComfyUI\models\diffusion_models` liegen; Encoder und VAE gehören jeweils in die passenden ComfyUI-Modellordner. LoRAs werden für diesen neuen Qwen-Pfad bewusst abgewiesen, bis ein kompatibler eigener Pfad implementiert und geprüft ist.
+- Kein Modell, Prompt oder Ergebnis verlässt den Rechner.
 # Bildstudio — anpassbare Arbeitsbereiche (2026-09-27)
 
 - Die linke Konfiguration startet mit 410 px, die rechte Studio-Galerie mit 300 px.

@@ -1,3 +1,9 @@
+# Qwen Image 2.1 GGUF — gezielte Prüfung (2026-09-28)
+
+- `scripts/desktop.ps1 check`: bestanden; Rust kompiliert den Qwen-Modellpfad, die Komponentenvorprüfung und den getrennten ComfyUI-Workflow.`n- `cargo.exe test --manifest-path src-tauri/Cargo.toml comfy::tests`: 7/7 bestehende ComfyUI-Regressionstests bestanden.
+- `npm.cmd run build`: bestanden; TypeScript und Vite kompilieren die dynamische Modellbereitschaft und die neuen verständlichen Qwen-Fehler.
+- Lokale ComfyUI-API auf Port 8188: `UnetLoaderGGUF`, `CLIPLoader` mit Typ `qwen_image`, `VAELoader`, `TextEncodeQwenImage21`, `ModelSamplingAuraFlow` und `KSampler` sind erreichbar. Die laufende Instanz meldet `qwen-image-2.1-UC-Q5_K_M.gguf`, `qwen3vl_8b_int8_convrot.safetensors` und `qwen_image_2.1_vae_bf16.safetensors` als auswählbare Komponenten.
+- Grenze: Es wurde kein vollständiger Qwen-Lauf gestartet, damit während der Entwicklung kein mehrere Minuten dauernder GPU-/VRAM-Auftrag ausgelöst wird. Die endgültige Inferenz- und Speicherprüfung erfolgt beim ersten bewusst gestarteten Auftrag im Build.
 # Bildstudio — anpassbare Arbeitsbereiche (2026-09-27)
 
 - Frontend-Produktionsbuild: bestanden. TypeScript kompiliert die gespeicherten Panelbreiten, die ziehbaren Trennleisten und die responsive Umschaltung.
