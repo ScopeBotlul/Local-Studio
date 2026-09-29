@@ -1,4 +1,4 @@
-# Qwen Image 2.1 GGUF — Implementierung (2026-09-28)
+# Version 0.36.30 – kompakte Studioansicht (2026-09-29)`r`n`r`n- Die redundanten Statusleisten für aktive Bildaufträge wurden aus dem Studio entfernt. Laufende Aufträge bleiben unter Aufträge und im Canvas sichtbar.`r`n`r`n# Qwen Image 2.1 GGUF — Implementierung (2026-09-28)
 
 - Das Bildstudio erkennt ausschließlich `qwen-image-2.1*.gguf` als Qwen-Image-Modell und leitet es automatisch an ComfyUI weiter. Andere GGUF-Dateien, insbesondere Chatmodelle, bleiben vom Bildadapter ausgeschlossen.
 - Der echte Workflow verwendet `UnetLoaderGGUF`, `qwen3vl_8b_int8_convrot.safetensors`, `qwen_image_2.1_vae_bf16.safetensors`, `TextEncodeQwenImage21`, AuraFlow-Sampling und ComfyUIs lokale HTTP-API. Modellnamen werden vor jedem Auftrag aus `object_info` aufgelöst.

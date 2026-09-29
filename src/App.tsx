@@ -551,7 +551,7 @@ export default function App() {
         ><Icon size={15}/><span>{label}</span></button>;
       })}
     </nav>}
-    <div className="main-shell" inert={exitBusy}><CoreFeatures settings={snapshot.settings} de={language==='de'} onJobs={()=>setPage('jobs')}/>
+    <div className="main-shell" inert={exitBusy}><CoreFeatures settings={snapshot.settings} de={language==='de'}/>
       <main id="main-content" className="main-content">
         {projectDetailsOpen&&<ProjectPanel onClose={()=>setProjectDetailsOpen(false)} shortcuts={snapshot.settings.shortcuts} maxUndo={snapshot.settings.maxUndo} controller={projects} language={language} disabled={!studio.ready || studio.recovery || saving} changed={!!projects.project && JSON.stringify(projects.project.request) !== JSON.stringify(studio.request)} />}
         {!projectDetailsOpen&&projects.error&&<p role="alert" className="notice warning">{projects.error}</p>}

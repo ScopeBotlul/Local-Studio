@@ -1,4 +1,4 @@
-# Qwen Image 2.1 GGUF — gezielte Prüfung (2026-09-28)
+# Version 0.36.30 – gezielte Prüfung (2026-09-29)`r`n`r`n- `npm.cmd run build`: bestanden. TypeScript und Vite kompilieren die bereinigte Studioansicht.`r`n- Keine Inferenz-, Modell-, Galerie- oder Installerpfade wurden für diese reine Layoutänderung erneut geprüft.`r`n`r`n# Qwen Image 2.1 GGUF — gezielte Prüfung (2026-09-28)
 
 - `scripts/desktop.ps1 check`: bestanden; Rust kompiliert den Qwen-Modellpfad, die Komponentenvorprüfung und den getrennten ComfyUI-Workflow.`n- `cargo.exe test --manifest-path src-tauri/Cargo.toml comfy::tests`: 7/7 bestehende ComfyUI-Regressionstests bestanden.
 - `npm.cmd run build`: bestanden; TypeScript und Vite kompilieren die dynamische Modellbereitschaft und die neuen verständlichen Qwen-Fehler.

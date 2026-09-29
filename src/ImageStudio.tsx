@@ -99,7 +99,6 @@ export default function ImageStudio({ onAddToProject, projectDisabled, shortcuts
     if (shortcutFor(event.nativeEvent, shortcuts) === 'generate') { const button = event.currentTarget.querySelector<HTMLButtonElement>('[data-image-generate]'); if (button && !button.disabled) { event.preventDefault(); button.click(); } }
   }}>
     {error && <p className="notice warning" role="alert">{imageError(error, de)}</p>}
-    {!galleryOnly && (active || waiting.length > 0) && <section className="notice image-queue-summary" role="status"><span>{active ? (de ? 'Ein Bildauftrag läuft.' : 'An image job is running.') : ''} {waiting.length} {de ? 'in der Warteschlange' : 'in the queue'}.</span>{active && <button className="text-button" onClick={() => setSelected(active.id)}>{de ? 'Laufenden Auftrag anzeigen' : 'Show running job'}</button>}</section>}
     <div className={`image-workspace ${galleryOnly?'gallery-only':''}`} style={galleryOnly?undefined:{'--image-left-panel':`${panelWidths.left}px`,'--image-right-panel':`${panelWidths.right}px`} as CSSProperties}>
     {!galleryOnly && <fieldset disabled={disabled} className="panel image-config">
       <div className="section-heading"><h2>{de?'Modell':'Model'}</h2><button type="button" className="text-button" disabled={busy} aria-label={de?'Modelldatei wählen':'Choose model file'} onClick={()=>void act(async()=>{const path=await open({multiple:false,filters:[{name:'SDXL · Safetensors',extensions:['safetensors']}]});if(typeof path==='string')modelPath(path);})}><FolderOpen size={17}/></button></div>
