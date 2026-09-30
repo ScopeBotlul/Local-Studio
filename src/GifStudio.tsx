@@ -1,19 +1,202 @@
-import {useState} from 'react';
+import {useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent} from 'react';
 import {invoke} from '@tauri-apps/api/core';
 import {open} from '@tauri-apps/plugin-dialog';
-import {FolderOpen,Images,LoaderCircle,Sparkles} from 'lucide-react';
-import {displayPath} from './helpers';
-const extensions=['png','jpg','jpeg','webp','bmp'];
-const basename=(path:string)=>displayPath(path).split(/[\\/]/).pop()||path;
+import {ArrowDown, ArrowUp, Film, FolderOpen, Images, LoaderCircle, Maximize, Minus, Plus, RefreshCw, Sparkles, Trash2} from 'lucide-react';
+import {displayPath, formatGigabytes} from './helpers';
+import {galleryApi, galleryError, type GalleryEntry} from './gallery-api';
+import StudioGallery from './StudioGallery';
+import TagImporter from './TagImporter';
+import type {Language} from './types';
+import './image-studio.css';
+import './gif-studio.css';
+
+type Mode = 'ai' | 'frames';
+type WanModel = {path:string; name:string; bytes:number};
+type Preview = {url:string; path:string; label:string; width?:number; height?:number};
+type PanelWidths = {left:number; right:number};
+const defaultWidths:PanelWidths = {left:410,right:300};
+const imageExtensions = ['png','jpg','jpeg','webp','bmp'];
+function fileName(path:string){return displayPath(path).split(/[\\/]/).pop() ?? path;}
+function savedWidths():PanelWidths {
+  try {
+    const value=JSON.parse(localStorage.getItem('gif-studio-panel-widths')??'{}');
+    return {
+      left:Number.isFinite(value.left)?Math.max(320,Math.min(560,value.left)):defaultWidths.left,
+      right:Number.isFinite(value.right)?Math.max(250,Math.min(440,value.right)):defaultWidths.right,
+    };
+  } catch {return defaultWidths;}
+}
+function message(error:unknown,de:boolean){
+  const code=String(error);
+  const labels:Record<string,[string,string]>={
+    comfy_missing:['ComfyUI ist nicht eingerichtet. Richte es in den Einstellungen ein.','ComfyUI is not set up. Configure it in Settings.'],
+    comfy_connection:['ComfyUI antwortet nicht. Starte die Engine in den Einstellungen.','ComfyUI is not responding. Start the engine in Settings.'],
+    gif_ai_model_unavailable:['ComfyUI erkennt das gewählte Modell noch nicht. Starte die Engine nach dem Hinzufügen neu.','ComfyUI does not see this model yet. Restart the engine after adding it.'],
+    gif_ai_model:['Das Wan-Modell muss im diffusion_models-Ordner der eingerichteten ComfyUI-Installation liegen.','The Wan model must be in the configured ComfyUI diffusion_models folder.'],
+    gif_ai_encoder:['Ein Wan-UMT5-Textencoder fehlt in ComfyUI.','A Wan UMT5 text encoder is missing from ComfyUI.'],
+    gif_ai_vae:['Eine Wan-VAE fehlt in ComfyUI.','A Wan VAE is missing from ComfyUI.'],
+    gif_ai_workflow:['ComfyUI unterstützt den erforderlichen Wan-Workflow nicht.','ComfyUI does not support the required Wan workflow.'],
+    gif_ai_execution:['Die Wan-Generierung ist in ComfyUI fehlgeschlagen. Prüfe das ComfyUI-Protokoll.','Wan generation failed in ComfyUI. Check the ComfyUI log.'],
+    gif_ai_timeout:['Die Wan-Generierung hat das Zeitlimit erreicht.','Wan generation timed out.'],
+    gif_ai_source:['Das Startbild kann nicht gelesen werden.','The start image cannot be read.'],
+    gif_source:['Dieses Bild kann nicht als Vorschau gelesen werden.','This image cannot be loaded as a preview.'],
+    gif_dimensions:['Das GIF überschreitet die erlaubte Ausgabegröße.','The GIF exceeds the allowed output size.'],
+    gallery_exists:['Dieser Dateiname existiert im Galerieordner bereits.','A file with this name already exists in the gallery folder.'],
+  };
+  for(const [key,value] of Object.entries(labels))if(code.includes(key))return value[de?0:1];
+  return galleryError(error,de);
+}
+
 export default function GifStudio({de}:{de:boolean}){
- const [paths,setPaths]=useState<string[]>([]),[source,setSource]=useState(''),[model,setModel]=useState(''),[prompt,setPrompt]=useState(''),[negative,setNegative]=useState(''),[width,setWidth]=useState(832),[height,setHeight]=useState(480),[frames,setFrames]=useState(21),[busy,setBusy]=useState(false),[result,setResult]=useState(''),[error,setError]=useState('');
- const folder=(()=>{try{return sessionStorage.getItem('studio-gallery-folder')||''}catch{return ''}})();
- const pick=async(title:string,fileTypes:string[],multi=false)=>open({title,multiple:multi,filters:[{name:de?'Datei':'File',extensions:fileTypes}]});
- const classic=async()=>{const value=await pick(de?'Bilder ausw�hlen':'Choose images',extensions,true);if(Array.isArray(value))setPaths(value)};
- const selectSource=async()=>{const value=await pick(de?'Startbild ausw�hlen':'Choose start image',extensions);if(typeof value==='string')setSource(value)};
- const selectModel=async()=>{const value=await pick(de?'Wan-Modell ausw�hlen':'Choose Wan model (.safetensors / .gguf)',['safetensors','gguf']);if(typeof value==='string')setModel(value)};
- const create=async()=>{setBusy(true);setError('');try{setResult(await invoke<string>('gif_create',{paths,folder,name:'animation',delayMs:120,looped:true}))}catch(e){setError(String(e))}finally{setBusy(false)}};
- const createAi=async()=>{setBusy(true);setError('');try{setResult(await invoke<string>('gif_ai_create',{request:{sourcePath:source,modelPath:model,prompt,negativePrompt:negative,width,height,frames,steps:20,guidance:6,seed:Math.floor(Math.random()*4294967295),folder,name:'animation',delayMs:120,looped:true}}))}catch(e){setError(String(e))}finally{setBusy(false)}};
- const aiReady=source&&model&&prompt.trim()&&width%16===0&&height%16===0&&frames>=5&&(frames-1)%4===0;
- return <div className="page gif-studio"><header className="page-heading"><div><div className="eyebrow">GIF � LOCAL</div><h1>{de?'GIF-Studio':'GIF Studio'}</h1><p>{de?'Erstelle ein GIF aus eigenen Frames oder lasse Wan aus einem Startbild neue Frames erzeugen.':'Create a GIF from your own frames, or let Wan generate frames from a start image.'}</p></div></header><div className="gif-layout"><section className="panel"><h2>{de?'Eigene Bilder':'Your images'} � {paths.length}</h2><button className="button secondary" disabled={busy} onClick={()=>void classic()}><FolderOpen size={16}/>{de?'Bilder w�hlen':'Choose images'}</button><p className="hub-hint">{paths.length?paths.map(basename).join(', '):(de?'Bis zu 200 Bilder werden als GIF gespeichert.':'Up to 200 images are encoded as a GIF.')}</p><button className="button primary" disabled={busy||!paths.length} onClick={()=>void create()}>{busy?<LoaderCircle className="spin" size={16}/>:<Images size={16}/>}GIF {de?'erstellen':'Create'}</button></section><section className="panel gif-ai"><div className="eyebrow">WAN � IMAGE TO VIDEO</div><h2>{de?'KI-Frames erzeugen':'Generate AI frames'}</h2><p className="hub-hint">{de?'Ein Wan-Modell erzeugt aus einem Startbild und einer Bewegungsbeschreibung Frames; Local Studio kodiert sie danach als GIF. Tags k�nnen direkt im Prompt stehen.':'A Wan model generates frames from a start image and motion prompt; Local Studio then encodes them as a GIF. Tags can go directly into the prompt.'}</p><label className="field-label">{de?'Startbild':'Start image'}<button className="button secondary" disabled={busy} onClick={()=>void selectSource()}><FolderOpen size={16}/>{source?basename(source):(de?'W�hlen':'Choose')}</button></label><label className="field-label">{de?'Wan-Videomodell':'Wan video model'}<button className="button secondary" disabled={busy} onClick={()=>void selectModel()}><FolderOpen size={16}/>{model?basename(model):(de?'W�hlen':'Choose')}</button></label><label className="field-label">{de?'Bewegung / Tags':'Motion / tags'}<textarea value={prompt} maxLength={8000} onChange={e=>setPrompt(e.target.value)} placeholder={de?'z. B. dreht sich langsam zur Kamera, Haare im Wind':'e.g. slowly turns to the camera, hair moving in wind'}/></label><label className="field-label">{de?'Negativer Prompt':'Negative prompt'}<textarea value={negative} maxLength={8000} onChange={e=>setNegative(e.target.value)}/></label><div className="gif-ai-grid"><label className="field-label">{de?'Breite':'Width'}<input type="number" min={128} max={2048} step={16} value={width} onChange={e=>setWidth(Number(e.target.value))}/></label><label className="field-label">{de?'H�he':'Height'}<input type="number" min={128} max={2048} step={16} value={height} onChange={e=>setHeight(Number(e.target.value))}/></label><label className="field-label">{de?'Frames (5 + 4n)':'Frames (5 + 4n)'}<input type="number" min={5} max={81} step={4} value={frames} onChange={e=>setFrames(Number(e.target.value))}/></label></div><button className="button primary" disabled={busy||!aiReady} onClick={()=>void createAi()}>{busy?<LoaderCircle className="spin" size={16}/>:<Sparkles size={16}/>} {de?'KI-GIF erstellen':'Create AI GIF'}</button></section></div>{result&&<p className="notice">{de?'Gespeichert: ':'Saved: '}{displayPath(result)}</p>}{error&&<p className="notice warning" role="alert">{error}</p>}</div>
+  const language:Language=de?'de':'en';
+  const [mode,setMode]=useState<Mode>('ai');
+  const [panelWidths,setPanelWidths]=useState<PanelWidths>(savedWidths);
+  const panelDrag=useRef<{side:keyof PanelWidths;startX:number;startWidth:number}|null>(null);
+  const [galleryFolder,setGalleryFolder]=useState(()=>{try{return sessionStorage.getItem('studio-gallery-folder')??'';}catch{return '';}});
+  const [galleryRefresh,setGalleryRefresh]=useState(0);
+  const [selectedPath,setSelectedPath]=useState('');
+  const [models,setModels]=useState<WanModel[]>([]);
+  const [modelsBusy,setModelsBusy]=useState(true);
+  const [model,setModel]=useState('');
+  const [source,setSource]=useState('');
+  const [frames,setFrames]=useState<string[]>([]);
+  const [prompt,setPrompt]=useState('');
+  const [negativePrompt,setNegativePrompt]=useState('');
+  const [width,setWidth]=useState(832),[height,setHeight]=useState(480),[length,setLength]=useState(21);
+  const [steps,setSteps]=useState(20),[guidance,setGuidance]=useState(6);
+  const [name,setName]=useState('animation'),[delay,setDelay]=useState(120),[looped,setLooped]=useState(true);
+  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[preview,setPreview]=useState<Preview|null>(null);
+  const [zoom,setZoom]=useState(1);
+  const previewRequest=useRef(0);
+
+  async function refreshModels(){
+    setModelsBusy(true);
+    try {setModels(await invoke<WanModel[]>('gif_model_catalog'));}
+    catch(e){setModels([]);setError(message(e,de));}
+    finally {setModelsBusy(false);}
+  }
+  useEffect(()=>{void refreshModels();},[]);
+  useEffect(()=>{try{localStorage.setItem('gif-studio-panel-widths',JSON.stringify(panelWidths));}catch{/* local preference */}},[panelWidths]);
+  function onFolder(folder:string){setGalleryFolder(folder);setSelectedPath('');try{sessionStorage.setItem('studio-gallery-folder',folder);}catch{/* session only */}}
+  function showLocal(path:string){
+    const id=++previewRequest.current;
+    setPreview(null);
+    void invoke<string>('gif_source_preview',{path}).then(url=>{if(previewRequest.current===id){setPreview({url,path,label:fileName(path)});setZoom(1);}})
+      .catch(e=>{if(previewRequest.current===id)setError(message(e,de));});
+  }
+  async function chooseSource(){
+    const picked=await open({multiple:false,title:de?'Startbild wählen':'Choose start image',filters:[{name:de?'Bilder':'Images',extensions:imageExtensions}]});
+    if(typeof picked==='string'){setSource(picked);setSelectedPath('');showLocal(picked);}
+  }
+  async function chooseFrames(){
+    const picked=await open({multiple:true,title:de?'GIF-Frames wählen':'Choose GIF frames',filters:[{name:de?'Bilder':'Images',extensions:imageExtensions}]});
+    if(Array.isArray(picked)&&picked.length){setFrames(current=>[...current,...picked].slice(0,200));showLocal(picked[0]);}
+  }
+  async function chooseModel(){
+    const picked=await open({multiple:false,title:de?'Wan-Modell wählen':'Choose Wan model',filters:[{name:'Wan · Safetensors / GGUF',extensions:['safetensors','gguf']}]});
+    if(typeof picked==='string')setModel(picked);
+  }
+  async function selectGallery(entry:GalleryEntry,root:string){
+    if(entry.kind!=='image')return;
+    ++previewRequest.current;
+    setError('');
+    setSelectedPath(entry.path);
+    try {
+      const detail=await galleryApi.detail(entry.path);
+      setPreview({url:detail.url,path:entry.path,label:entry.name,width:detail.dimensions?.[0],height:detail.dimensions?.[1]});
+      setZoom(1);
+      const fullPath=root.replace(/[\\/]$/,'')+'\\'+entry.path.replace(/\//g,'\\');
+      if(mode==='ai'&& !entry.name.toLowerCase().endsWith('.gif'))setSource(fullPath);
+      if(mode==='frames'&&frames.length<200)setFrames(current=>[...current,fullPath]);
+    }catch(e){setError(message(e,de));}
+  }
+  function moveFrame(index:number,delta:number){setFrames(current=>{const next=[...current];const target=index+delta;if(target<0||target>=next.length)return current;[next[index],next[target]]=[next[target],next[index]];return next;});}
+  async function create(){
+    if(busy)return;
+    setBusy(true);setError('');
+    try {
+      const path=mode==='ai'
+        ? await invoke<string>('gif_ai_create',{request:{sourcePath:source,modelPath:model,prompt,negativePrompt,width,height,frames:length,steps,guidance,seed:crypto.getRandomValues(new Uint32Array(1))[0],folder:galleryFolder,name,delayMs:delay,looped}})
+        : await invoke<string>('gif_create',{paths:frames,folder:galleryFolder,name,delayMs:delay,looped});
+      const resultName=fileName(path);
+      const relative=[galleryFolder,resultName].filter(Boolean).join('/');
+      const detail=await galleryApi.detail(relative);
+      setPreview({url:detail.url,path:relative,label:resultName,width:detail.dimensions?.[0],height:detail.dimensions?.[1]});
+      setSelectedPath(relative);setZoom(1);setGalleryRefresh(value=>value+1);
+    }catch(e){setError(message(e,de));}
+    finally {setBusy(false);}
+  }
+  function startDrag(side:keyof PanelWidths,event:ReactPointerEvent<HTMLDivElement>){
+    event.preventDefault();panelDrag.current={side,startX:event.clientX,startWidth:panelWidths[side]};event.currentTarget.setPointerCapture(event.pointerId);
+  }
+  function dragPanel(event:ReactPointerEvent<HTMLDivElement>){
+    const drag=panelDrag.current;if(!drag)return;
+    const scale=Number(getComputedStyle(document.documentElement).getPropertyValue('--ui-scale'))||1;
+    const direction=drag.side==='left'?1:-1;
+    const value=drag.startWidth+(event.clientX-drag.startX)/scale*direction;
+    setPanelWidths(current=>({...current,[drag.side]:Math.max(drag.side==='left'?320:250,Math.min(drag.side==='left'?560:440,value))}));
+  }
+  const canGenerate=mode==='ai'
+    ? !!source&&!!model&&!!prompt.trim()&&Number.isInteger(width)&&Number.isInteger(height)&&width>=128&&height>=128&&width<=2048&&height<=2048&&width%16===0&&height%16===0&&Number.isInteger(length)&&length>=5&&length<=81&&(length-1)%4===0&&Number.isInteger(steps)&&steps>=1&&steps<=50&&Number.isFinite(guidance)&&guidance>=0&&guidance<=20
+    : frames.length>0&&frames.length<=200;
+  const validOutput=!!name.trim()&&Number.isInteger(delay)&&delay>=20&&delay<=10000;
+
+  return <div className="page image-studio gif-studio">
+    {error&&<p className="notice warning" role="alert">{error}</p>}
+    <div className="image-workspace gif-workspace" style={{'--image-left-panel':`${panelWidths.left}px`,'--image-right-panel':`${panelWidths.right}px`} as CSSProperties}>
+      <fieldset className="panel image-config gif-config" disabled={busy}>
+        <div className="gif-mode-switch" role="group" aria-label={de?'GIF-Methode':'GIF method'}>
+          <button type="button" className="button secondary" aria-pressed={mode==='ai'} onClick={()=>setMode('ai')}><Sparkles size={15}/>{de?'Mit KI':'With AI'}</button>
+          <button type="button" className="button secondary" aria-pressed={mode==='frames'} onClick={()=>setMode('frames')}><Images size={15}/>{de?'Aus Bildern':'From images'}</button>
+        </div>
+        {mode==='ai'?<>
+          <div className="section-heading"><h2>{de?'Modell':'Model'}</h2><button type="button" className="text-button" title={de?'Modelle aktualisieren':'Refresh models'} aria-label={de?'Modelle aktualisieren':'Refresh models'} onClick={()=>void refreshModels()}><RefreshCw size={15}/></button></div>
+          <label className="field-label" htmlFor="gif-model">{de?'Wan-Videomodell':'Wan video model'}</label>
+          <select id="gif-model" className="image-model-select" value={model} onChange={event=>setModel(event.target.value)} disabled={modelsBusy}>
+            <option value="">{modelsBusy?(de?'Modelle werden gelesen …':'Loading models …'):(de?'Modell auswählen …':'Select a model …')}</option>
+            {model&&!models.some(item=>item.path===model)&&<option value={model}>{fileName(model)}</option>}
+            {models.map(item=><option key={item.path} value={item.path}>{item.name} · {formatGigabytes(item.bytes,language)}</option>)}
+          </select>
+          <button type="button" className="button secondary gif-file-button" onClick={()=>void chooseModel()}><FolderOpen size={15}/>{de?'Modelldatei wählen':'Choose model file'}</button>
+          <p className="hub-hint">{de?'Wan-Dateien aus dem diffusion_models-Ordner deiner ComfyUI-Installation. GGUF benötigt den installierten GGUF-Knoten.':'Wan files from your ComfyUI diffusion_models folder. GGUF requires the installed GGUF node.'}</p>
+          <div className="gif-control-group">
+            <div className="section-heading"><h2>{de?'Startbild':'Start image'}</h2></div>
+            <button type="button" className="button secondary gif-file-button" onClick={()=>void chooseSource()}><FolderOpen size={15}/>{source?fileName(source):(de?'Bild wählen':'Choose image')}</button>
+            <p className="hub-hint">{de?'Du kannst auch ein Bild rechts in der Galerie anklicken.':'You can also click an image in the gallery on the right.'}</p>
+          </div>
+          <div className="gif-control-group">
+            <label className="field-label">{de?'Prompt / Bewegung / Tags':'Prompt / motion / tags'}<textarea rows={5} maxLength={8000} value={prompt} onChange={event=>setPrompt(event.target.value)} placeholder={de?'Motiv und gewünschte Bewegung beschreiben …':'Describe the subject and its motion …'}/></label>
+            <label className="field-label">{de?'Negativer Prompt':'Negative prompt'}<textarea rows={3} maxLength={8000} value={negativePrompt} onChange={event=>setNegativePrompt(event.target.value)}/></label>
+            <TagImporter de={de} removeCensor={false} onImport={tags=>setPrompt(current=>[current.trim(),tags.join(', ')].filter(Boolean).join(', ').slice(0,8000))}/>
+          </div>
+          <details className="image-control-details" open><summary>{de?'Größe und Bewegung':'Size and motion'}</summary>
+            <div className="image-parameters"><label className="field-label">{de?'Breite':'Width'}<input type="number" min={128} max={2048} step={16} value={width} onChange={event=>setWidth(Number(event.target.value))}/></label><label className="field-label">{de?'Höhe':'Height'}<input type="number" min={128} max={2048} step={16} value={height} onChange={event=>setHeight(Number(event.target.value))}/></label><label className="field-label">Frames<input type="number" min={5} max={81} step={4} value={length} onChange={event=>setLength(Number(event.target.value))}/></label><label className="field-label">{de?'Schritte':'Steps'}<input type="number" min={1} max={50} value={steps} onChange={event=>setSteps(Number(event.target.value))}/></label><label className="field-label">Guidance<input type="number" min={0} max={20} step={0.5} value={guidance} onChange={event=>setGuidance(Number(event.target.value))}/></label></div>
+            <p className="hub-hint">{de?'Maße in 16er-Schritten. Framezahl: 5, 9, 13 … 81.':'Dimensions in steps of 16. Frame count: 5, 9, 13 … 81.'}</p>
+          </details>
+        </>:<>
+          <div className="section-heading"><h2>{de?'Bilder in Reihenfolge':'Images in order'} · {frames.length}</h2></div>
+          <button type="button" className="button secondary gif-file-button" onClick={()=>void chooseFrames()} disabled={frames.length>=200}><FolderOpen size={15}/>{de?'Bilder hinzufügen':'Add images'}</button>
+          <p className="hub-hint">{de?'Bilder rechts in der Galerie anklicken oder Dateien wählen. Bis zu 200 Frames.':'Click images in the gallery or choose files. Up to 200 frames.'}</p>
+          <ol className="gif-frame-list">{frames.map((path,index)=><li key={`${path}-${index}`}><span title={displayPath(path)}>{index+1}. {fileName(path)}</span><button type="button" className="icon-button" disabled={index===0} aria-label={de?'Nach oben':'Move up'} onClick={()=>moveFrame(index,-1)}><ArrowUp size={14}/></button><button type="button" className="icon-button" disabled={index===frames.length-1} aria-label={de?'Nach unten':'Move down'} onClick={()=>moveFrame(index,1)}><ArrowDown size={14}/></button><button type="button" className="icon-button" aria-label={de?'Entfernen':'Remove'} onClick={()=>setFrames(current=>current.filter((_,i)=>i!==index))}><Trash2 size={14}/></button></li>)}</ol>
+        </>}
+        <details className="image-control-details" open><summary>{de?'GIF-Ausgabe':'GIF output'}</summary>
+          <label className="field-label">{de?'Dateiname':'File name'}<input value={name} maxLength={170} onChange={event=>setName(event.target.value)} placeholder="animation"/></label>
+          <div className="image-parameters"><label className="field-label">{de?'Zeit je Frame (ms)':'Time per frame (ms)'}<input type="number" min={20} max={10000} value={delay} onChange={event=>setDelay(Number(event.target.value))}/></label></div>
+          <label className="privacy-check"><input type="checkbox" checked={looped} onChange={event=>setLooped(event.target.checked)}/>{de?'Endlosschleife':'Loop forever'}</label>
+          <p className="hub-hint">{de?'Ziel:':'Destination:'} {galleryFolder|| (de?'Galerie-Hauptordner':'Gallery root')}</p>
+        </details>
+        <div className="image-generate-bar"><button type="button" className="button primary" disabled={!canGenerate||!validOutput||busy} onClick={()=>void create()}>{busy?<LoaderCircle className="spin" size={17}/>:<Film size={17}/>} {busy?(de?'GIF wird erstellt …':'Creating GIF …'):mode==='ai'?(de?'GIF generieren':'Generate GIF'):(de?'GIF aus Bildern erstellen':'Create GIF from images')}</button></div>
+      </fieldset>
+      <div className="image-panel-resizer left" role="separator" aria-orientation="vertical" aria-label={de?'Breite der Einstellungen':'Settings width'} aria-valuemin={320} aria-valuemax={560} aria-valuenow={Math.round(panelWidths.left)} tabIndex={0} onPointerDown={event=>startDrag('left',event)} onPointerMove={dragPanel} onPointerUp={()=>panelDrag.current=null} onPointerCancel={()=>panelDrag.current=null} onDoubleClick={()=>setPanelWidths(defaultWidths)} onKeyDown={event=>{if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();setPanelWidths(current=>({...current,left:Math.max(320,Math.min(560,current.left+(event.key==='ArrowRight'?20:-20)))}));}}}/>
+      <main className="image-workspace-output">
+        <section className="image-canvas gif-canvas" aria-label={de?'GIF-Canvas':'GIF canvas'}>
+          <div className="image-canvas-toolbar"><div><strong>Canvas</strong><span>{preview?.label??(de?'Vorschau':'Preview')}</span></div><div role="group" aria-label={de?'Vorschaugröße':'Preview zoom'}><button type="button" className="text-button" disabled={!preview} aria-label={de?'Verkleinern':'Zoom out'} onClick={()=>setZoom(value=>Math.max(.25,value-.25))}><Minus size={15}/></button><button type="button" className="text-button" disabled={!preview} onClick={()=>setZoom(1)}>{Math.round(zoom*100)}%</button><button type="button" className="text-button" disabled={!preview} aria-label={de?'Vergrößern':'Zoom in'} onClick={()=>setZoom(value=>Math.min(4,value+.25))}><Plus size={15}/></button><button type="button" className="text-button" disabled={!preview} aria-label={de?'Einpassen':'Fit'} onClick={()=>setZoom(1)}><Maximize size={15}/></button></div></div>
+          <div className="image-canvas-viewport gif-canvas-viewport">{preview?<img src={preview.url} alt={preview.label} style={{transform:`scale(${zoom})`}}/>:<div className="image-canvas-empty"><div className="image-canvas-symbol"><Film size={32}/></div><h2>{busy?(de?'GIF wird erzeugt …':'Generating GIF …'):(de?'Dein GIF erscheint hier':'Your GIF appears here')}</h2><p>{mode==='ai'?(de?'Wan-Modell und Startbild wählen, Bewegung beschreiben und generieren.':'Choose a Wan model and start image, describe motion, then generate.'):(de?'Bilder hinzufügen und als GIF speichern.':'Add images and save them as a GIF.')}</p>{busy&&<progress aria-label={de?'GIF wird erstellt':'Creating GIF'}/>}</div>}{busy&&preview&&<div className="gif-canvas-progress"><LoaderCircle className="spin" size={16}/><span>{de?'GIF wird erstellt …':'Creating GIF …'}</span><progress aria-label={de?'GIF wird erstellt':'Creating GIF'}/></div>}</div>
+          <div className="image-canvas-status"><span>{busy?(de?'Lokale Verarbeitung läuft':'Local processing in progress'):(preview?.path??(de?'Bereit':'Ready'))}</span><span>{preview?.width&&preview.height?`${preview.width} × ${preview.height} px`:(de?'Lokal auf deinem PC':'Local on your PC')}</span></div>
+        </section>
+      </main>
+      <div className="image-panel-resizer right" role="separator" aria-orientation="vertical" aria-label={de?'Breite der Galerie':'Gallery width'} aria-valuemin={250} aria-valuemax={440} aria-valuenow={Math.round(panelWidths.right)} tabIndex={0} onPointerDown={event=>startDrag('right',event)} onPointerMove={dragPanel} onPointerUp={()=>panelDrag.current=null} onPointerCancel={()=>panelDrag.current=null} onDoubleClick={()=>setPanelWidths(defaultWidths)} onKeyDown={event=>{if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();setPanelWidths(current=>({...current,right:Math.max(250,Math.min(440,current.right+(event.key==='ArrowLeft'?20:-20)))}));}}}/>
+      <StudioGallery language={language} folder={galleryFolder} onFolder={onFolder} refreshKey={galleryRefresh} onSelect={(entry,root)=>void selectGallery(entry,root)} selectedPath={selectedPath}/>
+    </div>
+  </div>;
 }

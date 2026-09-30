@@ -1140,3 +1140,11 @@ ZIP-Inhalt/CRC, Anleitung, EXE-Identität und Prüfsummen geprüft. Vollständig
 
 - Produktionsbuild, Installer und Portable-ZIP erstellt. `verify-release.mjs` und `verify-package-bytes.ps1` bestätigen Version, Signatur, exakte Paketgrößen und SHA-256; das Portable-ZIP enthält 80 erwartete Dateien.
 - SHA-256: EXE `7aa4c135edaf6133f1cfbba5cf606d55eec0288efae34d830aff9283d226238d`, ZIP `c9c370d6794f67fb229f47005b5c46641a7f1c07bb1fd8ccfa3acfbde57d3067`, Installer `75138bee98b0ef03103996190635a55e2dd3968ba17b785c6aa3bf17891acd5d`.
+# GIF-Studio 0.36.32 — gezielte Prüfung (2026-09-30)
+
+- `npm.cmd run build`: bestanden; die neue dreiteilige React-Oberfläche und der Tag-Import kompilieren.
+- `scripts/desktop.ps1 check`: bestanden; Rust-IPC, Modellkatalog und Tauri-Berechtigungen kompilieren.
+- Rusttest `wan_catalog_lists_only_video_diffusion_models`: bestanden; Wan-Safetensors/GGUF werden gelistet, andere Dateien ausgeschlossen.
+- `gif_studio::tests`: 2/2 bestanden; darunter echte GIF-Erzeugung und Dekodierung aus zwei Bildern.
+- Isolierter nativer Windows-Test `scripts/check-gif-studio32.mjs`: dreiteilige Arbeitsfläche, Galerie-Auswahl als Startbild und Frame, lokale Bildvorschau, echter GIF-Export, Tastatur-Anpassung der Seitenbreite und Screenshots bestanden (`.artifacts/gif-studio32-1790784410351`). Die native UI musste mit Desktop-Zugriff laufen, weil die Sandbox Tauri beim Fenster-Setup blockierte.
+- Grenze: Ein GPU-Wan-Lauf mit lokalem ComfyUI wird hier nicht simuliert; die tatsächliche Inferenz bleibt von der Installation und der verfügbaren Hardware abhängig.

@@ -1,4 +1,5 @@
-use crate::{comfy::Comfy, core::Core, gallery, model_library};
+use crate::{comfy::{Comfy, WanModel}, core::Core, gallery, model_library};
+use base64::Engine;
 use image::{
     codecs::gif::{GifEncoder, Repeat},
     imageops::FilterType,
@@ -7,7 +8,7 @@ use image::{
 use serde::Deserialize;
 use std::{
     fs::{self, File},
-    io::BufWriter,
+    io::{BufWriter, Cursor},
     path::{Path, PathBuf},
     sync::Arc,
 };
@@ -148,6 +149,29 @@ pub async fn gif_create(
         .map_err(|_| "gallery_storage")?
     })
     .await;
+    crate::privacy::finish(epoch, result)
+}
+
+#[tauri::command]
+pub async fn gif_model_catalog(comfy: State<'_, Arc<Comfy>>) -> Result<Vec<WanModel>> {
+    let comfy = comfy.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || comfy.wan_models())
+        .await
+        .map_err(|_| "comfy_storage")?
+}
+
+#[tauri::command]
+pub async fn gif_source_preview(path: String) -> Result<String> {
+    let epoch = crate::privacy::epoch();
+    let result = tauri::async_runtime::spawn_blocking(move || {
+        let path = Path::new(&path);
+        crate::privacy::check(path)?;
+        let preview = source(path)?.thumbnail(1024, 1024);
+        let mut bytes = Cursor::new(Vec::new());
+        preview.write_to(&mut bytes, image::ImageFormat::Png)
+            .map_err(|_| "gif_source")?;
+        Ok(format!("data:image/png;base64,{}", base64::engine::general_purpose::STANDARD.encode(bytes.into_inner())))
+    }).await.map_err(|_| "gif_source")?;
     crate::privacy::finish(epoch, result)
 }
 

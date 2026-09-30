@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-gif-ai-create"
+description = "Enables the gif_ai_create command without any pre-configured scope."
+commands.allow = ["gif_ai_create"]
+
+[[permission]]
+identifier = "deny-gif-ai-create"
+description = "Denies the gif_ai_create command without any pre-configured scope."
+commands.deny = ["gif_ai_create"]

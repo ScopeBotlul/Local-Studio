@@ -57,6 +57,13 @@ pub struct ComfyStatus {
     install: ComfyInstallStatus,
     update: ComfyUpdateStatus,
 }
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WanModel {
+    path: String,
+    name: String,
+    bytes: u64,
+}
 #[derive(Clone, Default, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ComfyInstallStatus {
@@ -1337,6 +1344,47 @@ impl Comfy {
         model_library::no_links(&models).ok()?;
         fs::canonicalize(models).ok()
     }
+    pub fn wan_models(&self) -> Result<Vec<WanModel>> {
+        let root = self.config.lock().map_err(|_| "comfy_storage")?
+            .path.clone().map(PathBuf::from).ok_or("comfy_missing")?;
+        if !valid_root(&root) {
+            return Err("comfy_missing".into());
+        }
+        let folder = root.join("ComfyUI/models/diffusion_models");
+        model_library::no_links(&folder).map_err(|_| "comfy_model_path")?;
+        let mut pending = vec![(folder, 0usize)];
+        let mut models = Vec::new();
+        while let Some((directory, depth)) = pending.pop() {
+            for entry in fs::read_dir(&directory).map_err(|_| "comfy_model_path")?.flatten() {
+                if models.len() >= 500 {
+                    return Ok(models);
+                }
+                let path = entry.path();
+                if model_library::no_links(&path).is_err() {
+                    continue;
+                }
+                let Ok(metadata) = entry.metadata() else { continue };
+                if metadata.is_dir() {
+                    if depth < 3 { pending.push((path, depth + 1)); }
+                } else if metadata.is_file() {
+                    let name = entry.file_name().to_string_lossy().into_owned();
+                    let extension = path.extension().and_then(|value| value.to_str()).unwrap_or("");
+                    if name.to_ascii_lowercase().contains("wan")
+                        && (extension.eq_ignore_ascii_case("gguf")
+                            || extension.eq_ignore_ascii_case("safetensors"))
+                    {
+                        models.push(WanModel {
+                            path: path.to_string_lossy().into_owned(),
+                            name,
+                            bytes: metadata.len(),
+                        });
+                    }
+                }
+            }
+        }
+        models.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+        Ok(models)
+    }
     fn model_relative(&self, path: &Path, folder: &str) -> Option<String> {
         if probe_http().is_err() {
             return None;
@@ -1876,6 +1924,32 @@ pub fn comfy_open_updater(state: tauri::State<'_, Arc<Comfy>>) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn wan_catalog_lists_only_video_diffusion_models() {
+        let temp = tempfile::tempdir().unwrap();
+        let portable = temp.path().join("ComfyUI_windows_portable");
+        let models = portable.join("ComfyUI/models/diffusion_models");
+        fs::create_dir_all(portable.join("python_embeded")).unwrap();
+        fs::create_dir_all(&models).unwrap();
+        fs::write(portable.join("python_embeded/python.exe"), b"").unwrap();
+        fs::write(portable.join("ComfyUI/main.py"), b"").unwrap();
+        fs::write(models.join("wan_i2v.safetensors"), b"video").unwrap();
+        fs::write(models.join("wan_i2v.gguf"), b"video").unwrap();
+        fs::write(models.join("other_model.safetensors"), b"image").unwrap();
+        fs::write(models.join("wan_notes.txt"), b"not a model").unwrap();
+        let config = temp.path().join("config");
+        fs::create_dir_all(&config).unwrap();
+        fs::write(config.join("comfy.json"), serde_json::to_vec(&Config {
+            path: Some(portable.to_string_lossy().into_owned()),
+            ..Config::default()
+        }).unwrap()).unwrap();
+        let comfy = Comfy::new_with_checkpoints(&config, None).unwrap();
+        let found = comfy.wan_models().unwrap();
+        assert_eq!(found.len(), 2);
+        assert!(found.iter().all(|model| model.name.starts_with("wan_i2v.")));
+        assert!(found.iter().all(|model| model.bytes == 5));
+    }
 
     #[test]
     fn package_variants_are_an_explicit_allowlist() {
