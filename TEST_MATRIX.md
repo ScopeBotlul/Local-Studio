@@ -1149,3 +1149,10 @@ ZIP-Inhalt/CRC, Anleitung, EXE-Identität und Prüfsummen geprüft. Vollständig
 - `gif_studio::tests`: 2/2 bestanden; darunter echte GIF-Erzeugung und Dekodierung aus zwei Bildern.
 - Isolierter nativer Windows-Test `scripts/check-gif-studio32.mjs`: dreiteilige Arbeitsfläche, Galerie-Auswahl als Startbild und Frame, lokale Bildvorschau, echter GIF-Export, Tastatur-Anpassung der Seitenbreite und Screenshots bestanden (`.artifacts/gif-studio32-1790784410351`). Die native UI musste mit Desktop-Zugriff laufen, weil die Sandbox Tauri beim Fenster-Setup blockierte.
 - Grenze: Ein GPU-Wan-Lauf mit lokalem ComfyUI wird hier nicht simuliert; die tatsächliche Inferenz bleibt von der Installation und der verfügbaren Hardware abhängig.
+# Wan-GIF-VAE-Fix 0.36.33 — gezielte Prüfung (2026-09-30)
+
+- Betroffenes lokales ComfyUI-Protokoll gelesen: Sampling 20/20 abgeschlossen; Dekodierung scheiterte mit „expected ... 48 channels, but got 16“. Beide VAE-Dateien und der `Wan22ImageToVideoLatent`-Node sind in der laufenden lokalen Engine vorhanden.
+- `scripts/desktop.ps1 check`: bestanden nach der versionsgebundenen VAE- und Latent-Node-Auswahl.
+- Rusttest `wan_vae_family_matches_the_selected_model`: bestanden für das gemeldete unversionierte GGUF, Wan 2.2, beide VAE-Namen und die konkrete Kanalfehler-Erkennung.
+- `npm.cmd run build`: bestanden; die neuen spezifischen Fehlermeldungen kompilieren.
+- Isolierte native End-to-End-Aufträge gegen die installierte lokale ComfyUI-Engine: Wan 2.1 GGUF erzeugte mit 5 Frames und 1 Sampling-Schritt ein echtes 285483-Byte-GIF (`.artifacts/wan-vae33-1790787290792`); Wan 2.2 Safetensors erzeugte ebenso ein echtes 284183-Byte-GIF (`.artifacts/wan-vae33-1790787427425`). Beide Testbilder waren neutral und blieben in isolierten Local-Studio-Datenordnern. Ein einzelner Sampling-Schritt belegt die technische Ausführung, nicht die Bildqualität bei üblichen Einstellungen.

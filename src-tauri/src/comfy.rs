@@ -152,6 +152,40 @@ fn first_comfy_option(info: &Value, node: &str, input: &str, predicate: impl Fn(
         .find(|value| predicate(value))
         .map(str::to_owned)
 }
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum WanVersion { V21, V22 }
+
+fn wan_version(name: &str) -> WanVersion {
+    let name = name.to_ascii_lowercase();
+    if ["wan2.2", "wan_2.2", "wan-2.2", "wan22"].iter().any(|part| name.contains(part)) {
+        WanVersion::V22
+    } else {
+        // Older Wan checkpoints often omit the version in their filename.
+        WanVersion::V21
+    }
+}
+
+fn wan_vae_matches(name: &str, version: WanVersion) -> bool {
+    let name = name.to_ascii_lowercase();
+    match version {
+        WanVersion::V21 => ["wan2.1", "wan_2.1", "wan-2.1", "wan21"].iter().any(|part| name.contains(part)),
+        WanVersion::V22 => ["wan2.2", "wan_2.2", "wan-2.2", "wan22"].iter().any(|part| name.contains(part)),
+    }
+}
+
+fn wan_execution_error(entry: &Value) -> &'static str {
+    let messages = entry.pointer("/status/messages").and_then(Value::as_array);
+    if let Some(message) = messages.and_then(|messages| messages.iter().rev().find(|message| message.get(0).and_then(Value::as_str) == Some("execution_error"))) {
+        let detail = message.pointer("/1/exception_message").and_then(Value::as_str).unwrap_or("").to_ascii_lowercase();
+        if detail.contains("expected input") && detail.contains("channels") {
+            return "gif_ai_vae_mismatch";
+        }
+        if detail.contains("out of memory") {
+            return "gif_ai_memory";
+        }
+    }
+    "gif_ai_execution"
+}
 fn uses_amd_safe_attention(path: &Path) -> bool {
     path.join("run_amd_gpu.bat").is_file()
 }
@@ -1439,6 +1473,7 @@ impl Comfy {
         let model = fs::canonicalize(&request.model_path).map_err(|_| "gif_ai_model")?;
         model_library::no_links(&model).map_err(|_| "gif_ai_model")?;
         let model_name = model.file_name().and_then(|value| value.to_str()).unwrap_or("").to_ascii_lowercase();
+        let wan_version = wan_version(&model_name);
         let root = self.config.lock().map_err(|_| "comfy_storage")?.path.clone().map(PathBuf::from).ok_or("comfy_missing")?;
         let is_gguf = model.extension().and_then(|value| value.to_str()).is_some_and(|value| value.eq_ignore_ascii_case("gguf"));
         let is_safetensors = model.extension().and_then(|value| value.to_str()).is_some_and(|value| value.eq_ignore_ascii_case("safetensors"));
@@ -1447,6 +1482,9 @@ impl Comfy {
             || !model_name.contains("wan")
         {
             return Err("gif_ai_model".into());
+        }
+        if wan_version == WanVersion::V22 && (request.width % 32 != 0 || request.height % 32 != 0) {
+            return Err("gif_ai_dimensions_22".into());
         }
         let model = relative_model_path(&model, &root.join("ComfyUI/models/diffusion_models")).ok_or("gif_ai_model")?;
         let input = root.join("ComfyUI/input");
@@ -1468,19 +1506,34 @@ impl Comfy {
             let clip = object("CLIPLoader")?;
             let vae = object("VAELoader")?;
             let sampler_info = object("KSampler")?;
-            let _wan = object("WanImageToVideo")?;
+            let latent_node = match wan_version {
+                WanVersion::V21 => "WanImageToVideo",
+                WanVersion::V22 => "Wan22ImageToVideoLatent",
+            };
+            let _wan = object(latent_node).map_err(|_| "gif_ai_workflow")?;
             let _load_image = object("LoadImage")?;
             let _encode = object("CLIPTextEncode")?;
             let _preview = object("PreviewImage")?;
             let unet_name = resolve_comfy_option(&unet, unet_node, "unet_name", &model).ok_or("gif_ai_model_unavailable")?;
             let clip_name = first_comfy_option(&clip, "CLIPLoader", "clip_name", |value| value.to_ascii_lowercase().contains("umt5")).ok_or("gif_ai_encoder")?;
             let clip_type = resolve_comfy_option(&clip, "CLIPLoader", "type", "wan").ok_or("gif_ai_workflow")?;
-            let vae_name = first_comfy_option(&vae, "VAELoader", "vae_name", |value| value.to_ascii_lowercase().contains("wan")).ok_or("gif_ai_vae")?;
+            let vae_name = first_comfy_option(&vae, "VAELoader", "vae_name", |value| wan_vae_matches(value, wan_version))
+                .ok_or(match wan_version { WanVersion::V21 => "gif_ai_vae_21", WanVersion::V22 => "gif_ai_vae_22" })?;
             let sampler = resolve_comfy_option(&sampler_info, "KSampler", "sampler_name", "euler")
                 .or_else(|| first_comfy_option(&sampler_info, "KSampler", "sampler_name", |_| true)).ok_or("gif_ai_workflow")?;
             let scheduler = resolve_comfy_option(&sampler_info, "KSampler", "scheduler", "simple")
                 .or_else(|| first_comfy_option(&sampler_info, "KSampler", "scheduler", |_| true)).ok_or("gif_ai_workflow")?;
             let loader_inputs = if is_gguf { json!({"unet_name":unet_name}) } else { json!({"unet_name":unet_name,"weight_dtype":"default"}) };
+            let (latent_inputs, positive, negative) = match wan_version {
+                WanVersion::V21 => (
+                    json!({"positive":["4",0],"negative":["5",0],"vae":["3",0],"width":request.width,"height":request.height,"length":request.frames,"batch_size":1,"start_image":["6",0]}),
+                    json!(["7",0]), json!(["7",1]),
+                ),
+                WanVersion::V22 => (
+                    json!({"vae":["3",0],"width":request.width,"height":request.height,"length":request.frames,"batch_size":1,"start_image":["6",0]}),
+                    json!(["4",0]), json!(["5",0]),
+                ),
+            };
             let workflow = json!({
                 "1":{"class_type":unet_node,"inputs":loader_inputs},
                 "2":{"class_type":"CLIPLoader","inputs":{"clip_name":clip_name,"type":clip_type,"device":"default"}},
@@ -1488,8 +1541,8 @@ impl Comfy {
                 "4":{"class_type":"CLIPTextEncode","inputs":{"text":request.prompt,"clip":["2",0]}},
                 "5":{"class_type":"CLIPTextEncode","inputs":{"text":request.negative_prompt,"clip":["2",0]}},
                 "6":{"class_type":"LoadImage","inputs":{"image":source_name}},
-                "7":{"class_type":"WanImageToVideo","inputs":{"positive":["4",0],"negative":["5",0],"vae":["3",0],"width":request.width,"height":request.height,"length":request.frames,"batch_size":1,"start_image":["6",0]}},
-                "8":{"class_type":"KSampler","inputs":{"seed":request.seed,"steps":request.steps,"cfg":request.guidance,"sampler_name":sampler,"scheduler":scheduler,"denoise":1.0,"model":["1",0],"positive":["7",0],"negative":["7",1],"latent_image":["7",2]}},
+                "7":{"class_type":latent_node,"inputs":latent_inputs},
+                "8":{"class_type":"KSampler","inputs":{"seed":request.seed,"steps":request.steps,"cfg":request.guidance,"sampler_name":sampler,"scheduler":scheduler,"denoise":1.0,"model":["1",0],"positive":positive,"negative":negative,"latent_image":["7",if wan_version == WanVersion::V21 { 2 } else { 0 }]}},
                 "9":{"class_type":"VAEDecode","inputs":{"samples":["8",0],"vae":["3",0]}},
                 "10":{"class_type":"PreviewImage","inputs":{"images":["9",0]}}
             });
@@ -1501,7 +1554,7 @@ impl Comfy {
                 if started.elapsed() > Duration::from_secs(900) { let _ = client.post(format!("{ENDPOINT}/interrupt")).send(); return Err("gif_ai_timeout".into()); }
                 let history = client.get(format!("{ENDPOINT}/history/{id}")).send().and_then(|response| response.error_for_status()).and_then(|response| response.json::<Value>()).map_err(|_| "comfy_connection")?;
                 if let Some(entry) = history.get(&id) {
-                    if entry.pointer("/status/status_str").and_then(Value::as_str) == Some("error") || entry.pointer("/status/completed").and_then(Value::as_bool) == Some(false) { return Err("gif_ai_execution".into()); }
+                    if entry.pointer("/status/status_str").and_then(Value::as_str) == Some("error") || entry.pointer("/status/completed").and_then(Value::as_bool) == Some(false) { return Err(wan_execution_error(entry).into()); }
                     if let Some(images) = entry.pointer("/outputs/10/images").and_then(Value::as_array) {
                         if images.is_empty() || images.len() > 81 { return Err("gif_ai_output".into()); }
                         let mut frames = Vec::with_capacity(images.len());
@@ -1924,6 +1977,18 @@ pub fn comfy_open_updater(state: tauri::State<'_, Arc<Comfy>>) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn wan_vae_family_matches_the_selected_model() {
+        assert_eq!(wan_version("nsfw_wan_14b_e15_q4_k.gguf"), WanVersion::V21);
+        assert_eq!(wan_version("wan2.2_ti2v_5B_fp16.safetensors"), WanVersion::V22);
+        assert!(wan_vae_matches("wan_2.1_vae.safetensors", WanVersion::V21));
+        assert!(!wan_vae_matches("wan2.2_vae.safetensors", WanVersion::V21));
+        assert!(wan_vae_matches("wan2.2_vae.safetensors", WanVersion::V22));
+        assert!(!wan_vae_matches("wan_2.1_vae.safetensors", WanVersion::V22));
+        let failure = json!({"status":{"messages":[["execution_error",{"exception_message":"expected input to have 48 channels, but got 16 channels instead"}]]}});
+        assert_eq!(wan_execution_error(&failure), "gif_ai_vae_mismatch");
+    }
 
     #[test]
     fn wan_catalog_lists_only_video_diffusion_models() {
