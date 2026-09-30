@@ -1151,6 +1151,7 @@ ZIP-Inhalt/CRC, Anleitung, EXE-Identität und Prüfsummen geprüft. Vollständig
 - Grenze: Ein GPU-Wan-Lauf mit lokalem ComfyUI wird hier nicht simuliert; die tatsächliche Inferenz bleibt von der Installation und der verfügbaren Hardware abhängig.
 # Wan-GIF-VAE-Fix 0.36.33 — gezielte Prüfung (2026-09-30)
 
+- Öffentlicher Release-Abgleich: Installer und portable ZIP vollständig heruntergeladen und per SHA-256 geprüft; alle fünf Assets und die Ed25519-Update-Signatur stimmen (`.artifacts/github-release-verification-0.36.33.json`).
 - Betroffenes lokales ComfyUI-Protokoll gelesen: Sampling 20/20 abgeschlossen; Dekodierung scheiterte mit „expected ... 48 channels, but got 16“. Beide VAE-Dateien und der `Wan22ImageToVideoLatent`-Node sind in der laufenden lokalen Engine vorhanden.
 - `scripts/desktop.ps1 check`: bestanden nach der versionsgebundenen VAE- und Latent-Node-Auswahl.
 - Rusttest `wan_vae_family_matches_the_selected_model`: bestanden für das gemeldete unversionierte GGUF, Wan 2.2, beide VAE-Namen und die konkrete Kanalfehler-Erkennung.

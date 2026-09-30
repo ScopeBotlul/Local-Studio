@@ -972,6 +972,7 @@ Als Nächstes stehen die noch offenen M0-Punkte und anschließend M1 gemäß `PL
 - Kein Modell, Prompt oder Medium wird für diese Funktionen an einen fremden Dienst übertragen. Der KI-Pfad setzt eine lokal laufende ComfyUI-Engine, ein Wan-Modell sowie passende Encoder- und VAE-Dateien voraus.
 # Version 0.36.33 — Wan-VAE-Kompatibilität (2026-09-30)
 
+- Version 0.36.33 ist unter https://github.com/ScopeBotlul/Local-Studio/releases/tag/v0.36.33 veröffentlicht; Installer, portable ZIP, Prüfsummen und signierte Update-Metadaten wurden öffentlich verifiziert.
 - Das ComfyUI-Protokoll des gemeldeten Auftrags zeigt einen echten Architekturfehler nach 20 Sampling-Schritten: Das Wan-2.1-Modell lieferte ein Latent mit 16 Kanälen, Local Studio hatte jedoch die zuerst gelistete Wan-2.2-VAE mit 48 Kanälen gewählt. Beide VAEs sind auf dem betroffenen PC installiert; die automatische Auswahl war falsch.
 - Der GIF-Adapter wählt VAEs jetzt passend zur erkannten Wan-Version. Wan-2.1-Modelle verwenden `WanImageToVideo` und eine explizite Wan-2.1-VAE; Wan-2.2-Modelle verwenden die passende VAE und `Wan22ImageToVideoLatent`. Fehlt die passende VAE, stoppt der Auftrag vor dem Sampling mit einer konkreten Meldung. ComfyUI-Ausführungsfehler zu Kanalzahl und Grafikspeicher werden verständlich unterschieden.
 - Bei unversionierten Wan-Dateinamen bleibt Wan 2.1 die konservative Zuordnung; das gemeldete GGUF-Modell wird von ComfyUI als WAN21 geladen. Für abweichend benannte Wan-2.2-Dateien kann die automatische Zuordnung noch nicht garantiert werden.
