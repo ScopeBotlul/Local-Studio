@@ -1,3 +1,7 @@
+# Release 0.36.31 published (2026-09-30)
+
+- Version 0.36.31 is public at https://github.com/ScopeBotlul/Local-Studio/releases/tag/v0.36.31. It contains the local Wan image-to-GIF path with Safetensors and GGUF support.
+
 # GIF Studio - Wan image-to-GIF path (2026-09-30)
 
 - GIF Studio now has a real local Wan image-to-video path: it copies one selected start image into ComfyUI's input area, validates the exact ComfyUI nodes and installed model names through the local API, asks ComfyUI to decode an image sequence, and encodes the returned frames into a local GIF in the selected gallery folder.

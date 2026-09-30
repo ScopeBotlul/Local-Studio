@@ -1,3 +1,7 @@
+# Release 0.36.31 publication verification (2026-09-30)
+
+- Public installer and portable downloads passed size and SHA-256 verification. update.json and update.sig passed Ed25519 verification against the embedded public key; all five GitHub assets match the local release files. Evidence: .artifacts/github-release-verification-0.36.31.json.
+
 # GIF Studio - targeted verification (2026-09-30)
 
 - `npm.cmd run build`: passed. TypeScript and Vite compile the GIF Studio controls and typed IPC call.
