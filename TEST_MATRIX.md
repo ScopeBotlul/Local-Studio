@@ -1160,6 +1160,7 @@ ZIP-Inhalt/CRC, Anleitung, EXE-Identität und Prüfsummen geprüft. Vollständig
 
 # GIF-Bestätigung, promptloses I2V und Rechtsklick-Löschen 0.36.34 — gezielte Prüfung (2026-09-30)
 
+- Öffentlicher Release-Abgleich: Installer und portable ZIP vollständig von GitHub zurückgeladen; alle fünf Asset-Digests und die Ed25519-Signatur stimmen (`.artifacts/github-release-verification-0.36.34.json`).
 - `npm.cmd run build`: bestanden; GIF-Arbeitsfläche, ungespeicherte Ergebnisliste, Beenden-Dialog und beide Galerie-Kontextmenüs kompilieren.
 - Rusttest `gif_stays_temporary_until_saved_and_uses_unique_ids`: bestanden. Zwei Ergebnisse bleiben außerhalb der Galerie, erhalten verschiedene UUIDs, werden mit verschiedenen Namen gespeichert und danach aus dem temporären Bestand entfernt.
 - Rusttests `wan_`: 3/3 bestanden. I2V/TI2V sowie das gemeldete unmarkierte Wan-GGUF bleiben zugelassen; eindeutig benannte T2V-Dateien werden nicht im Bild-zu-GIF-Katalog angeboten.

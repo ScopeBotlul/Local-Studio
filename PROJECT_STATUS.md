@@ -979,6 +979,7 @@ Als Nächstes stehen die noch offenen M0-Punkte und anschließend M1 gemäß `PL
 
 # Version 0.36.34 — bestätigter GIF-Export und Galerie-Kontextmenü (2026-09-30)
 
+- Version 0.36.34 ist unter https://github.com/ScopeBotlul/Local-Studio/releases/tag/v0.36.34 veröffentlicht; Installer, portable ZIP, Prüfsummen und signierte Update-Metadaten wurden öffentlich verifiziert.
 - Erzeugte GIFs bleiben zunächst im lokalen temporären Arbeitsstand. Erst „In Galerie speichern“ übernimmt das gewählte Ergebnis in den aktiven Galerieordner. Beim Beenden werden vorhandene GIF-Ergebnisse zusammen mit ungespeicherten Bildern zum Speichern, Behalten oder Verwerfen angeboten.
 - Gespeicherte GIFs heißen `Local-Studio-<UUID>.gif`. Wiederholte Generierungen können dadurch weder an einem doppelten Benutzernamen scheitern noch vorhandene Dateien überschreiben.
 - Bild-zu-GIF akzeptiert jetzt einen leeren Prompt. Dafür bleibt ein Startbild Pflicht; die Auswahl führt kompatible Wan-I2V-/TI2V-Modelle und schließt eindeutig als T2V benannte Dateien aus. Unmarkierte, tatsächlich als I2V verwendete Wan-GGUFs bleiben kompatibel.
