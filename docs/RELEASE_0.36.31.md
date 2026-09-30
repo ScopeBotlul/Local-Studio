@@ -1,6 +1,6 @@
 # Local Studio 0.36.31
 
-- GIF Studio can create a GIF from local image frames or generate frames locally with a selected Wan image-to-video model through ComfyUI.
+- GIF Studio can create a GIF from local image frames or generate frames locally with a selected Wan image-to-video model (Safetensors or GGUF) through ComfyUI.
 - The Wan path accepts a start image, movement prompt or tags, negative prompt, output dimensions and frame count. It validates the local ComfyUI nodes and exact installed component names before starting.
 - Temporary imports and decoded frames are removed after the GIF is stored in the selected gallery folder.
 

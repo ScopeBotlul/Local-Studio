@@ -11,7 +11,7 @@ export default function GifStudio({de}:{de:boolean}){
  const pick=async(title:string,fileTypes:string[],multi=false)=>open({title,multiple:multi,filters:[{name:de?'Datei':'File',extensions:fileTypes}]});
  const classic=async()=>{const value=await pick(de?'Bilder ausw�hlen':'Choose images',extensions,true);if(Array.isArray(value))setPaths(value)};
  const selectSource=async()=>{const value=await pick(de?'Startbild ausw�hlen':'Choose start image',extensions);if(typeof value==='string')setSource(value)};
- const selectModel=async()=>{const value=await pick(de?'Wan-Modell ausw�hlen':'Choose Wan model',['safetensors']);if(typeof value==='string')setModel(value)};
+ const selectModel=async()=>{const value=await pick(de?'Wan-Modell ausw�hlen':'Choose Wan model (.safetensors / .gguf)',['safetensors','gguf']);if(typeof value==='string')setModel(value)};
  const create=async()=>{setBusy(true);setError('');try{setResult(await invoke<string>('gif_create',{paths,folder,name:'animation',delayMs:120,looped:true}))}catch(e){setError(String(e))}finally{setBusy(false)}};
  const createAi=async()=>{setBusy(true);setError('');try{setResult(await invoke<string>('gif_ai_create',{request:{sourcePath:source,modelPath:model,prompt,negativePrompt:negative,width,height,frames,steps:20,guidance:6,seed:Math.floor(Math.random()*4294967295),folder,name:'animation',delayMs:120,looped:true}}))}catch(e){setError(String(e))}finally{setBusy(false)}};
  const aiReady=source&&model&&prompt.trim()&&width%16===0&&height%16===0&&frames>=5&&(frames-1)%4===0;

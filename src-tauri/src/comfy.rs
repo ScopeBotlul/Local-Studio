@@ -1392,8 +1392,10 @@ impl Comfy {
         model_library::no_links(&model).map_err(|_| "gif_ai_model")?;
         let model_name = model.file_name().and_then(|value| value.to_str()).unwrap_or("").to_ascii_lowercase();
         let root = self.config.lock().map_err(|_| "comfy_storage")?.path.clone().map(PathBuf::from).ok_or("comfy_missing")?;
+        let is_gguf = model.extension().and_then(|value| value.to_str()).is_some_and(|value| value.eq_ignore_ascii_case("gguf"));
+        let is_safetensors = model.extension().and_then(|value| value.to_str()).is_some_and(|value| value.eq_ignore_ascii_case("safetensors"));
         if !valid_root(&root)
-            || model.extension().and_then(|value| value.to_str()).map(|value| value.eq_ignore_ascii_case("safetensors")) != Some(true)
+            || !(is_safetensors || is_gguf)
             || !model_name.contains("wan")
         {
             return Err("gif_ai_model".into());
@@ -1413,7 +1415,8 @@ impl Comfy {
             let object = |node: &str| client.get(format!("{ENDPOINT}/object_info/{node}"))
                 .send().and_then(|response| response.error_for_status()).and_then(|response| response.json::<Value>())
                 .map_err(|_| "comfy_connection");
-            let unet = object("UNETLoader")?;
+            let unet_node = if is_gguf { "UnetLoaderGGUF" } else { "UNETLoader" };
+            let unet = object(unet_node)?;
             let clip = object("CLIPLoader")?;
             let vae = object("VAELoader")?;
             let sampler_info = object("KSampler")?;
@@ -1421,7 +1424,7 @@ impl Comfy {
             let _load_image = object("LoadImage")?;
             let _encode = object("CLIPTextEncode")?;
             let _preview = object("PreviewImage")?;
-            let unet_name = resolve_comfy_option(&unet, "UNETLoader", "unet_name", &model).ok_or("gif_ai_model_unavailable")?;
+            let unet_name = resolve_comfy_option(&unet, unet_node, "unet_name", &model).ok_or("gif_ai_model_unavailable")?;
             let clip_name = first_comfy_option(&clip, "CLIPLoader", "clip_name", |value| value.to_ascii_lowercase().contains("umt5")).ok_or("gif_ai_encoder")?;
             let clip_type = resolve_comfy_option(&clip, "CLIPLoader", "type", "wan").ok_or("gif_ai_workflow")?;
             let vae_name = first_comfy_option(&vae, "VAELoader", "vae_name", |value| value.to_ascii_lowercase().contains("wan")).ok_or("gif_ai_vae")?;
@@ -1429,8 +1432,9 @@ impl Comfy {
                 .or_else(|| first_comfy_option(&sampler_info, "KSampler", "sampler_name", |_| true)).ok_or("gif_ai_workflow")?;
             let scheduler = resolve_comfy_option(&sampler_info, "KSampler", "scheduler", "simple")
                 .or_else(|| first_comfy_option(&sampler_info, "KSampler", "scheduler", |_| true)).ok_or("gif_ai_workflow")?;
+            let loader_inputs = if is_gguf { json!({"unet_name":unet_name}) } else { json!({"unet_name":unet_name,"weight_dtype":"default"}) };
             let workflow = json!({
-                "1":{"class_type":"UNETLoader","inputs":{"unet_name":unet_name,"weight_dtype":"default"}},
+                "1":{"class_type":unet_node,"inputs":loader_inputs},
                 "2":{"class_type":"CLIPLoader","inputs":{"clip_name":clip_name,"type":clip_type,"device":"default"}},
                 "3":{"class_type":"VAELoader","inputs":{"vae_name":vae_name}},
                 "4":{"class_type":"CLIPTextEncode","inputs":{"text":request.prompt,"clip":["2",0]}},
