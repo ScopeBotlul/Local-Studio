@@ -70,6 +70,22 @@ pub enum ImageBackend {
     Vulkan,
     Comfy,
 }
+
+pub(crate) struct NativeVideoRequest {
+    pub source_path: String,
+    pub model_path: String,
+    pub encoder_path: String,
+    pub vae_path: String,
+    pub prompt: String,
+    pub negative_prompt: String,
+    pub width: u32,
+    pub height: u32,
+    pub frames: u32,
+    pub steps: u32,
+    pub guidance: f32,
+    pub seed: u32,
+    pub fps: u32,
+}
 impl ImageBackend {
     fn is_auto(&self) -> bool {
         *self == Self::Auto
@@ -517,6 +533,34 @@ fn png_bytes(path: &Path, width: u32, height: u32) -> Result<Vec<u8>> {
     Ok(bytes)
 }
 
+fn native_video_input(path: &str, extensions: &[&str], error: &'static str) -> Result<PathBuf> {
+    let requested = Path::new(path);
+    model_library::no_links(requested).map_err(|_| error)?;
+    let canonical = fs::canonicalize(requested).map_err(|_| error)?;
+    model_library::no_links(&canonical).map_err(|_| error)?;
+    let metadata = fs::metadata(&canonical).map_err(|_| error)?;
+    let extension = canonical.extension().and_then(|value| value.to_str()).unwrap_or("");
+    if !metadata.is_file() || !extensions.iter().any(|allowed| extension.eq_ignore_ascii_case(allowed)) {
+        return Err(error.into());
+    }
+    Ok(canonical)
+}
+
+fn native_video_frames(directory: &Path, expected: u32) -> Result<Vec<String>> {
+    let mut frames = Vec::new();
+    for index in 0..expected {
+        let path = directory.join(format!("frame_{index:03}.png"));
+        if !path.is_file() {
+            return Err("gif_vulkan_output".into());
+        }
+        frames.push(path.to_string_lossy().into_owned());
+    }
+    if directory.join(format!("frame_{expected:03}.png")).exists() {
+        return Err("gif_vulkan_output".into());
+    }
+    Ok(frames)
+}
+
 struct StagedLoras {
     directory: PathBuf,
     files: Vec<PathBuf>,
@@ -879,6 +923,176 @@ impl ImageEngine {
             probe.missing.push("comfy_qwen_lora".into());
         }
         probe
+    }
+
+    pub(crate) fn generate_vulkan_video(
+        &self,
+        request: NativeVideoRequest,
+        directory: &Path,
+    ) -> Result<Vec<String>> {
+        if request.prompt.len() > 8_000
+            || request.negative_prompt.len() > 8_000
+            || !(128..=2048).contains(&request.width)
+            || !(128..=2048).contains(&request.height)
+            || request.width % 16 != 0
+            || request.height % 16 != 0
+            || !(5..=81).contains(&request.frames)
+            || (request.frames - 1) % 4 != 0
+            || !(1..=50).contains(&request.steps)
+            || !request.guidance.is_finite()
+            || !(0.0..=20.0).contains(&request.guidance)
+            || !(1..=50).contains(&request.fps)
+        {
+            return Err("gif_vulkan_parameters".into());
+        }
+        let source = native_video_input(
+            &request.source_path,
+            &["png", "jpg", "jpeg", "webp", "bmp"],
+            "gif_ai_source",
+        )?;
+        if fs::metadata(&source).map_err(|_| "gif_ai_source")?.len() > 32 * 1024 * 1024 {
+            return Err("gif_ai_source".into());
+        }
+        let model = native_video_input(
+            &request.model_path,
+            &["gguf", "safetensors"],
+            "gif_vulkan_model",
+        )?;
+        let encoder = native_video_input(
+            &request.encoder_path,
+            &["gguf", "safetensors"],
+            "gif_vulkan_encoder",
+        )?;
+        let vae = native_video_input(
+            &request.vae_path,
+            &["gguf", "safetensors"],
+            "gif_vulkan_vae",
+        )?;
+        let model_name = model.file_name().and_then(|name| name.to_str()).unwrap_or("").to_ascii_lowercase();
+        if model_name.contains("_t2v_")
+            || model_name.contains("-t2v-")
+            || model_name.contains("wan2.1_t2v")
+            || model_name.contains("wan2.2_t2v")
+        {
+            return Err("gif_vulkan_model".into());
+        }
+        model_library::no_links(directory).map_err(|_| "gif_storage")?;
+        let directory = fs::canonicalize(directory).map_err(|_| "gif_storage")?;
+        let _directory_guards = crate::gallery::directory_guards(&directory)?;
+        let _runtime_locks = runtime_files(&self.runtime)?;
+        let _input_locks = [
+            read_locked(&source).map_err(|_| "gif_ai_source")?,
+            read_locked(&model).map_err(|_| "gif_vulkan_model")?,
+            read_locked(&encoder).map_err(|_| "gif_vulkan_encoder")?,
+            read_locked(&vae).map_err(|_| "gif_vulkan_vae")?,
+        ];
+        let hardware = crate::hardware::discover();
+        let mut vendors = Vec::new();
+        for vendor in ["NVIDIA", "AMD", "Intel"] {
+            if hardware.gpus.iter().any(|gpu| gpu.vendor == vendor) {
+                vendors.push(vendor);
+            }
+        }
+        let device = devices(&self.runtime, &vendors)?;
+        let backend = device.split('\t').next().ok_or("image_gpu")?;
+        let backend_assignment = format!("diffusion={backend},vae=cpu");
+        let cancel = AtomicBool::new(false);
+        let task_id = uuid::Uuid::new_v4().to_string();
+        let _admission = crate::resources::shared()
+            .acquire_unmeasured(&task_id, "gif", true, &cancel)
+            .map_err(|error| if error == "resource_cancelled" { "gif_vulkan_cancelled".into() } else { error })?;
+        let prompt = directory.join("prompt.txt");
+        let negative = directory.join("negative.txt");
+        fs::write(&prompt, request.prompt).map_err(|_| "gif_storage")?;
+        fs::write(&negative, request.negative_prompt).map_err(|_| "gif_storage")?;
+        let output = directory.join("frame_%03d.png");
+        let log_path = directory.join("runtime.log");
+        let log = File::options().write(true).create_new(true).open(&log_path).map_err(|_| "gif_storage")?;
+        let stderr = log.try_clone().map_err(|_| "gif_storage")?;
+        let mut cmd = command(&self.runtime);
+        cmd.args(["-M", "vid_gen", "--diffusion-model"])
+            .arg(&model)
+            .arg("--t5xxl")
+            .arg(&encoder)
+            .arg("--vae")
+            .arg(&vae)
+            .arg("--init-img")
+            .arg(&source)
+            .arg("--prompt-file")
+            .arg(&prompt)
+            .arg("--negative-prompt-file")
+            .arg(&negative)
+            .args([
+                "-W",
+                &request.width.to_string(),
+                "-H",
+                &request.height.to_string(),
+                "--steps",
+                &request.steps.to_string(),
+                "--cfg-scale",
+                &request.guidance.to_string(),
+                "--seed",
+                &request.seed.to_string(),
+                "--video-frames",
+                &request.frames.to_string(),
+                "--fps",
+                &request.fps.to_string(),
+                "--sampling-method",
+                "euler",
+                "--rng",
+                "cpu",
+                "--backend",
+                &backend_assignment,
+                "--auto-fit",
+                "on",
+                "--diffusion-fa",
+                "--offload-to-cpu",
+                "--vae-tiling",
+                "--temporal-tiling",
+                "--vae-format",
+                "wan",
+                "-o",
+            ])
+            .arg(&output)
+            .stdout(Stdio::from(log))
+            .stderr(Stdio::from(stderr));
+        let mut child = cmd.spawn().map_err(|_| "image_runtime_start")?;
+        let _group = match ProcessGroup::attach(&child) {
+            Ok(group) => group,
+            Err(error) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err(error);
+            }
+        };
+        let started = Instant::now();
+        let status = loop {
+            if let Some(status) = child.try_wait().map_err(|_| "image_runtime_start")? {
+                break status;
+            }
+            if started.elapsed() > Duration::from_secs(1800) {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err("gif_vulkan_timeout".into());
+            }
+            std::thread::sleep(Duration::from_millis(100));
+        };
+        let frames = native_video_frames(&directory, request.frames);
+        let mut log_text = String::new();
+        let _ = File::open(log_path).and_then(|file| file.take(4 * 1024 * 1024).read_to_string(&mut log_text));
+        let lower = log_text.to_ascii_lowercase();
+        if (lower.contains("wan2.x-t2v-") || lower.contains("wan2.1-t2v-") || lower.contains("wan2.2-t2v-"))
+            && !lower.contains("ti2v")
+        {
+            return Err("gif_vulkan_model".into());
+        }
+        if status.success() && frames.is_ok() {
+            return frames;
+        }
+        if lower.contains("out of memory") || lower.contains("cannot make enough memory available") || lower.contains("workspace capacity") {
+            return Err("gif_vulkan_memory".into());
+        }
+        frames.map_err(|_| "gif_vulkan_execution".into())
     }
     fn update(&self, id: &str, save: bool, change: impl FnOnce(&mut ImageJob)) -> Result<()> {
         let mut state = self.state.lock().map_err(|_| "image_storage")?;

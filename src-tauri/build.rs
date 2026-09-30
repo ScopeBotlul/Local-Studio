@@ -16,6 +16,7 @@ fn main() {
             "comfy_open_updater",
             "gif_create",
             "gif_ai_create",
+            "gif_vulkan_create",
             "gif_pending_list",
             "gif_pending_preview",
             "gif_pending_save",

@@ -1,4 +1,10 @@
-use crate::{comfy::{Comfy, WanModel}, core::Core, gallery, model_library};
+use crate::{
+    comfy::{Comfy, WanModel},
+    core::Core,
+    gallery,
+    image_engine::{ImageEngine, NativeVideoRequest},
+    model_library,
+};
 use base64::Engine;
 use image::{
     codecs::gif::{GifEncoder, Repeat},
@@ -299,6 +305,25 @@ pub struct GifAiRequest {
     pub looped: bool,
 }
 
+#[derive(Clone, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct GifVulkanRequest {
+    pub source_path: String,
+    pub model_path: String,
+    pub encoder_path: String,
+    pub vae_path: String,
+    pub prompt: String,
+    pub negative_prompt: String,
+    pub width: u32,
+    pub height: u32,
+    pub frames: u32,
+    pub steps: u32,
+    pub guidance: f32,
+    pub seed: u32,
+    pub delay_ms: u32,
+    pub looped: bool,
+}
+
 #[tauri::command]
 pub async fn gif_ai_create(
     request: GifAiRequest,
@@ -319,6 +344,77 @@ pub async fn gif_ai_create(
         }).await.map_err(|_| "gif_storage");
         for frame in temporary { let _ = fs::remove_file(frame); }
         output?
+    })
+    .await;
+    crate::privacy::finish(epoch, result)
+}
+
+#[tauri::command]
+pub async fn gif_vulkan_create(
+    request: GifVulkanRequest,
+    core: State<'_, Arc<Core>>,
+    images: State<'_, Arc<ImageEngine>>,
+) -> Result<GifPending> {
+    let epoch = crate::privacy::epoch();
+    let result = (async {
+        if !(20..=10_000).contains(&request.delay_ms) {
+            return Err("gif_parameters".into());
+        }
+        let temporary = PathBuf::from(core.storage_paths()?.temporary);
+        let pending = pending_root(&temporary)?;
+        let jobs_root = temporary.join("gif-vulkan-jobs");
+        fs::create_dir_all(&jobs_root).map_err(|_| "gif_storage")?;
+        model_library::no_links(&jobs_root).map_err(|_| "gif_storage")?;
+        let jobs_root = fs::canonicalize(jobs_root).map_err(|_| "gif_storage")?;
+        let directory = jobs_root.join(uuid::Uuid::new_v4().to_string());
+        fs::create_dir(&directory).map_err(|_| "gif_storage")?;
+        let directory = fs::canonicalize(directory).map_err(|_| "gif_storage")?;
+        if !directory.starts_with(&jobs_root) || directory == jobs_root {
+            return Err("gif_storage".into());
+        }
+        let engine = images.inner().clone();
+        let delay_ms = request.delay_ms;
+        let looped = request.looped;
+        let generation = NativeVideoRequest {
+            source_path: request.source_path,
+            model_path: request.model_path,
+            encoder_path: request.encoder_path,
+            vae_path: request.vae_path,
+            prompt: request.prompt,
+            negative_prompt: request.negative_prompt,
+            width: request.width,
+            height: request.height,
+            frames: request.frames,
+            steps: request.steps,
+            guidance: request.guidance,
+            seed: request.seed,
+            fps: (1_000 / delay_ms.max(20)).clamp(1, 50),
+        };
+        let work = directory.clone();
+        let frames = tauri::async_runtime::spawn_blocking(move || {
+            engine.generate_vulkan_video(generation, &work)
+        })
+        .await
+        .map_err(|_| "gif_vulkan_execution".to_string());
+        let output = match frames {
+            Ok(Ok(frames)) => {
+                let root = pending.clone();
+                match tauri::async_runtime::spawn_blocking(move || {
+                    create_pending(frames, delay_ms, looped, root)
+                })
+                .await
+                .map_err(|_| "gif_storage".to_string())
+                {
+                    Ok(result) => result,
+                    Err(error) => Err(error),
+                }
+            }
+            Ok(Err(error)) | Err(error) => Err(error),
+        };
+        if directory.starts_with(&jobs_root) && directory != jobs_root {
+            let _ = fs::remove_dir_all(&directory);
+        }
+        output
     })
     .await;
     crate::privacy::finish(epoch, result)

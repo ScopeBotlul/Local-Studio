@@ -1,6 +1,22 @@
 use super::*;
 
 #[test]
+fn native_video_inputs_and_frame_sequences_are_strictly_bounded() {
+    let directory = tempfile::tempdir().unwrap();
+    let model = directory.path().join("wan_i2v.gguf");
+    fs::write(&model, b"weights").unwrap();
+    assert_eq!(native_video_input(model.to_str().unwrap(), &["gguf"], "bad").unwrap(), fs::canonicalize(&model).unwrap());
+    assert_eq!(native_video_input(model.to_str().unwrap(), &["safetensors"], "bad"), Err("bad".into()));
+    for index in 0..5 {
+        fs::write(directory.path().join(format!("frame_{index:03}.png")), b"png").unwrap();
+    }
+    let frames = native_video_frames(directory.path(), 5).unwrap();
+    assert_eq!(frames.len(), 5);
+    fs::write(directory.path().join("frame_005.png"), b"unexpected").unwrap();
+    assert_eq!(native_video_frames(directory.path(), 5), Err("gif_vulkan_output".into()));
+}
+
+#[test]
 fn restored_history_keeps_creation_order_after_updates_and_recovers_running_jobs() {
     let directory = tempfile::tempdir().unwrap();
     let create =

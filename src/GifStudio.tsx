@@ -11,6 +11,7 @@ import './image-studio.css';
 import './gif-studio.css';
 
 type Mode = 'ai' | 'frames';
+type AiEngine = 'comfy' | 'vulkan';
 type WanModel = {path:string; name:string; bytes:number};
 type GifPending = {id:string; bytes:number; createdAt:number};
 type Preview = {url:string; path:string; label:string; width?:number; height?:number};
@@ -18,6 +19,7 @@ type PanelWidths = {left:number; right:number};
 const defaultWidths:PanelWidths = {left:410,right:300};
 const imageExtensions = ['png','jpg','jpeg','webp','bmp'];
 function fileName(path:string){return displayPath(path).split(/[\\/]/).pop() ?? path;}
+function savedPath(key:string){try{return localStorage.getItem(key)??'';}catch{return '';}}
 function savedWidths():PanelWidths {
   try {
     const value=JSON.parse(localStorage.getItem('gif-studio-panel-widths')??'{}');
@@ -45,6 +47,18 @@ function message(error:unknown,de:boolean){
     gif_ai_memory:['ComfyUI hat beim Wan-Auftrag nicht genügend freien Grafikspeicher. Versuche weniger Frames oder eine kleinere Auflösung.','ComfyUI ran out of GPU memory. Try fewer frames or a smaller resolution.'],
     gif_ai_execution:['Die Wan-Generierung ist in ComfyUI fehlgeschlagen. Prüfe das ComfyUI-Protokoll.','Wan generation failed in ComfyUI. Check the ComfyUI log.'],
     gif_ai_timeout:['Die Wan-Generierung hat das Zeitlimit erreicht.','Wan generation timed out.'],
+    gif_vulkan_memory:['Der Vulkan-Auftrag hat nicht genug freien Grafik- oder Arbeitsspeicher. Versuche weniger Frames, eine kleinere Auflösung oder ein stärker quantisiertes Modell.','The Vulkan job ran out of graphics or system memory. Try fewer frames, a smaller resolution, or a more heavily quantized model.'],
+    gif_vulkan_parameters:['Auflösung, Framezahl oder Vulkan-Parameter sind ungültig.','The resolution, frame count, or Vulkan parameters are invalid.'],
+    gif_vulkan_model:['Das gewählte Modell ist kein erreichbares einzelnes Wan-I2V-/TI2V-Diffusionsmodell. Reine T2V-Modelle können kein Startbild übernehmen.','The selected model is not an accessible single-file Wan I2V/TI2V diffusion model. T2V-only models cannot use a start image.'],
+    gif_vulkan_encoder:['Wähle einen erreichbaren UMT5-Textencoder als Safetensors- oder GGUF-Datei.','Choose an accessible UMT5 text encoder in Safetensors or GGUF format.'],
+    gif_vulkan_vae:['Wähle die zur Wan-Version passende VAE-Datei.','Choose the VAE file matching the Wan version.'],
+    gif_vulkan_output:['Die Vulkan-Runtime hat keine vollständige Framefolge erzeugt.','The Vulkan runtime did not produce a complete frame sequence.'],
+    gif_vulkan_timeout:['Die Vulkan-Generierung wurde nach 30 Minuten beendet.','Vulkan generation stopped after 30 minutes.'],
+    gif_vulkan_execution:['Die lokale Vulkan-Runtime konnte das Wan-Modell nicht ausführen. Prüfe Modellfamilie, Textencoder, VAE und freien Speicher.','The local Vulkan runtime could not run the Wan model. Check the model family, text encoder, VAE, and available memory.'],
+    image_runtime_missing:['Die mitgelieferte Vulkan-Runtime fehlt oder ist unvollständig. Installiere Local Studio erneut.','The bundled Vulkan runtime is missing or incomplete. Reinstall Local Studio.'],
+    image_runtime_invalid:['Die Vulkan-Runtime wurde verändert und aus Sicherheitsgründen abgelehnt. Installiere Local Studio erneut.','The Vulkan runtime was modified and was rejected for safety. Reinstall Local Studio.'],
+    image_gpu:['Kein unterstütztes Vulkan-Gerät gefunden. Aktualisiere den Grafiktreiber.','No supported Vulkan device was found. Update the graphics driver.'],
+    resource_timeout:['Der Vulkan-Auftrag konnte innerhalb von 30 Minuten keinen freien Ausführungsplatz erhalten.','The Vulkan job could not get an execution slot within 30 minutes.'],
     gif_ai_source:['Das Startbild kann nicht gelesen werden.','The start image cannot be read.'],
     gif_source:['Dieses Bild kann nicht als Vorschau gelesen werden.','This image cannot be loaded as a preview.'],
     gif_dimensions:['Das GIF überschreitet die erlaubte Ausgabegröße.','The GIF exceeds the allowed output size.'],
@@ -59,6 +73,7 @@ function message(error:unknown,de:boolean){
 export default function GifStudio({de}:{de:boolean}){
   const language:Language=de?'de':'en';
   const [mode,setMode]=useState<Mode>('ai');
+  const [aiEngine,setAiEngine]=useState<AiEngine>(()=>savedPath('gif-ai-engine')==='vulkan'?'vulkan':'comfy');
   const [panelWidths,setPanelWidths]=useState<PanelWidths>(savedWidths);
   const panelDrag=useRef<{side:keyof PanelWidths;startX:number;startWidth:number}|null>(null);
   const [galleryFolder,setGalleryFolder]=useState(()=>{try{return sessionStorage.getItem('studio-gallery-folder')??'';}catch{return '';}});
@@ -67,6 +82,9 @@ export default function GifStudio({de}:{de:boolean}){
   const [models,setModels]=useState<WanModel[]>([]);
   const [modelsBusy,setModelsBusy]=useState(true);
   const [model,setModel]=useState('');
+  const [vulkanModel,setVulkanModel]=useState(()=>savedPath('gif-vulkan-model'));
+  const [vulkanEncoder,setVulkanEncoder]=useState(()=>savedPath('gif-vulkan-encoder'));
+  const [vulkanVae,setVulkanVae]=useState(()=>savedPath('gif-vulkan-vae'));
   const [source,setSource]=useState('');
   const [frames,setFrames]=useState<string[]>([]);
   const [prompt,setPrompt]=useState('');
@@ -86,6 +104,7 @@ export default function GifStudio({de}:{de:boolean}){
     finally {setModelsBusy(false);}
   }
   useEffect(()=>{void refreshModels();},[]);
+  useEffect(()=>{try{localStorage.setItem('gif-ai-engine',aiEngine);}catch{/* local preference */}},[aiEngine]);
   useEffect(()=>{let live=true;void invoke<GifPending[]>('gif_pending_list').then(items=>{if(live){setPending(items);if(items[0])void showPending(items[0].id);}}).catch(e=>{if(live)setError(message(e,de));});return()=>{live=false;};},[]);
   useEffect(()=>{try{localStorage.setItem('gif-studio-panel-widths',JSON.stringify(panelWidths));}catch{/* local preference */}},[panelWidths]);
   function onFolder(folder:string){setGalleryFolder(folder);setSelectedPath('');try{sessionStorage.setItem('studio-gallery-folder',folder);}catch{/* session only */}}
@@ -107,6 +126,14 @@ export default function GifStudio({de}:{de:boolean}){
   async function chooseModel(){
     const picked=await open({multiple:false,title:de?'Wan-Modell wählen':'Choose Wan model',filters:[{name:'Wan · Safetensors / GGUF',extensions:['safetensors','gguf']}]});
     if(typeof picked==='string')setModel(picked);
+  }
+  async function chooseVulkanPart(kind:'model'|'encoder'|'vae'){
+    const labels={model:de?'Wan-I2V-/TI2V-Modell wählen':'Choose Wan I2V/TI2V model',encoder:de?'UMT5-Textencoder wählen':'Choose UMT5 text encoder',vae:de?'Wan-VAE wählen':'Choose Wan VAE'};
+    const picked=await open({multiple:false,title:labels[kind],filters:[{name:'Safetensors / GGUF',extensions:['safetensors','gguf']} ]});
+    if(typeof picked!=='string')return;
+    if(kind==='model'){setVulkanModel(picked);try{localStorage.setItem('gif-vulkan-model',picked);}catch{/* local only */}}
+    if(kind==='encoder'){setVulkanEncoder(picked);try{localStorage.setItem('gif-vulkan-encoder',picked);}catch{/* local only */}}
+    if(kind==='vae'){setVulkanVae(picked);try{localStorage.setItem('gif-vulkan-vae',picked);}catch{/* local only */}}
   }
   async function selectGallery(entry:GalleryEntry,root:string){
     if(entry.kind!=='image')return;
@@ -134,8 +161,11 @@ export default function GifStudio({de}:{de:boolean}){
     if(busy)return;
     setBusy(true);setError('');
     try {
+      const seed=crypto.getRandomValues(new Uint32Array(1))[0];
       const result=mode==='ai'
-        ? await invoke<GifPending>('gif_ai_create',{request:{sourcePath:source,modelPath:model,prompt,negativePrompt,width,height,frames:length,steps,guidance,seed:crypto.getRandomValues(new Uint32Array(1))[0],delayMs:delay,looped}})
+        ? aiEngine==='vulkan'
+          ? await invoke<GifPending>('gif_vulkan_create',{request:{sourcePath:source,modelPath:vulkanModel,encoderPath:vulkanEncoder,vaePath:vulkanVae,prompt,negativePrompt,width,height,frames:length,steps,guidance,seed,delayMs:delay,looped}})
+          : await invoke<GifPending>('gif_ai_create',{request:{sourcePath:source,modelPath:model,prompt,negativePrompt,width,height,frames:length,steps,guidance,seed,delayMs:delay,looped}})
         : await invoke<GifPending>('gif_create',{paths:frames,delayMs:delay,looped});
       setPending(current=>[result,...current]);
       await showPending(result.id);
@@ -175,7 +205,7 @@ export default function GifStudio({de}:{de:boolean}){
     setPanelWidths(current=>({...current,[drag.side]:Math.max(drag.side==='left'?320:250,Math.min(drag.side==='left'?560:440,value))}));
   }
   const canGenerate=mode==='ai'
-    ? !!source&&!!model&&Number.isInteger(width)&&Number.isInteger(height)&&width>=128&&height>=128&&width<=2048&&height<=2048&&width%16===0&&height%16===0&&Number.isInteger(length)&&length>=5&&length<=81&&(length-1)%4===0&&Number.isInteger(steps)&&steps>=1&&steps<=50&&Number.isFinite(guidance)&&guidance>=0&&guidance<=20
+    ? !!source&&(aiEngine==='vulkan'?!!vulkanModel&&!!vulkanEncoder&&!!vulkanVae:!!model)&&Number.isInteger(width)&&Number.isInteger(height)&&width>=128&&height>=128&&width<=2048&&height<=2048&&width%16===0&&height%16===0&&Number.isInteger(length)&&length>=5&&length<=81&&(length-1)%4===0&&Number.isInteger(steps)&&steps>=1&&steps<=50&&Number.isFinite(guidance)&&guidance>=0&&guidance<=20
     : frames.length>0&&frames.length<=200;
   const validOutput=Number.isInteger(delay)&&delay>=20&&delay<=10000;
 
@@ -188,15 +218,26 @@ export default function GifStudio({de}:{de:boolean}){
           <button type="button" className="button secondary" aria-pressed={mode==='frames'} onClick={()=>setMode('frames')}><Images size={15}/>{de?'Aus Bildern':'From images'}</button>
         </div>
         {mode==='ai'?<>
-          <div className="section-heading"><h2>{de?'Modell':'Model'}</h2><button type="button" className="text-button" title={de?'Modelle aktualisieren':'Refresh models'} aria-label={de?'Modelle aktualisieren':'Refresh models'} onClick={()=>void refreshModels()}><RefreshCw size={15}/></button></div>
-          <label className="field-label" htmlFor="gif-model">{de?'Wan-Videomodell':'Wan video model'}</label>
-          <select id="gif-model" className="image-model-select" value={model} onChange={event=>setModel(event.target.value)} disabled={modelsBusy}>
-            <option value="">{modelsBusy?(de?'Modelle werden gelesen …':'Loading models …'):(de?'Modell auswählen …':'Select a model …')}</option>
-            {model&&!models.some(item=>item.path===model)&&<option value={model}>{fileName(model)}</option>}
-            {models.map(item=><option key={item.path} value={item.path}>{item.name} · {formatGigabytes(item.bytes,language)}</option>)}
-          </select>
-          <button type="button" className="button secondary gif-file-button" onClick={()=>void chooseModel()}><FolderOpen size={15}/>{de?'Modelldatei wählen':'Choose model file'}</button>
-          <p className="hub-hint">{de?'Für ein Startbild brauchst du ein Wan-I2V- oder TI2V-Modell aus ComfyUI. GGUF benötigt den installierten GGUF-Knoten.':'A start image needs a Wan I2V or TI2V model in ComfyUI. GGUF requires the installed GGUF node.'}</p>
+          <div className="section-heading"><h2>{de?'Engine und Modell':'Engine and model'}</h2>{aiEngine==='comfy'&&<button type="button" className="text-button" title={de?'Modelle aktualisieren':'Refresh models'} aria-label={de?'Modelle aktualisieren':'Refresh models'} onClick={()=>void refreshModels()}><RefreshCw size={15}/></button>}</div>
+          <div className="gif-engine-switch" role="group" aria-label={de?'KI-Engine':'AI engine'}>
+            <button type="button" className="button secondary" aria-pressed={aiEngine==='comfy'} onClick={()=>setAiEngine('comfy')}>ComfyUI</button>
+            <button type="button" className="button secondary" aria-pressed={aiEngine==='vulkan'} onClick={()=>setAiEngine('vulkan')}>Vulkan</button>
+          </div>
+          {aiEngine==='comfy'?<>
+            <label className="field-label" htmlFor="gif-model">{de?'Wan-Videomodell':'Wan video model'}</label>
+            <select id="gif-model" className="image-model-select" value={model} onChange={event=>setModel(event.target.value)} disabled={modelsBusy}>
+              <option value="">{modelsBusy?(de?'Modelle werden gelesen …':'Loading models …'):(de?'Modell auswählen …':'Select a model …')}</option>
+              {model&&!models.some(item=>item.path===model)&&<option value={model}>{fileName(model)}</option>}
+              {models.map(item=><option key={item.path} value={item.path}>{item.name} · {formatGigabytes(item.bytes,language)}</option>)}
+            </select>
+            <button type="button" className="button secondary gif-file-button" onClick={()=>void chooseModel()}><FolderOpen size={15}/>{de?'Modelldatei wählen':'Choose model file'}</button>
+            <p className="hub-hint">{de?'ComfyUI verwendet sein Wan-I2V-/TI2V-Modell sowie die dort installierten Encoder und VAE-Dateien.':'ComfyUI uses its Wan I2V/TI2V model and the encoder and VAE files installed there.'}</p>
+          </>:<div className="gif-vulkan-files">
+            <label>{de?'Wan-I2V-/TI2V-Diffusionsmodell':'Wan I2V/TI2V diffusion model'}<button type="button" className="button secondary gif-file-button" onClick={()=>void chooseVulkanPart('model')}><FolderOpen size={15}/>{vulkanModel?fileName(vulkanModel):(de?'Modell wählen':'Choose model')}</button></label>
+            <label>{de?'UMT5-Textencoder':'UMT5 text encoder'}<button type="button" className="button secondary gif-file-button" onClick={()=>void chooseVulkanPart('encoder')}><FolderOpen size={15}/>{vulkanEncoder?fileName(vulkanEncoder):(de?'Encoder wählen':'Choose encoder')}</button></label>
+            <label>{de?'Passende Wan-VAE':'Matching Wan VAE'}<button type="button" className="button secondary gif-file-button" onClick={()=>void chooseVulkanPart('vae')}><FolderOpen size={15}/>{vulkanVae?fileName(vulkanVae):(de?'VAE wählen':'Choose VAE')}</button></label>
+            <p className="hub-hint">{de?'Läuft direkt über die mitgelieferte Vulkan-Runtime, auch auf AMD- und Intel-GPUs. Die drei Dateien werden nur gelesen; Local Studio installiert keine Modellabhängigkeiten.':'Runs directly through the bundled Vulkan runtime, including AMD and Intel GPUs. The three files are read only; Local Studio does not install model dependencies.'}</p>
+          </div>}
           <div className="gif-control-group">
             <div className="section-heading"><h2>{de?'Startbild':'Start image'}</h2></div>
             <button type="button" className="button secondary gif-file-button" onClick={()=>void chooseSource()}><FolderOpen size={15}/>{source?fileName(source):(de?'Bild wählen':'Choose image')}</button>

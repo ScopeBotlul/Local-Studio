@@ -3,6 +3,12 @@
 .gif-mode-switch { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 6px; margin-bottom: 22px; padding: 4px; border: 1px solid var(--border); border-radius: 8px; background: var(--field); }
 .gif-mode-switch .button { justify-content: center; min-width: 0; white-space: normal; font-size: 11px; border-color: transparent; background: transparent; }
 .gif-mode-switch .button[aria-pressed=true] { color: var(--text); background: var(--panel-raised); border-color: var(--border); box-shadow: inset 0 -2px var(--accent); }
+.gif-engine-switch { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 6px; margin-bottom: 12px; }
+.gif-engine-switch .button { justify-content: center; min-width: 0; }
+.gif-engine-switch .button[aria-pressed=true] { color: var(--text); background: var(--panel-raised); border-color: var(--accent); }
+.gif-vulkan-files { display: grid; gap: 10px; }
+.gif-vulkan-files label { display: grid; gap: 6px; color: var(--muted); font-size: 11px; }
+.gif-vulkan-files .gif-file-button { min-width: 0; justify-content: flex-start; }
 .gif-config .section-heading { margin: 0 0 8px; }
 .gif-config .image-model-select { width: 100%; }
 .gif-config .gif-file-button { max-width: 100%; margin: 9px 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

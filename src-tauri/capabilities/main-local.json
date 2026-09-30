@@ -19,6 +19,7 @@
     "allow-comfy-open-updater",
     "allow-gif-create",
     "allow-gif-ai-create",
+    "allow-gif-vulkan-create",
     "allow-gif-pending-list",
     "allow-gif-pending-preview",
     "allow-gif-pending-save",

@@ -1167,3 +1167,12 @@ ZIP-Inhalt/CRC, Anleitung, EXE-Identität und Prüfsummen geprüft. Vollständig
 - Isolierter nativer Test `scripts/check-gif-studio32.mjs`: temporäres Ergebnis, ausdrückliches Speichern, UUID-Dateiname, Rechtsklickmenü, Verschieben in den Papierkorb und Tastatur-Skalierung bestanden (`.artifacts/gif-studio32-1790797090031`).
 - Isolierter echter Wan-2.1-GGUF-Auftrag gegen die lokale ComfyUI-Engine erzeugte aus einem Startbild mit leerem Prompt, fünf Frames und einem Sampling-Schritt ein 694197-Byte-GIF (`.artifacts/wan-vae33-1790797118289`). Das belegt den technischen promptlosen I2V-Pfad, nicht die Ausgabequalität mit normalen Einstellungen.
 - Keine vollständige Regression der unveränderten Bild-, Video-, Download-, Update- oder Installer-Installationspfade wiederholt.
+
+# Vulkan-Bild-zu-GIF 0.36.35 — gezielte Prüfung (2026-09-30)
+
+- `npm.cmd run build`: bestanden; Engine-Umschaltung, drei lokale Komponentenauswahlen, optionale Prompts und bestehender Ergebnisablauf kompilieren.
+- `scripts/desktop.ps1 check`: bestanden; neuer typisierter IPC-Befehl, Main-Window-Berechtigung, Runtime-Aufruf und temporäre Frameverarbeitung kompilieren.
+- Rusttest `native_video_inputs_and_frame_sequences_are_strictly_bounded`: bestanden. Eingabeformate und eine exakt vollständige, deterministisch benannte Framefolge werden geprüft; zusätzliche oder fehlende Frames werden abgewiesen.
+- Reale gebündelte Runtime `stable-diffusion.cpp cc515a0`: Wan 2.2 TI2V, UMT5 und passende Wan-2.2-VAE wurden mit Startbild, leerem Prompt, Vulkan0, 512 × 288 Pixeln, fünf Frames und einem Sampling-Schritt ausgeführt. Die Diffusionsberechnung lief auf Vulkan, die VAE-Dekodierung auf CPU; fünf PNG-Frames wurden erfolgreich geschrieben (`.artifacts/vulkan-gif-probe22vaecpu`).
+- Isolierter nativer UI-Test `scripts/check-gif-studio32.mjs`: Vulkan-Umschaltung und alle drei Komponentenauswahlen waren in der Release-EXE sichtbar; der bestehende temporäre GIF-, UUID-Speicher- und Rechtsklick-Papierkorbpfad blieb funktionsfähig (`.artifacts/gif-studio32-1790799073599`).
+- Ein erster GPU-VAE-Versuch scheiterte nach erfolgreichem Sampling nachvollziehbar an der VRAM-Spitze. Daraus folgt die fest eingebaute CPU-VAE-Zuordnung. Ein normaler Qualitätslauf, ein echter AMD-Handheld-Lauf und die übrigen unveränderten Funktionsbereiche wurden nicht erneut geprüft.

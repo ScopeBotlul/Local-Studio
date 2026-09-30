@@ -55,6 +55,12 @@ try {
   assert.equal(await workspace.locator('.gif-config').count(),1);
   assert.equal(await workspace.locator('.gif-canvas').count(),1);
   assert.equal(await workspace.locator('.studio-gallery').count(),1);
+  const engines=workspace.getByRole('group',{name:/KI-Engine|AI engine/});
+  await engines.getByRole('button',{name:'Vulkan'}).click();
+  const vulkanFiles=workspace.locator('.gif-vulkan-files');
+  await vulkanFiles.waitFor();
+  assert.equal(await vulkanFiles.getByRole('button').count(),3);
+  await engines.getByRole('button',{name:'ComfyUI'}).click();
   const preview=await invoke('gif_source_preview',{path:source});
   assert.match(preview,/^data:image\/png;base64,/);
   await workspace.getByRole('button',{name:/gif-studio-source.png/}).click();
@@ -73,8 +79,9 @@ try {
   await assert.rejects(()=>fs.stat(result));
   await workspace.getByRole('button',{name:/In Galerie speichern|Save to gallery/}).click();
   await workspace.getByText(outputName,{exact:false}).first().waitFor();
-  assert.equal((await fs.readFile(result)).subarray(0,6).toString(),'GIF89a');
+  for(let attempt=0;attempt<50&&(await invoke('gif_pending_list')).length;attempt++)await pause(100);
   assert.equal((await invoke('gif_pending_list')).length,0);
+  assert.equal((await fs.readFile(result)).subarray(0,6).toString(),'GIF89a');
   const savedTile=workspace.locator('.studio-gallery-media-tile',{hasText:outputName});
   await savedTile.waitFor();await savedTile.click({button:'right'});
   await page.getByRole('menuitem',{name:/Löschen|Delete/}).click();

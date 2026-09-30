@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-gif-vulkan-create"
+description = "Enables the gif_vulkan_create command without any pre-configured scope."
+commands.allow = ["gif_vulkan_create"]
+
+[[permission]]
+identifier = "deny-gif-vulkan-create"
+description = "Denies the gif_vulkan_create command without any pre-configured scope."
+commands.deny = ["gif_vulkan_create"]

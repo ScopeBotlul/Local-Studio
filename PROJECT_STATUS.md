@@ -984,3 +984,10 @@ Als Nächstes stehen die noch offenen M0-Punkte und anschließend M1 gemäß `PL
 - Gespeicherte GIFs heißen `Local-Studio-<UUID>.gif`. Wiederholte Generierungen können dadurch weder an einem doppelten Benutzernamen scheitern noch vorhandene Dateien überschreiben.
 - Bild-zu-GIF akzeptiert jetzt einen leeren Prompt. Dafür bleibt ein Startbild Pflicht; die Auswahl führt kompatible Wan-I2V-/TI2V-Modelle und schließt eindeutig als T2V benannte Dateien aus. Unmarkierte, tatsächlich als I2V verwendete Wan-GGUFs bleiben kompatibel.
 - Medien erhalten in der Hauptgalerie und der Studio-Galerie ein Rechtsklickmenü. „Löschen“ verschiebt das Medium nach Bestätigung in den vorhandenen wiederherstellbaren Local-Studio-Papierkorb.
+
+# Version 0.36.35 — nativer Vulkan-Modus für Bild-zu-GIF (2026-09-30)
+
+- Das GIF-Studio bietet neben ComfyUI eine echte Vulkan-Engine. Sie verwendet die bereits mitgelieferte und vor jedem Lauf hashgeprüfte `stable-diffusion.cpp`-Runtime im Modus `vid_gen`; ComfyUI ist für diesen Pfad nicht erforderlich.
+- Nutzer wählen ein einzelnes Wan-I2V-/TI2V-Diffusionsmodell, einen UMT5-Textencoder und die passende Wan-VAE als lokale Safetensors-/GGUF-Dateien. Reine T2V-Dateinamen werden für Startbilder abgewiesen. Die zuletzt gewählten lokalen Pfade bleiben ausschließlich lokal gespeichert.
+- Diffusionsberechnung läuft auf dem automatisch erkannten Vulkan-Gerät. Auto-Fit darf Gewichte in den Arbeitsspeicher auslagern; die VAE dekodiert bewusst auf der CPU, um die VRAM-Spitze auf Handhelds zu senken. Der Adapter installiert keine Modellabhängigkeiten und führt keinen Modellcode aus.
+- Die erzeugte Framefolge wird mit dem vorhandenen lokalen Encoder als temporäres GIF übernommen. Vorschau, UUID-Dateiname, ausdrückliches Galerie-Speichern und Verwerfen verhalten sich identisch zum ComfyUI-Pfad.
