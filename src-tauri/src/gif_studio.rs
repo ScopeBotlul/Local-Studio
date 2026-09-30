@@ -1,9 +1,10 @@
-use crate::{core::Core, gallery, model_library};
+use crate::{comfy::Comfy, core::Core, gallery, model_library};
 use image::{
     codecs::gif::{GifEncoder, Repeat},
     imageops::FilterType,
     Delay, Frame, ImageReader,
 };
+use serde::Deserialize;
 use std::{
     fs::{self, File},
     io::BufWriter,
@@ -32,7 +33,7 @@ fn source(path: &Path) -> Result<image::DynamicImage> {
     reader.decode().map_err(|_| "gif_source".into())
 }
 
-fn create(
+pub(crate) fn create(
     paths: Vec<String>,
     folder: String,
     name: String,
@@ -145,6 +146,52 @@ pub async fn gif_create(
         })
         .await
         .map_err(|_| "gallery_storage")?
+    })
+    .await;
+    crate::privacy::finish(epoch, result)
+}
+
+#[derive(Clone, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct GifAiRequest {
+    pub source_path: String,
+    pub model_path: String,
+    pub prompt: String,
+    pub negative_prompt: String,
+    pub width: u32,
+    pub height: u32,
+    pub frames: u32,
+    pub steps: u32,
+    pub guidance: f32,
+    pub seed: u32,
+    pub folder: String,
+    pub name: String,
+    pub delay_ms: u32,
+    pub looped: bool,
+}
+
+#[tauri::command]
+pub async fn gif_ai_create(
+    request: GifAiRequest,
+    core: State<'_, Arc<Core>>,
+    comfy: State<'_, Arc<Comfy>>,
+) -> Result<String> {
+    let epoch = crate::privacy::epoch();
+    let result = (async {
+        let root = fs::canonicalize(core.storage_paths()?.gallery).map_err(|_| "gallery_missing")?;
+        let comfy = comfy.inner().clone();
+        let generation = request.clone();
+        let frames = tauri::async_runtime::spawn_blocking(move || comfy.wan_image_to_frames(generation))
+            .await
+            .map_err(|_| "gif_ai")??;
+        let temporary = frames.clone();
+        let output = tauri::async_runtime::spawn_blocking(move || {
+            create(frames, request.folder, request.name, request.delay_ms, request.looped, root)
+        })
+        .await
+        .map_err(|_| "gallery_storage")?;
+        for frame in temporary { let _ = fs::remove_file(frame); }
+        output
     })
     .await;
     crate::privacy::finish(epoch, result)

@@ -1,4 +1,5 @@
 use crate::{
+    gif_studio::GifAiRequest,
     image_engine::{ImageLora, ImageRequest, ProcessGroup},
     model_library,
 };
@@ -133,6 +134,15 @@ fn resolve_comfy_option(info: &Value, node: &str, input: &str, requested: &str) 
                 .filter_map(Value::as_str)
                 .find(|value| normalized_model_name(value) == requested)
         })
+        .map(str::to_owned)
+}
+fn first_comfy_option(info: &Value, node: &str, input: &str, predicate: impl Fn(&str) -> bool) -> Option<String> {
+    info.get(node)?
+        .pointer(&format!("/input/required/{input}/0"))?
+        .as_array()?
+        .iter()
+        .filter_map(Value::as_str)
+        .find(|value| predicate(value))
         .map(str::to_owned)
 }
 fn uses_amd_safe_attention(path: &Path) -> bool {
@@ -1346,6 +1356,124 @@ impl Comfy {
         (folder == "checkpoints")
             .then(|| relative_model_path(path, &self.external_checkpoints))
             .flatten()
+    }
+    /// Generates still frames through ComfyUI's built-in Wan image-to-video nodes.
+    /// The caller owns the returned temporary PNG files and must remove them after
+    /// turning them into the requested media format.
+    pub fn wan_image_to_frames(&self, request: GifAiRequest) -> Result<Vec<String>> {
+        if self.update.lock().ok().is_some_and(|state| state.phase == "updating") {
+            return Err("comfy_update_busy".into());
+        }
+        if request.prompt.trim().is_empty()
+            || request.prompt.len() > 8_000
+            || request.negative_prompt.len() > 8_000
+            || !(128..=2048).contains(&request.width)
+            || !(128..=2048).contains(&request.height)
+            || request.width % 16 != 0
+            || request.height % 16 != 0
+            || !(5..=81).contains(&request.frames)
+            || (request.frames - 1) % 4 != 0
+            || !(1..=50).contains(&request.steps)
+            || !(0.0..=20.0).contains(&request.guidance)
+        {
+            return Err("gif_ai_parameters".into());
+        }
+        let source = fs::canonicalize(&request.source_path).map_err(|_| "gif_ai_source")?;
+        model_library::no_links(&source).map_err(|_| "gif_ai_source")?;
+        let source_metadata = fs::metadata(&source).map_err(|_| "gif_ai_source")?;
+        let extension = source.extension().and_then(|value| value.to_str()).map(str::to_ascii_lowercase);
+        if !source_metadata.is_file()
+            || source_metadata.len() > 32 * 1024 * 1024
+            || !matches!(extension.as_deref(), Some("png" | "jpg" | "jpeg" | "webp" | "bmp"))
+        {
+            return Err("gif_ai_source".into());
+        }
+        let model = fs::canonicalize(&request.model_path).map_err(|_| "gif_ai_model")?;
+        model_library::no_links(&model).map_err(|_| "gif_ai_model")?;
+        let model_name = model.file_name().and_then(|value| value.to_str()).unwrap_or("").to_ascii_lowercase();
+        let root = self.config.lock().map_err(|_| "comfy_storage")?.path.clone().map(PathBuf::from).ok_or("comfy_missing")?;
+        if !valid_root(&root)
+            || model.extension().and_then(|value| value.to_str()).map(|value| value.eq_ignore_ascii_case("safetensors")) != Some(true)
+            || !model_name.contains("wan")
+        {
+            return Err("gif_ai_model".into());
+        }
+        let model = relative_model_path(&model, &root.join("ComfyUI/models/diffusion_models")).ok_or("gif_ai_model")?;
+        let input = root.join("ComfyUI/input");
+        fs::create_dir_all(&input).map_err(|_| "comfy_storage")?;
+        model_library::no_links(&input).map_err(|_| "comfy_storage")?;
+        let source_name = format!("local-studio-gif-{}.{}", uuid::Uuid::new_v4(), extension.unwrap_or_else(|| "png".into()));
+        let imported = input.join(&source_name);
+        fs::copy(&source, &imported).map_err(|_| "gif_ai_source")?;
+        let cleanup_import = |path: &Path| { let _ = fs::remove_file(path); };
+        let result = (|| {
+            self.active_generations.fetch_add(1, Ordering::SeqCst);
+            let _active = ActiveGeneration(&self.active_generations);
+            let client = client(Duration::from_secs(20))?;
+            let object = |node: &str| client.get(format!("{ENDPOINT}/object_info/{node}"))
+                .send().and_then(|response| response.error_for_status()).and_then(|response| response.json::<Value>())
+                .map_err(|_| "comfy_connection");
+            let unet = object("UNETLoader")?;
+            let clip = object("CLIPLoader")?;
+            let vae = object("VAELoader")?;
+            let sampler_info = object("KSampler")?;
+            let _wan = object("WanImageToVideo")?;
+            let _load_image = object("LoadImage")?;
+            let _encode = object("CLIPTextEncode")?;
+            let _preview = object("PreviewImage")?;
+            let unet_name = resolve_comfy_option(&unet, "UNETLoader", "unet_name", &model).ok_or("gif_ai_model_unavailable")?;
+            let clip_name = first_comfy_option(&clip, "CLIPLoader", "clip_name", |value| value.to_ascii_lowercase().contains("umt5")).ok_or("gif_ai_encoder")?;
+            let clip_type = resolve_comfy_option(&clip, "CLIPLoader", "type", "wan").ok_or("gif_ai_workflow")?;
+            let vae_name = first_comfy_option(&vae, "VAELoader", "vae_name", |value| value.to_ascii_lowercase().contains("wan")).ok_or("gif_ai_vae")?;
+            let sampler = resolve_comfy_option(&sampler_info, "KSampler", "sampler_name", "euler")
+                .or_else(|| first_comfy_option(&sampler_info, "KSampler", "sampler_name", |_| true)).ok_or("gif_ai_workflow")?;
+            let scheduler = resolve_comfy_option(&sampler_info, "KSampler", "scheduler", "simple")
+                .or_else(|| first_comfy_option(&sampler_info, "KSampler", "scheduler", |_| true)).ok_or("gif_ai_workflow")?;
+            let workflow = json!({
+                "1":{"class_type":"UNETLoader","inputs":{"unet_name":unet_name,"weight_dtype":"default"}},
+                "2":{"class_type":"CLIPLoader","inputs":{"clip_name":clip_name,"type":clip_type,"device":"default"}},
+                "3":{"class_type":"VAELoader","inputs":{"vae_name":vae_name}},
+                "4":{"class_type":"CLIPTextEncode","inputs":{"text":request.prompt,"clip":["2",0]}},
+                "5":{"class_type":"CLIPTextEncode","inputs":{"text":request.negative_prompt,"clip":["2",0]}},
+                "6":{"class_type":"LoadImage","inputs":{"image":source_name}},
+                "7":{"class_type":"WanImageToVideo","inputs":{"positive":["4",0],"negative":["5",0],"vae":["3",0],"width":request.width,"height":request.height,"length":request.frames,"batch_size":1,"start_image":["6",0]}},
+                "8":{"class_type":"KSampler","inputs":{"seed":request.seed,"steps":request.steps,"cfg":request.guidance,"sampler_name":sampler,"scheduler":scheduler,"denoise":1.0,"model":["1",0],"positive":["7",0],"negative":["7",1],"latent_image":["7",2]}},
+                "9":{"class_type":"VAEDecode","inputs":{"samples":["8",0],"vae":["3",0]}},
+                "10":{"class_type":"PreviewImage","inputs":{"images":["9",0]}}
+            });
+            let response = client.post(format!("{ENDPOINT}/prompt")).json(&json!({"prompt":workflow,"client_id":uuid::Uuid::new_v4().to_string()})).send().map_err(|_| "comfy_connection")?;
+            if !response.status().is_success() { return Err("gif_ai_workflow".into()); }
+            let id = response.json::<Value>().map_err(|_| "comfy_response")?["prompt_id"].as_str().ok_or("comfy_response")?.to_owned();
+            let started = Instant::now();
+            loop {
+                if started.elapsed() > Duration::from_secs(900) { let _ = client.post(format!("{ENDPOINT}/interrupt")).send(); return Err("gif_ai_timeout".into()); }
+                let history = client.get(format!("{ENDPOINT}/history/{id}")).send().and_then(|response| response.error_for_status()).and_then(|response| response.json::<Value>()).map_err(|_| "comfy_connection")?;
+                if let Some(entry) = history.get(&id) {
+                    if entry.pointer("/status/status_str").and_then(Value::as_str) == Some("error") || entry.pointer("/status/completed").and_then(Value::as_bool) == Some(false) { return Err("gif_ai_execution".into()); }
+                    if let Some(images) = entry.pointer("/outputs/10/images").and_then(Value::as_array) {
+                        if images.is_empty() || images.len() > 81 { return Err("gif_ai_output".into()); }
+                        let mut frames = Vec::with_capacity(images.len());
+                        for (index, image) in images.iter().enumerate() {
+                            let filename = image["filename"].as_str().ok_or("comfy_response")?;
+                            let subfolder = image["subfolder"].as_str().unwrap_or("");
+                            let kind = image["type"].as_str().unwrap_or("output");
+                            let response = client.get(format!("{ENDPOINT}/view")).query(&[("filename",filename),("subfolder",subfolder),("type",kind)]).send().map_err(|_| "comfy_connection")?;
+                            if !response.status().is_success() { return Err("gif_ai_output".into()); }
+                            let frame = input.join(format!("local-studio-gif-frame-{}-{index}.png", uuid::Uuid::new_v4()));
+                            let mut output = fs::OpenOptions::new().create_new(true).write(true).open(&frame).map_err(|_| "gif_ai_output")?;
+                            let copied = std::io::copy(&mut response.take(24 * 1024 * 1024 + 1), &mut output).map_err(|_| "gif_ai_output")?;
+                            if copied > 24 * 1024 * 1024 { let _ = fs::remove_file(&frame); return Err("gif_ai_output".into()); }
+                            output.sync_all().map_err(|_| "gif_ai_output")?;
+                            frames.push(frame.to_string_lossy().into_owned());
+                        }
+                        return Ok(frames);
+                    }
+                }
+                std::thread::sleep(Duration::from_millis(350));
+            }
+        })();
+        cleanup_import(&imported);
+        result
     }
     pub fn generate(
         &self,

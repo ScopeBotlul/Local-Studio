@@ -1,3 +1,9 @@
+# GIF Studio - Wan image-to-GIF path (2026-09-30)
+
+- GIF Studio now has a real local Wan image-to-video path: it copies one selected start image into ComfyUI's input area, validates the exact ComfyUI nodes and installed model names through the local API, asks ComfyUI to decode an image sequence, and encodes the returned frames into a local GIF in the selected gallery folder.
+- The user chooses the Wan safetensors file, start image, movement prompt or tags, negative prompt, size and frame count. Tags are prompt text; a start image remains required for the image-to-video workflow.
+- The adapter accepts only Wan safetensors located in ComfyUI/models/diffusion_models, requires a 16-pixel image dimension grid and a Wan frame count of 5 + 4n. Temporary imported and decoded frame files are removed after GIF encoding.
+- No remote inference, model download, or model code execution was added.
 # Version 0.36.30 – kompakte Studioansicht (2026-09-29)`r`n`r`n- Die redundanten Statusleisten für aktive Bildaufträge wurden aus dem Studio entfernt. Laufende Aufträge bleiben unter Aufträge und im Canvas sichtbar.`r`n`r`n# Qwen Image 2.1 GGUF — Implementierung (2026-09-28)
 
 - Das Bildstudio erkennt ausschließlich `qwen-image-2.1*.gguf` als Qwen-Image-Modell und leitet es automatisch an ComfyUI weiter. Andere GGUF-Dateien, insbesondere Chatmodelle, bleiben vom Bildadapter ausgeschlossen.

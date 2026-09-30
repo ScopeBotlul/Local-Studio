@@ -1,3 +1,9 @@
+# GIF Studio - targeted verification (2026-09-30)
+
+- `npm.cmd run build`: passed. TypeScript and Vite compile the GIF Studio controls and typed IPC call.
+- `scripts/desktop.ps1 check`: passed. Rust compiles the Wan workflow builder and GIF IPC path.
+- `cargo test --manifest-path src-tauri/Cargo.toml gif_studio::tests --lib`: 2/2 passed, including a real two-frame GIF decode test.
+- Limit: ComfyUI was not listening on local port 8188 during validation, so the installed node schema and a GPU Wan generation were not executed. The runtime preflight therefore fails safely before sending a workflow when the engine is unavailable.
 # Version 0.36.30 – gezielte Prüfung (2026-09-29)`r`n`r`n- `npm.cmd run build`: bestanden. TypeScript und Vite kompilieren die bereinigte Studioansicht.`r`n- Keine Inferenz-, Modell-, Galerie- oder Installerpfade wurden für diese reine Layoutänderung erneut geprüft.`r`n`r`n# Qwen Image 2.1 GGUF — gezielte Prüfung (2026-09-28)
 
 - `scripts/desktop.ps1 check`: bestanden; Rust kompiliert den Qwen-Modellpfad, die Komponentenvorprüfung und den getrennten ComfyUI-Workflow.`n- `cargo.exe test --manifest-path src-tauri/Cargo.toml comfy::tests`: 7/7 bestehende ComfyUI-Regressionstests bestanden.
