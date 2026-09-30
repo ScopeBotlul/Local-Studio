@@ -1170,6 +1170,7 @@ ZIP-Inhalt/CRC, Anleitung, EXE-Identität und Prüfsummen geprüft. Vollständig
 
 # Vulkan-Bild-zu-GIF 0.36.35 — gezielte Prüfung (2026-09-30)
 
+- Öffentlicher Release-Abgleich: Installer und portable ZIP vollständig von GitHub zurückgeladen; alle fünf Asset-Digests und die Ed25519-Signatur stimmen (`.artifacts/github-release-verification-0.36.35.json`).
 - `npm.cmd run build`: bestanden; Engine-Umschaltung, drei lokale Komponentenauswahlen, optionale Prompts und bestehender Ergebnisablauf kompilieren.
 - `scripts/desktop.ps1 check`: bestanden; neuer typisierter IPC-Befehl, Main-Window-Berechtigung, Runtime-Aufruf und temporäre Frameverarbeitung kompilieren.
 - Rusttest `native_video_inputs_and_frame_sequences_are_strictly_bounded`: bestanden. Eingabeformate und eine exakt vollständige, deterministisch benannte Framefolge werden geprüft; zusätzliche oder fehlende Frames werden abgewiesen.

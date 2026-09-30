@@ -987,6 +987,7 @@ Als Nächstes stehen die noch offenen M0-Punkte und anschließend M1 gemäß `PL
 
 # Version 0.36.35 — nativer Vulkan-Modus für Bild-zu-GIF (2026-09-30)
 
+- Version 0.36.35 ist unter https://github.com/ScopeBotlul/Local-Studio/releases/tag/v0.36.35 veröffentlicht; Installer, portable ZIP, Prüfsummen und signierte Update-Metadaten wurden vollständig von GitHub zurückgeladen und verifiziert.
 - Das GIF-Studio bietet neben ComfyUI eine echte Vulkan-Engine. Sie verwendet die bereits mitgelieferte und vor jedem Lauf hashgeprüfte `stable-diffusion.cpp`-Runtime im Modus `vid_gen`; ComfyUI ist für diesen Pfad nicht erforderlich.
 - Nutzer wählen ein einzelnes Wan-I2V-/TI2V-Diffusionsmodell, einen UMT5-Textencoder und die passende Wan-VAE als lokale Safetensors-/GGUF-Dateien. Reine T2V-Dateinamen werden für Startbilder abgewiesen. Die zuletzt gewählten lokalen Pfade bleiben ausschließlich lokal gespeichert.
 - Diffusionsberechnung läuft auf dem automatisch erkannten Vulkan-Gerät. Auto-Fit darf Gewichte in den Arbeitsspeicher auslagern; die VAE dekodiert bewusst auf der CPU, um die VRAM-Spitze auf Handhelds zu senken. Der Adapter installiert keine Modellabhängigkeiten und führt keinen Modellcode aus.
