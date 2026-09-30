@@ -965,6 +965,7 @@ Als Nächstes stehen die noch offenen M0-Punkte und anschließend M1 gemäß `PL
 - Installer, Portable-ZIP, Prüfsummen und signierte Update-Metadaten wurden erstellt. Der vollständige öffentliche Rückdownload und die GitHub-Veröffentlichung folgen als letzter Schritt.
 # Version 0.36.32 — GIF-Studio-Arbeitsfläche (2026-09-30)
 
+- Version 0.36.32 wurde unter https://github.com/ScopeBotlul/Local-Studio/releases/tag/v0.36.32 veröffentlicht. Installer, portable ZIP, Prüfsummen und signiertes Update-Manifest sind öffentlich verfügbar.
 - Das GIF-Studio verwendet jetzt dieselbe dreiteilige Arbeitsfläche wie das Bildstudio: links Modell, Eingaben und Ausgabeparameter, mittig ein großer Canvas mit Vorschau und Zoom, rechts die gemeinsame Galerie mit Ordnern und Miniaturen. Beide Seitenleisten lassen sich in der Breite ändern; die Einstellung bleibt lokal gespeichert.
 - Für KI-GIFs listet die Modellauswahl echte Wan-Safetensors- und GGUF-Dateien aus `ComfyUI/models/diffusion_models` auf. Startbilder lassen sich per Dateiauswahl oder Galerie übernehmen. Prompts, negative Prompts und der vorhandene Tag-Import bleiben verfügbar. Der Modus „Aus Bildern“ zeigt eine sortierbare Frameliste und verwendet den bestehenden lokalen GIF-Encoder.
 - Der bisher nicht freigegebene IPC-Aufruf für die Wan-GIF-Erzeugung und die neuen Befehle für Modellliste und lokale Bildvorschau sind ausschließlich für das lokale Hauptfenster in Tauri registriert. Die Galeriekomponente bleibt im Bildstudio ohne Auswahlverhalten unverändert.
