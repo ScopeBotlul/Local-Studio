@@ -20,6 +20,13 @@
 .gif-canvas-progress { position:absolute;bottom:20px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:9px;width:min(320px,calc(100% - 40px));padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--panel);box-shadow:0 5px 20px #0003;font-size:11px; }
 .gif-canvas-progress progress { min-width:0;flex:1;accent-color:var(--accent); }
 .gif-canvas .image-canvas-toolbar span, .gif-canvas .image-canvas-status span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gif-result-actions { display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:12px;padding:12px;border:1px solid var(--border);border-radius:9px;background:var(--panel);font-size:11px; }
+.gif-result-actions strong { font-size:12px; }
+.gif-result-actions span { color:var(--muted);margin-right:auto; }
+.gif-pending-history { margin-top:14px;padding:12px;border:1px solid var(--border);border-radius:9px;background:var(--panel); }
+.gif-pending-history h2 { margin:0 0 9px;font-size:12px; }
+.gif-pending-history > div { display:flex;flex-wrap:wrap;gap:6px; }
+.gif-pending-history .button[aria-pressed=true] { border-color:var(--accent);color:var(--accent); }
 .gif-workspace .studio-gallery-media-tile { cursor: pointer; }
 .gif-workspace .studio-gallery-media-tile.selected { border-color: var(--accent); background: color-mix(in srgb,var(--accent) 9%,var(--panel)); }
 @media(max-width:1180px){.gif-workspace .studio-gallery{grid-column:1/-1;}}

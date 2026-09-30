@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-gif-pending-list"
+description = "Enables the gif_pending_list command without any pre-configured scope."
+commands.allow = ["gif_pending_list"]
+
+[[permission]]
+identifier = "deny-gif-pending-list"
+description = "Denies the gif_pending_list command without any pre-configured scope."
+commands.deny = ["gif_pending_list"]

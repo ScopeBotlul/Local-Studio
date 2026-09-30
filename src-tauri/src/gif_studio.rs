@@ -5,16 +5,69 @@ use image::{
     imageops::FilterType,
     Delay, Frame, ImageReader,
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::{
     fs::{self, File},
     io::{BufWriter, Cursor},
     path::{Path, PathBuf},
     sync::Arc,
+    time::UNIX_EPOCH,
 };
 use tauri::State;
 
 type Result<T> = std::result::Result<T, String>;
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GifPending {
+    id: String,
+    bytes: u64,
+    created_at: u64,
+}
+
+fn pending_root(temporary: &Path) -> Result<PathBuf> {
+    let root = temporary.join("gif-results");
+    fs::create_dir_all(&root).map_err(|_| "gif_storage")?;
+    model_library::no_links(&root).map_err(|_| "gif_storage")?;
+    fs::canonicalize(root).map_err(|_| "gif_storage".into())
+}
+
+fn pending_path(root: &Path, id: &str) -> Result<PathBuf> {
+    let uuid = uuid::Uuid::parse_str(id).map_err(|_| "gif_missing")?;
+    if uuid.to_string() != id { return Err("gif_missing".into()); }
+    let path = root.join(format!("{id}.gif"));
+    model_library::no_links(&path).map_err(|_| "gif_missing")?;
+    Ok(path)
+}
+
+fn pending_info(path: &Path, id: String) -> Result<GifPending> {
+    let metadata = fs::metadata(path).map_err(|_| "gif_missing")?;
+    if !metadata.is_file() { return Err("gif_missing".into()); }
+    let created_at = metadata.modified().ok().and_then(|time| time.duration_since(UNIX_EPOCH).ok())
+        .map_or(0, |duration| duration.as_millis().min(u128::from(u64::MAX)) as u64);
+    Ok(GifPending { id, bytes: metadata.len(), created_at })
+}
+
+fn create_pending(paths: Vec<String>, delay_ms: u32, looped: bool, root: PathBuf) -> Result<GifPending> {
+    let id = uuid::Uuid::new_v4().to_string();
+    let path = create(paths, String::new(), id.clone(), delay_ms, looped, root)?;
+    pending_info(Path::new(&path), id)
+}
+
+fn list_pending(root: &Path) -> Result<Vec<GifPending>> {
+    let mut found = Vec::new();
+    for entry in fs::read_dir(root).map_err(|_| "gif_storage")?.flatten().take(1000) {
+        let path = entry.path();
+        if path.extension().and_then(|ext| ext.to_str()) != Some("gif") { continue; }
+        let Some(id) = path.file_stem().and_then(|stem| stem.to_str()) else { continue };
+        if pending_path(root, id).is_ok() {
+            if let Ok(info) = pending_info(&path, id.to_owned()) { found.push(info); }
+        }
+    }
+    found.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+    found.truncate(100);
+    Ok(found)
+}
 
 fn source(path: &Path) -> Result<image::DynamicImage> {
     model_library::no_links(path).map_err(|_| "gif_source")?;
@@ -129,27 +182,81 @@ pub(crate) fn create(
     result
 }
 
+fn save_pending(root: &Path, gallery_root: &Path, id: &str, folder: &str) -> Result<String> {
+    let source = pending_path(root, id)?;
+    let mut input = gallery::lock_file(&source).map_err(|_| "gif_missing")?;
+    let destination = if folder.is_empty() { gallery_root.to_path_buf() } else { gallery::resolve(gallery_root, folder)? };
+    let _guards = gallery::directory_guards(&destination)?;
+    let output = destination.join(format!("Local-Studio-{id}.gif"));
+    if output.exists() { return Err("gallery_exists".into()); }
+    let staging = destination.join(format!(".local-studio-{}.tmp", uuid::Uuid::new_v4()));
+    let result = (|| {
+        let mut file = File::options().write(true).create_new(true).open(&staging).map_err(|_| "gallery_storage")?;
+        std::io::copy(&mut input, &mut file).map_err(|_| "gallery_storage")?;
+        file.sync_all().map_err(|_| "gallery_storage")?;
+        drop(file);
+        drop(input);
+        gallery::publish(&staging, &output).map_err(|_| "gallery_storage")?;
+        let _ = fs::remove_file(&source);
+        Ok(output.to_string_lossy().into_owned())
+    })();
+    if result.is_err() { let _ = fs::remove_file(&staging); }
+    result
+}
+
 #[tauri::command]
 pub async fn gif_create(
     paths: Vec<String>,
-    folder: String,
-    name: String,
     delay_ms: u32,
     looped: bool,
     core: State<'_, Arc<Core>>,
-) -> Result<String> {
+) -> Result<GifPending> {
     let epoch = crate::privacy::epoch();
     let result = (async {
-        let root =
-            fs::canonicalize(core.storage_paths()?.gallery).map_err(|_| "gallery_missing")?;
+        let root = pending_root(Path::new(&core.storage_paths()?.temporary))?;
         tauri::async_runtime::spawn_blocking(move || {
-            create(paths, folder, name, delay_ms, looped, root)
+            create_pending(paths, delay_ms, looped, root)
         })
         .await
         .map_err(|_| "gallery_storage")?
     })
     .await;
     crate::privacy::finish(epoch, result)
+}
+
+#[tauri::command]
+pub async fn gif_pending_list(core: State<'_, Arc<Core>>) -> Result<Vec<GifPending>> {
+    let root = pending_root(Path::new(&core.storage_paths()?.temporary))?;
+    tauri::async_runtime::spawn_blocking(move || list_pending(&root)).await.map_err(|_| "gif_storage")?
+}
+
+#[tauri::command]
+pub async fn gif_pending_preview(id: String, core: State<'_, Arc<Core>>) -> Result<String> {
+    let root = pending_root(Path::new(&core.storage_paths()?.temporary))?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let path = pending_path(&root, &id)?;
+        let metadata = fs::metadata(&path).map_err(|_| "gif_missing")?;
+        if !metadata.is_file() || metadata.len() > 64 * 1024 * 1024 { return Err("gif_preview_large".into()); }
+        let bytes = fs::read(path).map_err(|_| "gif_missing")?;
+        Ok(format!("data:image/gif;base64,{}", base64::engine::general_purpose::STANDARD.encode(bytes)))
+    }).await.map_err(|_| "gif_storage")?
+}
+
+#[tauri::command]
+pub async fn gif_pending_save(id: String, folder: String, core: State<'_, Arc<Core>>) -> Result<String> {
+    let root = pending_root(Path::new(&core.storage_paths()?.temporary))?;
+    let gallery_root = gallery::root(&core)?;
+    tauri::async_runtime::spawn_blocking(move || save_pending(&root, &gallery_root, &id, &folder))
+        .await.map_err(|_| "gif_storage")?
+}
+
+#[tauri::command]
+pub async fn gif_pending_discard(id: String, core: State<'_, Arc<Core>>) -> Result<()> {
+    let root = pending_root(Path::new(&core.storage_paths()?.temporary))?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let path = pending_path(&root, &id)?;
+        fs::remove_file(path).map_err(|_| "gif_missing".into())
+    }).await.map_err(|_| "gif_storage")?
 }
 
 #[tauri::command]
@@ -188,8 +295,6 @@ pub struct GifAiRequest {
     pub steps: u32,
     pub guidance: f32,
     pub seed: u32,
-    pub folder: String,
-    pub name: String,
     pub delay_ms: u32,
     pub looped: bool,
 }
@@ -199,10 +304,10 @@ pub async fn gif_ai_create(
     request: GifAiRequest,
     core: State<'_, Arc<Core>>,
     comfy: State<'_, Arc<Comfy>>,
-) -> Result<String> {
+) -> Result<GifPending> {
     let epoch = crate::privacy::epoch();
     let result = (async {
-        let root = fs::canonicalize(core.storage_paths()?.gallery).map_err(|_| "gallery_missing")?;
+        let root = pending_root(Path::new(&core.storage_paths()?.temporary))?;
         let comfy = comfy.inner().clone();
         let generation = request.clone();
         let frames = tauri::async_runtime::spawn_blocking(move || comfy.wan_image_to_frames(generation))
@@ -210,12 +315,10 @@ pub async fn gif_ai_create(
             .map_err(|_| "gif_ai")??;
         let temporary = frames.clone();
         let output = tauri::async_runtime::spawn_blocking(move || {
-            create(frames, request.folder, request.name, request.delay_ms, request.looped, root)
-        })
-        .await
-        .map_err(|_| "gallery_storage")?;
+            create_pending(frames, request.delay_ms, request.looped, root)
+        }).await.map_err(|_| "gif_storage");
         for frame in temporary { let _ = fs::remove_file(frame); }
-        output
+        output?
     })
     .await;
     crate::privacy::finish(epoch, result)
@@ -224,6 +327,27 @@ pub async fn gif_ai_create(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn gif_stays_temporary_until_saved_and_uses_unique_ids() {
+        let temporary = tempfile::tempdir().unwrap();
+        let gallery_dir = tempfile::tempdir().unwrap();
+        let gallery_root = fs::canonicalize(gallery_dir.path()).unwrap();
+        let root = pending_root(temporary.path()).unwrap();
+        let image = temporary.path().join("source.png");
+        image::DynamicImage::ImageRgba8(image::RgbaImage::from_pixel(8, 8, image::Rgba([9, 8, 7, 255]))).save(&image).unwrap();
+        let source = image.to_string_lossy().into_owned();
+        let first = create_pending(vec![source.clone()], 100, true, root.clone()).unwrap();
+        let second = create_pending(vec![source], 100, true, root.clone()).unwrap();
+        assert_ne!(first.id, second.id);
+        assert_eq!(list_pending(&root).unwrap().len(), 2);
+        assert_eq!(fs::read_dir(&gallery_root).unwrap().count(), 0);
+        let first_saved = save_pending(&root, &gallery_root, &first.id, "").unwrap();
+        let second_saved = save_pending(&root, &gallery_root, &second.id, "").unwrap();
+        assert_ne!(first_saved, second_saved);
+        assert!(Path::new(&first_saved).is_file());
+        assert!(Path::new(&second_saved).is_file());
+        assert_eq!(list_pending(&root).unwrap().len(), 0);
+    }
     #[test]
     fn rejects_empty_and_unsafe_names() {
         let root = tempfile::tempdir().unwrap();

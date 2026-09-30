@@ -307,6 +307,7 @@ export default function App() {
         const imageJobs = await imageApi.jobs();
         const imagesRunning = imageJobs.some(activeImage);
         const unsaved = imageState.unsaved;
+        const gifPending = await invoke<Array<{id:string}>>('gif_pending_list');
         const aiState=await ai.status();
         const aiRunning=['loading','running'].includes(aiState.phase)||(await ai.jobs()).some(j=>j.status==='running');
         const videoRunning=aiRunning || (await creativeApi.jobs()).some(j=>j.status==='running') || (await mediaApi.status())?.status==='running';
@@ -316,13 +317,15 @@ export default function App() {
         if(editorActivity.draft) warnings.push(languageRef.current === 'de' ? (editorActivity.persisted ? 'Bildbearbeitung noch nicht exportiert. Der lokale Entwurf bleibt zum Fortsetzen über dasselbe Bild in Galerie oder Projekt erhalten.' : 'Der Bildentwurf konnte nicht gespeichert werden. Abbrechen und im Editor exportieren, um die Änderungen zu behalten.') : (editorActivity.persisted ? 'Image edits have not been exported. The local draft can be resumed from the same image in the gallery or project.' : 'The image draft could not be saved. Cancel and export in the editor to retain changes.'));
         let saveProject = false;
         let choice: ExitChoice = 'close';
-        if (warnings.length || unsaved) {
+        if (warnings.length || unsaved || gifPending.length) {
           window.dispatchEvent(new CustomEvent('studio-modal', { detail: true }));
-          choice = await new Promise<ExitChoice>(resolve => setExitPrompt({ warnings, unsaved, imagesRunning, restoreSession: snapshotRef.current?.settings.restoreSession ?? false, project: !!activeProject && !activeProject.recovery, projectDirty: !!activeProject?.dirty, resolve: (value, save) => { saveProject = !!save; resolve(value); } }));
+          choice = await new Promise<ExitChoice>(resolve => setExitPrompt({ warnings, unsaved, gifUnsaved: gifPending.length, imagesRunning, restoreSession: snapshotRef.current?.settings.restoreSession ?? false, project: !!activeProject && !activeProject.recovery, projectDirty: !!activeProject?.dirty, resolve: (value, save) => { saveProject = !!save; resolve(value); } }));
         }
         if (choice === 'cancel') { installing.current=false; return; }
         if (saveProject && !await projectRef.current.save()) { installing.current=false; return; }
         setExitBusy(true);
+        if(choice==='save')for(const item of gifPending)await invoke('gif_pending_save',{id:item.id,folder:''});
+        if(choice==='discard')for(const item of gifPending)await invoke('gif_pending_discard',{id:item.id});
         await flushStudio();
         if (zoomTimer.current) { clearTimeout(zoomTimer.current); zoomTimer.current = null; const current = snapshotRef.current; if (current) await saveRaw(current.settings); }
         await writeQueue.current;

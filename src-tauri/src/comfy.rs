@@ -165,6 +165,12 @@ fn wan_version(name: &str) -> WanVersion {
     }
 }
 
+fn wan_image_to_video_name(name: &str) -> bool {
+    let name = name.to_ascii_lowercase();
+    name.contains("wan") && !["_t2v_", "-t2v-", "wan2.1_t2v", "wan2.2_t2v"]
+        .iter().any(|part| name.contains(part))
+}
+
 fn wan_vae_matches(name: &str, version: WanVersion) -> bool {
     let name = name.to_ascii_lowercase();
     match version {
@@ -1403,7 +1409,7 @@ impl Comfy {
                 } else if metadata.is_file() {
                     let name = entry.file_name().to_string_lossy().into_owned();
                     let extension = path.extension().and_then(|value| value.to_str()).unwrap_or("");
-                    if name.to_ascii_lowercase().contains("wan")
+                    if wan_image_to_video_name(&name)
                         && (extension.eq_ignore_ascii_case("gguf")
                             || extension.eq_ignore_ascii_case("safetensors"))
                     {
@@ -1446,8 +1452,7 @@ impl Comfy {
         if self.update.lock().ok().is_some_and(|state| state.phase == "updating") {
             return Err("comfy_update_busy".into());
         }
-        if request.prompt.trim().is_empty()
-            || request.prompt.len() > 8_000
+        if request.prompt.len() > 8_000
             || request.negative_prompt.len() > 8_000
             || !(128..=2048).contains(&request.width)
             || !(128..=2048).contains(&request.height)
@@ -1477,9 +1482,16 @@ impl Comfy {
         let root = self.config.lock().map_err(|_| "comfy_storage")?.path.clone().map(PathBuf::from).ok_or("comfy_missing")?;
         let is_gguf = model.extension().and_then(|value| value.to_str()).is_some_and(|value| value.eq_ignore_ascii_case("gguf"));
         let is_safetensors = model.extension().and_then(|value| value.to_str()).is_some_and(|value| value.eq_ignore_ascii_case("safetensors"));
+        if model_name.contains("_t2v_")
+            || model_name.contains("-t2v-")
+            || model_name.contains("wan2.1_t2v")
+            || model_name.contains("wan2.2_t2v")
+        {
+            return Err("gif_ai_model_t2v".into());
+        }
         if !valid_root(&root)
             || !(is_safetensors || is_gguf)
-            || !model_name.contains("wan")
+            || !wan_image_to_video_name(&model_name)
         {
             return Err("gif_ai_model".into());
         }
@@ -2001,6 +2013,7 @@ mod tests {
         fs::write(portable.join("ComfyUI/main.py"), b"").unwrap();
         fs::write(models.join("wan_i2v.safetensors"), b"video").unwrap();
         fs::write(models.join("wan_i2v.gguf"), b"video").unwrap();
+        fs::write(models.join("wan2.1_t2v_1.3B.safetensors"), b"text-video").unwrap();
         fs::write(models.join("other_model.safetensors"), b"image").unwrap();
         fs::write(models.join("wan_notes.txt"), b"not a model").unwrap();
         let config = temp.path().join("config");
@@ -2014,6 +2027,15 @@ mod tests {
         assert_eq!(found.len(), 2);
         assert!(found.iter().all(|model| model.name.starts_with("wan_i2v.")));
         assert!(found.iter().all(|model| model.bytes == 5));
+    }
+
+    #[test]
+    fn wan_image_to_video_names_allow_i2v_and_ti2v_but_reject_t2v() {
+        assert!(wan_image_to_video_name("wan2.1_i2v_14B_fp16.safetensors"));
+        assert!(wan_image_to_video_name("wan2.2_ti2v_5B_fp16.safetensors"));
+        assert!(wan_image_to_video_name("nsfw_wan_14b_e15_q4_k.gguf"));
+        assert!(!wan_image_to_video_name("wan2.1_t2v_1.3B_fp16.safetensors"));
+        assert!(!wan_image_to_video_name("image_model.safetensors"));
     }
 
     #[test]

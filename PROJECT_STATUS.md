@@ -976,3 +976,10 @@ Als Nächstes stehen die noch offenen M0-Punkte und anschließend M1 gemäß `PL
 - Das ComfyUI-Protokoll des gemeldeten Auftrags zeigt einen echten Architekturfehler nach 20 Sampling-Schritten: Das Wan-2.1-Modell lieferte ein Latent mit 16 Kanälen, Local Studio hatte jedoch die zuerst gelistete Wan-2.2-VAE mit 48 Kanälen gewählt. Beide VAEs sind auf dem betroffenen PC installiert; die automatische Auswahl war falsch.
 - Der GIF-Adapter wählt VAEs jetzt passend zur erkannten Wan-Version. Wan-2.1-Modelle verwenden `WanImageToVideo` und eine explizite Wan-2.1-VAE; Wan-2.2-Modelle verwenden die passende VAE und `Wan22ImageToVideoLatent`. Fehlt die passende VAE, stoppt der Auftrag vor dem Sampling mit einer konkreten Meldung. ComfyUI-Ausführungsfehler zu Kanalzahl und Grafikspeicher werden verständlich unterschieden.
 - Bei unversionierten Wan-Dateinamen bleibt Wan 2.1 die konservative Zuordnung; das gemeldete GGUF-Modell wird von ComfyUI als WAN21 geladen. Für abweichend benannte Wan-2.2-Dateien kann die automatische Zuordnung noch nicht garantiert werden.
+
+# Version 0.36.34 — bestätigter GIF-Export und Galerie-Kontextmenü (2026-09-30)
+
+- Erzeugte GIFs bleiben zunächst im lokalen temporären Arbeitsstand. Erst „In Galerie speichern“ übernimmt das gewählte Ergebnis in den aktiven Galerieordner. Beim Beenden werden vorhandene GIF-Ergebnisse zusammen mit ungespeicherten Bildern zum Speichern, Behalten oder Verwerfen angeboten.
+- Gespeicherte GIFs heißen `Local-Studio-<UUID>.gif`. Wiederholte Generierungen können dadurch weder an einem doppelten Benutzernamen scheitern noch vorhandene Dateien überschreiben.
+- Bild-zu-GIF akzeptiert jetzt einen leeren Prompt. Dafür bleibt ein Startbild Pflicht; die Auswahl führt kompatible Wan-I2V-/TI2V-Modelle und schließt eindeutig als T2V benannte Dateien aus. Unmarkierte, tatsächlich als I2V verwendete Wan-GGUFs bleiben kompatibel.
+- Medien erhalten in der Hauptgalerie und der Studio-Galerie ein Rechtsklickmenü. „Löschen“ verschiebt das Medium nach Bestätigung in den vorhandenen wiederherstellbaren Local-Studio-Papierkorb.

@@ -1157,3 +1157,12 @@ ZIP-Inhalt/CRC, Anleitung, EXE-Identität und Prüfsummen geprüft. Vollständig
 - Rusttest `wan_vae_family_matches_the_selected_model`: bestanden für das gemeldete unversionierte GGUF, Wan 2.2, beide VAE-Namen und die konkrete Kanalfehler-Erkennung.
 - `npm.cmd run build`: bestanden; die neuen spezifischen Fehlermeldungen kompilieren.
 - Isolierte native End-to-End-Aufträge gegen die installierte lokale ComfyUI-Engine: Wan 2.1 GGUF erzeugte mit 5 Frames und 1 Sampling-Schritt ein echtes 285483-Byte-GIF (`.artifacts/wan-vae33-1790787290792`); Wan 2.2 Safetensors erzeugte ebenso ein echtes 284183-Byte-GIF (`.artifacts/wan-vae33-1790787427425`). Beide Testbilder waren neutral und blieben in isolierten Local-Studio-Datenordnern. Ein einzelner Sampling-Schritt belegt die technische Ausführung, nicht die Bildqualität bei üblichen Einstellungen.
+
+# GIF-Bestätigung, promptloses I2V und Rechtsklick-Löschen 0.36.34 — gezielte Prüfung (2026-09-30)
+
+- `npm.cmd run build`: bestanden; GIF-Arbeitsfläche, ungespeicherte Ergebnisliste, Beenden-Dialog und beide Galerie-Kontextmenüs kompilieren.
+- Rusttest `gif_stays_temporary_until_saved_and_uses_unique_ids`: bestanden. Zwei Ergebnisse bleiben außerhalb der Galerie, erhalten verschiedene UUIDs, werden mit verschiedenen Namen gespeichert und danach aus dem temporären Bestand entfernt.
+- Rusttests `wan_`: 3/3 bestanden. I2V/TI2V sowie das gemeldete unmarkierte Wan-GGUF bleiben zugelassen; eindeutig benannte T2V-Dateien werden nicht im Bild-zu-GIF-Katalog angeboten.
+- Isolierter nativer Test `scripts/check-gif-studio32.mjs`: temporäres Ergebnis, ausdrückliches Speichern, UUID-Dateiname, Rechtsklickmenü, Verschieben in den Papierkorb und Tastatur-Skalierung bestanden (`.artifacts/gif-studio32-1790797090031`).
+- Isolierter echter Wan-2.1-GGUF-Auftrag gegen die lokale ComfyUI-Engine erzeugte aus einem Startbild mit leerem Prompt, fünf Frames und einem Sampling-Schritt ein 694197-Byte-GIF (`.artifacts/wan-vae33-1790797118289`). Das belegt den technischen promptlosen I2V-Pfad, nicht die Ausgabequalität mit normalen Einstellungen.
+- Keine vollständige Regression der unveränderten Bild-, Video-, Download-, Update- oder Installer-Installationspfade wiederholt.
