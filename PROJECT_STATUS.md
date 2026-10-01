@@ -995,6 +995,7 @@ Als Nächstes stehen die noch offenen M0-Punkte und anschließend M1 gemäß `PL
 
 # Version 0.36.36 — Studio-Canvas und überlagerungsfreie Menüs (2026-10-01)
 
+- Version 0.36.36 ist unter https://github.com/ScopeBotlul/Local-Studio/releases/tag/v0.36.36 veröffentlicht. Installer, Portable-ZIP, Prüfsummen und signierte Update-Metadaten wurden vollständig öffentlich zurückgeladen und verifiziert.
 - Beim Übernehmen eines Startbilds in den KI-Modus des GIF-Studios werden Breite und Höhe aus den echten Originalmaßen abgeleitet. Local Studio erhält das Seitenverhältnis, begrenzt beide Seiten auf 128–2048 Pixel und rundet auf Wan-kompatible 32er-Schritte.
 - Bilder und GIFs werden im mittleren Canvas vollständig eingepasst. Die Vorschau nutzt die verfügbare Fläche bis zur begrenzenden Kante und wird auch bei abweichendem Seitenverhältnis nicht über den Canvas hinaus gezeichnet.
 - Downloadübersicht und Benachrichtigungsfenster werden als modale Browser-Top-Layer direkt unter der eigenen Windows-Titelleiste geöffnet. Dadurch bleiben sie bei jeder UI-Skalierung vor Hauptnavigation, Canvas und nativen Inhaltsflächen.

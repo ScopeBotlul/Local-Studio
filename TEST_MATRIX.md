@@ -4,6 +4,7 @@
 - `npm.cmd test -- --run src/download-overview.test.ts src/notification-center.test.ts`: 7/7 bestanden.
 - `scripts/desktop.ps1 check`: bestanden. Rust kompiliert die um Originalabmessungen erweiterte `gif_source_preview`-Antwort.
 - `node scripts/check-gif-studio32.mjs`: bestanden. Die echte isolierte Windows-App bestätigte Originalmaße, automatische Größe 160 × 128 für das 64 × 48-Testbild, Canvas-Begrenzung, Download- und Benachrichtigungsdialoge im Top-Layer bei erhöhter UI-Skalierung sowie das am Medienklick verankerte Rechtsklickmenü. Nachweis: `.artifacts/gif-studio32-1790859630612`.
+- Veröffentlichung: Installer und Portable-ZIP wurden vollständig von GitHub zurückgeladen; alle fünf öffentlichen Assets stimmen in Größe und SHA-256 mit den lokalen Dateien überein. Die Ed25519-Signatur von `update.json` wurde mit dem eingebetteten öffentlichen Schlüssel bestätigt. Nachweis: `.artifacts/github-release-verification-0.36.36.json`.
 - Unveränderte Inferenz-, Modell-, Installer- und Datenschutzpfade werden für diese UI-/Vorschaukorrektur nicht erneut vollständig ausgeführt.
 
 # Release 0.36.31 publication verification (2026-09-30)
