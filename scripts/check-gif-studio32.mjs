@@ -40,6 +40,23 @@ try {
   const invoke=(command,args={})=>page.evaluate(({command,args})=>window.__TAURI_INTERNALS__.invoke(command,args),{command,args});
   await page.getByRole('button',{name:/Studio einrichten|Set up studio/}).click();
   const snapshot=await invoke('bootstrap');
+  await page.keyboard.press('Control+=');
+  await page.keyboard.press('Control+=');
+  await pause(300);
+  const downloadButton=page.getByRole('button',{name:/Laufende Downloads|Active downloads/});
+  await downloadButton.click();
+  const downloadDialog=page.getByRole('dialog',{name:/Laufende Downloads|Active downloads/});
+  await downloadDialog.waitFor();
+  assert.equal(await downloadDialog.evaluate(element=>element.matches(':modal')),true);
+  assert.ok((await downloadDialog.boundingBox()).y>=35);
+  await downloadDialog.getByRole('button',{name:/Schließen|Close/}).click();
+  const notificationButton=page.getByRole('button',{name:/Keine Benachrichtigungen|No notifications/});
+  await notificationButton.click();
+  const notificationDialog=page.getByRole('dialog',{name:/Benachrichtigungen|Notifications/});
+  await notificationDialog.waitFor();
+  assert.equal(await notificationDialog.evaluate(element=>element.matches(':modal')),true);
+  assert.ok((await notificationDialog.boundingBox()).y>=35);
+  await notificationDialog.getByRole('button',{name:/Schließen|Close/}).click();
   const source=path.join(snapshot.paths.gallery,'gif-studio-source.png');
   const png=await page.evaluate(()=>{
     const canvas=document.createElement('canvas');canvas.width=64;canvas.height=48;
@@ -62,9 +79,15 @@ try {
   assert.equal(await vulkanFiles.getByRole('button').count(),3);
   await engines.getByRole('button',{name:'ComfyUI'}).click();
   const preview=await invoke('gif_source_preview',{path:source});
-  assert.match(preview,/^data:image\/png;base64,/);
+  assert.match(preview.url,/^data:image\/png;base64,/);
+  assert.deepEqual([preview.width,preview.height],[64,48]);
   await workspace.getByRole('button',{name:/gif-studio-source.png/}).click();
   await workspace.locator('.gif-canvas-viewport img').waitFor();
+  assert.equal(await workspace.getByLabel(/^(Breite|Width)$/).inputValue(),'160');
+  assert.equal(await workspace.getByLabel(/^(Höhe|Height)$/).inputValue(),'128');
+  const canvasFit=await workspace.locator('.gif-canvas-viewport').evaluate(element=>{const canvas=element.getBoundingClientRect(),frame=element.querySelector('.gif-canvas-media').getBoundingClientRect(),image=element.querySelector('img').getBoundingClientRect();return {inside:image.left>=canvas.left&&image.top>=canvas.top&&image.right<=canvas.right&&image.bottom<=canvas.bottom,fillWidth:Math.abs(image.width-frame.width)<2,fillHeight:Math.abs(image.height-frame.height)<2};});
+  assert.equal(canvasFit.inside,true);
+  assert.ok(canvasFit.fillWidth||canvasFit.fillHeight);
   await page.screenshot({path:path.join(artifacts,'gif-studio-ai.png')});
   await workspace.getByRole('button',{name:/Aus Bildern|From images/}).click();
   await workspace.getByRole('button',{name:/gif-studio-source.png/}).click();
@@ -83,8 +106,11 @@ try {
   assert.equal((await invoke('gif_pending_list')).length,0);
   assert.equal((await fs.readFile(result)).subarray(0,6).toString(),'GIF89a');
   const savedTile=workspace.locator('.studio-gallery-media-tile',{hasText:outputName});
-  await savedTile.waitFor();await savedTile.click({button:'right'});
-  await page.getByRole('menuitem',{name:/Löschen|Delete/}).click();
+  await savedTile.waitFor();const tileBox=await savedTile.boundingBox();await savedTile.click({button:'right'});
+  const deleteMenu=page.getByRole('menuitem',{name:/Löschen|Delete/});
+  await deleteMenu.waitFor();const menuBox=await deleteMenu.boundingBox();
+  assert.ok(menuBox.x>=tileBox.x-2&&menuBox.y>=tileBox.y-2,'Context menu remains anchored to the clicked tile at scaled UI');
+  await deleteMenu.click();
   await page.getByRole('button',{name:/In Papierkorb verschieben|Move to trash/}).click();
   await savedTile.waitFor({state:'detached'});
   await assert.rejects(()=>fs.stat(result));
@@ -93,7 +119,7 @@ try {
   assert.equal(await separator.getAttribute('aria-valuenow'),'430');
   await page.screenshot({path:path.join(artifacts,'gif-studio-result.png')});
   await invoke('mark_clean_exit');
-  console.log(`PASS native GIF layout, temporary result, UUID save, right-click trash and keyboard resize; ${artifacts}`);
+  console.log(`PASS native GIF sizing/canvas, top-layer popovers, temporary result, anchored right-click trash and keyboard resize; ${artifacts}`);
 } finally {
   if(child&&child.exitCode===null)child.kill();
   if(browser)await browser.close().catch(()=>{});

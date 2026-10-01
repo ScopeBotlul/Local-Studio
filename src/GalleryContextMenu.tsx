@@ -1,4 +1,5 @@
 import {useEffect,useRef,useState} from 'react';
+import {createPortal} from 'react-dom';
 import {Trash2} from 'lucide-react';
 import {galleryApi,galleryError,type GalleryEntry} from './gallery-api';
 import GalleryDialog from './GalleryDialog';
@@ -26,10 +27,11 @@ export default function GalleryContextMenu({target,de,onClose,onDeleted}:{target
     }catch(e){setError(galleryError(e,de));}
     finally{setBusy(false);}
   }
+  const scale=Math.max(.5,Number(getComputedStyle(document.documentElement).getPropertyValue('--ui-scale'))||1);
   return <>
-    {target&&<div ref={menu} className="gallery-context-menu" role="menu" style={{left:Math.min(target.x,window.innerWidth-210),top:Math.min(target.y,window.innerHeight-58)}}>
+    {target&&createPortal(<div ref={menu} className="gallery-context-menu" role="menu" style={{left:Math.max(8,Math.min(target.x/scale,window.innerWidth/scale-210)),top:Math.max(8,Math.min(target.y/scale,window.innerHeight/scale-58))}}>
       <button type="button" role="menuitem" disabled={!target.entry.fileId} onClick={()=>{setConfirm(target);setError('');onClose();}}><Trash2 size={15}/>{de?'Löschen …':'Delete …'}</button>
-    </div>}
+    </div>,document.body)}
     {confirm&&<GalleryDialog title={de?'Medium löschen?':'Delete media?'} busy={busy} onClose={()=>{if(!busy)setConfirm(null);}}>
       <p>{de?'Das Medium wird in den lokalen Papierkorb verschoben und kann dort wiederhergestellt werden.':'The media file will move to the local trash and can be restored there.'}</p>
       <p className="gallery-operation-files">{confirm.entry.path}</p>

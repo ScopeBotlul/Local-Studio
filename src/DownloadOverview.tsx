@@ -76,7 +76,7 @@ export default function DownloadOverview({language, disabled=false, onOpenDownlo
   },[disabled,shown]);
   useEffect(() => {
     const element=dialog.current;
-    if (shown) element?.show(); else element?.close();
+    if (shown && !element?.open) element?.showModal(); else if (!shown && element?.open) element.close();
     return () => {element?.close();};
   },[shown]);
   function close() {setShown(false);button.current?.focus();}
@@ -103,7 +103,7 @@ export default function DownloadOverview({language, disabled=false, onOpenDownlo
       <Download size={17}/>
       {overall && <span className={`window-download-progress${overall.determinate?'':' indeterminate'}`} aria-hidden="true"><span style={overall.determinate?{width:`${overall.percent}%`}:undefined}/></span>}
     </button>,menuHost)}
-    <dialog id="download-overview" ref={dialog} className="download-overview" aria-labelledby="download-overview-title" onCancel={()=>setShown(false)} onClose={()=>{setShown(false);queueMicrotask(()=>button.current?.focus());}} onClick={e=>{if(e.target===e.currentTarget){const r=e.currentTarget.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)close();}}}>
+    {createPortal(<dialog id="download-overview" ref={dialog} className="download-overview" aria-labelledby="download-overview-title" onCancel={()=>setShown(false)} onClose={()=>{setShown(false);queueMicrotask(()=>button.current?.focus());}} onClick={e=>{if(e.target===e.currentTarget){const r=e.currentTarget.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)close();}}}>
       <div className="download-overview-heading"><h2 id="download-overview-title">{de?'Laufende Downloads':'Active downloads'}</h2><button autoFocus type="button" className="icon-button" aria-label={de?'Schließen':'Close'} onClick={close}><X size={18}/></button></div>
       <div className="download-overview-list">
         {error && <p role="status">{de?'Downloadstatus teilweise nicht erreichbar. Wird erneut versucht …':'Some download statuses are unavailable. Retrying …'}</p>}
@@ -122,6 +122,6 @@ export default function DownloadOverview({language, disabled=false, onOpenDownlo
         })}
       </div>
       <button type="button" className="button secondary download-overview-all" onClick={()=>{close();onOpenDownloads();}}>{de?'Alle Downloads':'All downloads'}</button>
-    </dialog>
+    </dialog>,document.body)}
   </>;
 }

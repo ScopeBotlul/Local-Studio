@@ -21,8 +21,9 @@
 .gif-frame-list { display: grid; gap: 5px; max-height: 300px; overflow: auto; list-style: none; padding: 0; }
 .gif-frame-list li { display: grid; grid-template-columns: minmax(0,1fr) repeat(3,auto); align-items: center; gap: 5px; border: 1px solid var(--border); border-radius: 6px; padding: 6px; }
 .gif-frame-list li span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
-.gif-canvas-viewport { position: relative; display: grid; place-items: center; overflow: auto; }
-.gif-canvas-viewport > img { display: block; min-width: min(300px, calc(100% - 48px)); max-width: calc(100% - 48px); max-height: calc(100% - 48px); object-fit: contain; transform-origin: center; box-shadow: 0 8px 28px #0004; }
+.gif-canvas-viewport { position: relative; display: grid; place-items: center; overflow: hidden; }
+.gif-canvas-media { position:absolute;inset:20px;display:flex;align-items:center;justify-content:center;overflow:hidden; }
+.gif-canvas-media > img { display:block;width:100%;height:100%;object-fit:contain;transform-origin:center;filter:drop-shadow(0 8px 14px #0005); }
 .gif-canvas-progress { position:absolute;bottom:20px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:9px;width:min(320px,calc(100% - 40px));padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--panel);box-shadow:0 5px 20px #0003;font-size:11px; }
 .gif-canvas-progress progress { min-width:0;flex:1;accent-color:var(--accent); }
 .gif-canvas .image-canvas-toolbar span, .gif-canvas .image-canvas-status span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

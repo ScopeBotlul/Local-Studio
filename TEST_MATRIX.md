@@ -1,3 +1,11 @@
+# Version 0.36.36 — gezielte Studio- und Overlay-Prüfung (2026-10-01)
+
+- `npm.cmd run build`: bestanden. TypeScript und Vite kompilieren die typisierte GIF-Vorschau, die Top-Layer-Dialoge und die Galerie-Portale.
+- `npm.cmd test -- --run src/download-overview.test.ts src/notification-center.test.ts`: 7/7 bestanden.
+- `scripts/desktop.ps1 check`: bestanden. Rust kompiliert die um Originalabmessungen erweiterte `gif_source_preview`-Antwort.
+- `node scripts/check-gif-studio32.mjs`: bestanden. Die echte isolierte Windows-App bestätigte Originalmaße, automatische Größe 160 × 128 für das 64 × 48-Testbild, Canvas-Begrenzung, Download- und Benachrichtigungsdialoge im Top-Layer bei erhöhter UI-Skalierung sowie das am Medienklick verankerte Rechtsklickmenü. Nachweis: `.artifacts/gif-studio32-1790859630612`.
+- Unveränderte Inferenz-, Modell-, Installer- und Datenschutzpfade werden für diese UI-/Vorschaukorrektur nicht erneut vollständig ausgeführt.
+
 # Release 0.36.31 publication verification (2026-09-30)
 
 - Public installer and portable downloads passed size and SHA-256 verification. update.json and update.sig passed Ed25519 verification against the embedded public key; all five GitHub assets match the local release files. Evidence: .artifacts/github-release-verification-0.36.31.json.

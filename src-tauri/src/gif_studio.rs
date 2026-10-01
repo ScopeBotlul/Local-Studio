@@ -274,18 +274,33 @@ pub async fn gif_model_catalog(comfy: State<'_, Arc<Comfy>>) -> Result<Vec<WanMo
 }
 
 #[tauri::command]
-pub async fn gif_source_preview(path: String) -> Result<String> {
+pub async fn gif_source_preview(path: String) -> Result<GifSourcePreview> {
     let epoch = crate::privacy::epoch();
     let result = tauri::async_runtime::spawn_blocking(move || {
         let path = Path::new(&path);
         crate::privacy::check(path)?;
-        let preview = source(path)?.thumbnail(1024, 1024);
+        let image = source(path)?;
+        let width = image.width();
+        let height = image.height();
+        let preview = image.thumbnail(1024, 1024);
         let mut bytes = Cursor::new(Vec::new());
         preview.write_to(&mut bytes, image::ImageFormat::Png)
             .map_err(|_| "gif_source")?;
-        Ok(format!("data:image/png;base64,{}", base64::engine::general_purpose::STANDARD.encode(bytes.into_inner())))
+        Ok(GifSourcePreview {
+            url: format!("data:image/png;base64,{}", base64::engine::general_purpose::STANDARD.encode(bytes.into_inner())),
+            width,
+            height,
+        })
     }).await.map_err(|_| "gif_source")?;
     crate::privacy::finish(epoch, result)
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GifSourcePreview {
+    url: String,
+    width: u32,
+    height: u32,
 }
 
 #[derive(Clone, Deserialize)]

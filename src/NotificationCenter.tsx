@@ -36,7 +36,7 @@ export default function NotificationCenter({language, disabled=false, entries, o
   const dialog=useRef<HTMLDialogElement>(null), button=useRef<HTMLButtonElement>(null);
   useEffect(()=>{
     const element=dialog.current;
-    if(shown) element?.show(); else element?.close();
+    if(shown&&!element?.open) element?.showModal(); else if(!shown&&element?.open) element.close();
     return()=>element?.close();
   },[shown]);
   function close(){setShown(false);button.current?.focus();}
@@ -62,7 +62,7 @@ export default function NotificationCenter({language, disabled=false, entries, o
     {menuHost&&createPortal(<button ref={button} type="button" className="window-notification-button" title={label} aria-label={label} aria-haspopup="dialog" aria-expanded={shown} aria-controls="notification-center" disabled={disabled} onClick={toggle}>
       <Bell size={17}/>{entries.length>0&&<span className="window-notification-badge" aria-hidden="true">{entries.length>99?'99+':entries.length}</span>}
     </button>,menuHost)}
-    <dialog id="notification-center" ref={dialog} className="notification-center" aria-labelledby="notification-center-title" onCancel={()=>setShown(false)} onClose={()=>{setShown(false);queueMicrotask(()=>button.current?.focus());}} onClick={event=>{if(event.target===event.currentTarget){const rect=event.currentTarget.getBoundingClientRect();if(event.clientX<rect.left||event.clientX>rect.right||event.clientY<rect.top||event.clientY>rect.bottom)close();}}}>
+    {createPortal(<dialog id="notification-center" ref={dialog} className="notification-center" aria-labelledby="notification-center-title" onCancel={()=>setShown(false)} onClose={()=>{setShown(false);queueMicrotask(()=>button.current?.focus());}} onClick={event=>{if(event.target===event.currentTarget){const rect=event.currentTarget.getBoundingClientRect();if(event.clientX<rect.left||event.clientX>rect.right||event.clientY<rect.top||event.clientY>rect.bottom)close();}}}>
       <div className="notification-center-heading"><div><h2 id="notification-center-title">{de?'Benachrichtigungen':'Notifications'}</h2><small>{entries.length?label:(de?'Alles erledigt':'All caught up')}</small></div><button autoFocus type="button" className="icon-button" aria-label={de?'Schließen':'Close'} onClick={close}><X size={18}/></button></div>
       <div className="notification-center-list">
         {!entries.length&&<div className="notification-center-empty"><CheckCircle2 size={28}/><strong>{de?'Keine offenen Hinweise':'No pending notices'}</strong><p>{de?'Wichtige Hinweise und Wiederherstellungen erscheinen hier.':'Important notices and recovery actions appear here.'}</p></div>}
@@ -70,6 +70,6 @@ export default function NotificationCenter({language, disabled=false, entries, o
           <Icon size={18}/><div><strong>{entry.title}</strong><p>{entry.message}</p>{(entry.onAction||entry.onDismiss)&&<div className="notification-center-actions">{entry.onAction&&<button type="button" className="button primary" disabled={!!busy} onClick={()=>void run(entry.id,entry.onAction!)}>{busy===entry.id?(de?'Wird ausgeführt …':'Working …'):entry.actionLabel}</button>}{entry.onDismiss&&<button type="button" className="button secondary" disabled={!!busy} onClick={()=>void run(`${entry.id}:dismiss`,entry.onDismiss!)}>{busy===`${entry.id}:dismiss`?(de?'Wird ausgeführt …':'Working …'):(entry.dismissLabel??(de?'Ausblenden':'Dismiss'))}</button>}</div>}</div>
         </article>;})}
       </div>
-    </dialog>
+    </dialog>,document.body)}
   </>;
 }

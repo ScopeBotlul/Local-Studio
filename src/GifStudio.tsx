@@ -15,6 +15,7 @@ type AiEngine = 'comfy' | 'vulkan';
 type WanModel = {path:string; name:string; bytes:number};
 type GifPending = {id:string; bytes:number; createdAt:number};
 type Preview = {url:string; path:string; label:string; width?:number; height?:number};
+type SourcePreview = {url:string;width:number;height:number};
 type PanelWidths = {left:number; right:number};
 const defaultWidths:PanelWidths = {left:410,right:300};
 const imageExtensions = ['png','jpg','jpeg','webp','bmp'];
@@ -28,6 +29,15 @@ function savedWidths():PanelWidths {
       right:Number.isFinite(value.right)?Math.max(250,Math.min(440,value.right)):defaultWidths.right,
     };
   } catch {return defaultWidths;}
+}
+function fittedSourceSize(width:number,height:number){
+  const step=32,max=2048,min=128;
+  const safeWidth=Math.max(width,1),safeHeight=Math.max(height,1);
+  const shrink=Math.min(1,max/safeWidth,max/safeHeight);
+  const grow=Math.max(1,min/(safeWidth*shrink),min/(safeHeight*shrink));
+  const scale=shrink*grow;
+  const fit=(value:number)=>Math.max(min,Math.min(max,Math.round(value*scale/step)*step));
+  return {width:fit(width),height:fit(height)};
 }
 function message(error:unknown,de:boolean){
   const code=String(error);
@@ -108,16 +118,16 @@ export default function GifStudio({de}:{de:boolean}){
   useEffect(()=>{let live=true;void invoke<GifPending[]>('gif_pending_list').then(items=>{if(live){setPending(items);if(items[0])void showPending(items[0].id);}}).catch(e=>{if(live)setError(message(e,de));});return()=>{live=false;};},[]);
   useEffect(()=>{try{localStorage.setItem('gif-studio-panel-widths',JSON.stringify(panelWidths));}catch{/* local preference */}},[panelWidths]);
   function onFolder(folder:string){setGalleryFolder(folder);setSelectedPath('');try{sessionStorage.setItem('studio-gallery-folder',folder);}catch{/* session only */}}
-  function showLocal(path:string){
+  function showLocal(path:string,adaptDimensions=false){
     const id=++previewRequest.current;
     setActivePending(null);
     setPreview(null);
-    void invoke<string>('gif_source_preview',{path}).then(url=>{if(previewRequest.current===id){setPreview({url,path,label:fileName(path)});setZoom(1);}})
+    void invoke<SourcePreview>('gif_source_preview',{path}).then(result=>{if(previewRequest.current===id){setPreview({url:result.url,path,label:fileName(path),width:result.width,height:result.height});if(adaptDimensions){const fitted=fittedSourceSize(result.width,result.height);setWidth(fitted.width);setHeight(fitted.height);}setZoom(1);}})
       .catch(e=>{if(previewRequest.current===id)setError(message(e,de));});
   }
   async function chooseSource(){
     const picked=await open({multiple:false,title:de?'Startbild wählen':'Choose start image',filters:[{name:de?'Bilder':'Images',extensions:imageExtensions}]});
-    if(typeof picked==='string'){setSource(picked);setSelectedPath('');showLocal(picked);}
+    if(typeof picked==='string'){setSource(picked);setSelectedPath('');showLocal(picked,true);}
   }
   async function chooseFrames(){
     const picked=await open({multiple:true,title:de?'GIF-Frames wählen':'Choose GIF frames',filters:[{name:de?'Bilder':'Images',extensions:imageExtensions}]});
@@ -146,7 +156,7 @@ export default function GifStudio({de}:{de:boolean}){
       setPreview({url:detail.url,path:entry.path,label:entry.name,width:detail.dimensions?.[0],height:detail.dimensions?.[1]});
       setZoom(1);
       const fullPath=root.replace(/[\\/]$/,'')+'\\'+entry.path.replace(/\//g,'\\');
-      if(mode==='ai'&& !entry.name.toLowerCase().endsWith('.gif'))setSource(fullPath);
+      if(mode==='ai'&& !entry.name.toLowerCase().endsWith('.gif')){setSource(fullPath);if(detail.dimensions){const fitted=fittedSourceSize(detail.dimensions[0],detail.dimensions[1]);setWidth(fitted.width);setHeight(fitted.height);}}
       if(mode==='frames'&&frames.length<200)setFrames(current=>[...current,fullPath]);
     }catch(e){setError(message(e,de));}
   }
@@ -269,7 +279,7 @@ export default function GifStudio({de}:{de:boolean}){
       <main className="image-workspace-output">
         <section className="image-canvas gif-canvas" aria-label={de?'GIF-Canvas':'GIF canvas'}>
           <div className="image-canvas-toolbar"><div><strong>Canvas</strong><span>{preview?.label??(de?'Vorschau':'Preview')}</span></div><div role="group" aria-label={de?'Vorschaugröße':'Preview zoom'}><button type="button" className="text-button" disabled={!preview} aria-label={de?'Verkleinern':'Zoom out'} onClick={()=>setZoom(value=>Math.max(.25,value-.25))}><Minus size={15}/></button><button type="button" className="text-button" disabled={!preview} onClick={()=>setZoom(1)}>{Math.round(zoom*100)}%</button><button type="button" className="text-button" disabled={!preview} aria-label={de?'Vergrößern':'Zoom in'} onClick={()=>setZoom(value=>Math.min(4,value+.25))}><Plus size={15}/></button><button type="button" className="text-button" disabled={!preview} aria-label={de?'Einpassen':'Fit'} onClick={()=>setZoom(1)}><Maximize size={15}/></button></div></div>
-          <div className="image-canvas-viewport gif-canvas-viewport">{preview?<img src={preview.url} alt={preview.label} style={{transform:`scale(${zoom})`}}/>:<div className="image-canvas-empty"><div className="image-canvas-symbol"><Film size={32}/></div><h2>{busy?(de?'GIF wird erzeugt …':'Generating GIF …'):(de?'Dein GIF erscheint hier':'Your GIF appears here')}</h2><p>{mode==='ai'?(de?'Wan-I2V-Modell und Startbild wählen; der Bewegungs-Prompt ist optional.':'Choose a Wan I2V model and start image; the motion prompt is optional.'):(de?'Bilder hinzufügen und als GIF erzeugen.':'Add images and create a GIF.')}</p>{busy&&<progress aria-label={de?'GIF wird erstellt':'Creating GIF'}/>}</div>}{busy&&preview&&<div className="gif-canvas-progress"><LoaderCircle className="spin" size={16}/><span>{de?'GIF wird erstellt …':'Creating GIF …'}</span><progress aria-label={de?'GIF wird erstellt':'Creating GIF'}/></div>}</div>
+          <div className="image-canvas-viewport gif-canvas-viewport">{preview?<div className="gif-canvas-media"><img src={preview.url} alt={preview.label} style={{transform:`scale(${zoom})`}}/></div>:<div className="image-canvas-empty"><div className="image-canvas-symbol"><Film size={32}/></div><h2>{busy?(de?'GIF wird erzeugt …':'Generating GIF …'):(de?'Dein GIF erscheint hier':'Your GIF appears here')}</h2><p>{mode==='ai'?(de?'Wan-I2V-Modell und Startbild wählen; der Bewegungs-Prompt ist optional.':'Choose a Wan I2V model and start image; the motion prompt is optional.'):(de?'Bilder hinzufügen und als GIF erzeugen.':'Add images and create a GIF.')}</p>{busy&&<progress aria-label={de?'GIF wird erstellt':'Creating GIF'}/>}</div>}{busy&&preview&&<div className="gif-canvas-progress"><LoaderCircle className="spin" size={16}/><span>{de?'GIF wird erstellt …':'Creating GIF …'}</span><progress aria-label={de?'GIF wird erstellt':'Creating GIF'}/></div>}</div>
           <div className="image-canvas-status"><span>{busy?(de?'Lokale Verarbeitung läuft':'Local processing in progress'):(preview?.path??(de?'Bereit':'Ready'))}</span><span>{preview?.width&&preview.height?`${preview.width} × ${preview.height} px`:(de?'Lokal auf deinem PC':'Local on your PC')}</span></div>
         </section>
         {activePending&&<div className="gif-result-actions"><strong>{de?'Ungespeichertes GIF':'Unsaved GIF'}</strong><span>{de?'Ziel:':'Destination:'} {galleryFolder||(de?'Galerie-Hauptordner':'Gallery root')}</span><button type="button" className="button primary" disabled={busy} onClick={()=>void savePending()}><Save size={15}/>{de?'In Galerie speichern':'Save to gallery'}</button><button type="button" className="button secondary" disabled={busy} onClick={()=>void discardPending()}><Trash2 size={15}/>{de?'Verwerfen':'Discard'}</button></div>}

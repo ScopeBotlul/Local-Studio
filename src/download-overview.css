@@ -5,7 +5,7 @@
 .window-download-progress.indeterminate>span{width:45%;animation:window-download-progress 1.1s ease-in-out infinite}
 @keyframes window-download-progress{from{transform:translateX(-120%)}to{transform:translateX(260%)}}
 @media (prefers-reduced-motion:reduce){.window-download-progress.indeterminate>span{animation-duration:2.2s}}
-dialog.download-overview{position:fixed;inset:0 auto auto 12px;margin:0;width:min(420px,calc(100vw / var(--ui-scale) - 24px));max-width:calc(100vw / var(--ui-scale) - 24px);max-height:calc(100vh / var(--ui-scale) - 60px);box-sizing:border-box;padding:18px;background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:12px;box-shadow:0 16px 48px #0007;zoom:var(--ui-scale);overflow:auto}
+dialog.download-overview{position:fixed;inset:calc(44px / var(--ui-scale)) auto auto calc(12px / var(--ui-scale));margin:0;width:min(420px,calc(100vw / var(--ui-scale) - 24px));max-width:calc(100vw / var(--ui-scale) - 24px);max-height:calc((100vh - 56px) / var(--ui-scale));box-sizing:border-box;padding:18px;background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:12px;box-shadow:0 16px 48px #0007;zoom:var(--ui-scale);overflow:auto}
 .download-overview::backdrop{background:transparent}
 .download-overview-heading{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:12px}
 .download-overview-heading h2{font-size:16px;margin:0}

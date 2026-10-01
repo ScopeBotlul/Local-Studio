@@ -992,3 +992,11 @@ Als Nächstes stehen die noch offenen M0-Punkte und anschließend M1 gemäß `PL
 - Nutzer wählen ein einzelnes Wan-I2V-/TI2V-Diffusionsmodell, einen UMT5-Textencoder und die passende Wan-VAE als lokale Safetensors-/GGUF-Dateien. Reine T2V-Dateinamen werden für Startbilder abgewiesen. Die zuletzt gewählten lokalen Pfade bleiben ausschließlich lokal gespeichert.
 - Diffusionsberechnung läuft auf dem automatisch erkannten Vulkan-Gerät. Auto-Fit darf Gewichte in den Arbeitsspeicher auslagern; die VAE dekodiert bewusst auf der CPU, um die VRAM-Spitze auf Handhelds zu senken. Der Adapter installiert keine Modellabhängigkeiten und führt keinen Modellcode aus.
 - Die erzeugte Framefolge wird mit dem vorhandenen lokalen Encoder als temporäres GIF übernommen. Vorschau, UUID-Dateiname, ausdrückliches Galerie-Speichern und Verwerfen verhalten sich identisch zum ComfyUI-Pfad.
+
+# Version 0.36.36 — Studio-Canvas und überlagerungsfreie Menüs (2026-10-01)
+
+- Beim Übernehmen eines Startbilds in den KI-Modus des GIF-Studios werden Breite und Höhe aus den echten Originalmaßen abgeleitet. Local Studio erhält das Seitenverhältnis, begrenzt beide Seiten auf 128–2048 Pixel und rundet auf Wan-kompatible 32er-Schritte.
+- Bilder und GIFs werden im mittleren Canvas vollständig eingepasst. Die Vorschau nutzt die verfügbare Fläche bis zur begrenzenden Kante und wird auch bei abweichendem Seitenverhältnis nicht über den Canvas hinaus gezeichnet.
+- Downloadübersicht und Benachrichtigungsfenster werden als modale Browser-Top-Layer direkt unter der eigenen Windows-Titelleiste geöffnet. Dadurch bleiben sie bei jeder UI-Skalierung vor Hauptnavigation, Canvas und nativen Inhaltsflächen.
+- Das gemeinsame Galerie-Rechtsklickmenü wird außerhalb scrollender und skalierter Galeriecontainer gerendert. Es bleibt in Hauptgalerie, Bildstudio und GIF-Studio an der angeklickten Medienkachel und wird nicht mehr abgeschnitten.
+- Während ein Bildauftrag läuft oder wartet, zeigt das Bildstudio den zusätzlichen großen Auftrags-/Fortschrittsblock unter dem Canvas nicht mehr. Canvas-Status, Auftragsseite und Verlauf bleiben verfügbar; der Ergebnisbereich erscheint weiterhin nach Abschluss zum Speichern oder Verwerfen.
