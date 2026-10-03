@@ -15,6 +15,7 @@
 - `node scripts/check-gif-studio32.mjs`: bestanden. Die echte Windows-App entfernt das Referenzbild, zeigt den Prompt-zu-Video-Modus, verhindert einen Start ohne Modell und bestätigt weiterhin Canvas-Einpassung, temporäres Ergebnis, Speichern, Rechtsklickmenü und Panelgrößen. Nachweis: `.artifacts/gif-studio32-1791028611865`.
 - Optimierter Windows-Build, Installer, Portable-ZIP, Paket-Hashes und Ed25519-signierte Update-Metadaten wurden lokal erfolgreich erzeugt und geprüft. Portable SHA-256 `07440764ddc24bdeb2c54e77530a88fcfa076dc3cd4e51ac4c3326e6b7bae205`; Installer SHA-256 `534d8c5cc56a9801f4532ea8209eae4813152eb0c27058b744096cf4c6aba850`.
 - Grenze: Ein vollständiger Wan-T2V-/I2V-GPU-Lauf wird für diesen Build nicht automatisch angestoßen. Modellqualität hängt weiterhin vom tatsächlich passenden Wan-Modell, Encoder, VAE, Prompt und den Generierungsparametern ab.
+- Veröffentlichung: Alle fünf Assets des öffentlichen GitHub-Releases `v0.36.37` stimmen in Größe und SHA-256 mit den lokalen Dateien überein. `update.json` und `update.sig` wurden mit dem eingebetteten Ed25519-Schlüssel verifiziert. Nachweis: `.artifacts/github-release-verification-0.36.37.json`.
 
 # Release 0.36.31 publication verification (2026-09-30)
 
