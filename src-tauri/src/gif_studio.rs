@@ -306,7 +306,7 @@ pub struct GifSourcePreview {
 #[derive(Clone, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct GifAiRequest {
-    pub source_path: String,
+    pub source_path: Option<String>,
     pub model_path: String,
     pub prompt: String,
     pub negative_prompt: String,
@@ -323,7 +323,7 @@ pub struct GifAiRequest {
 #[derive(Clone, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct GifVulkanRequest {
-    pub source_path: String,
+    pub source_path: Option<String>,
     pub model_path: String,
     pub encoder_path: String,
     pub vae_path: String,

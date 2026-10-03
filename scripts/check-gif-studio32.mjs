@@ -88,6 +88,13 @@ try {
   const canvasFit=await workspace.locator('.gif-canvas-viewport').evaluate(element=>{const canvas=element.getBoundingClientRect(),frame=element.querySelector('.gif-canvas-media').getBoundingClientRect(),image=element.querySelector('img').getBoundingClientRect();return {inside:image.left>=canvas.left&&image.top>=canvas.top&&image.right<=canvas.right&&image.bottom<=canvas.bottom,fillWidth:Math.abs(image.width-frame.width)<2,fillHeight:Math.abs(image.height-frame.height)<2};});
   assert.equal(canvasFit.inside,true);
   assert.ok(canvasFit.fillWidth||canvasFit.fillHeight);
+  await workspace.getByRole('button',{name:/Bild entfernen|Remove image/}).click();
+  await workspace.getByText(/Ohne Referenzbild läuft Prompt-zu-Video|Without a reference image, prompt-to-video/).waitFor();
+  assert.equal(await workspace.locator('.gif-canvas-viewport img').count(),0);
+  await workspace.getByLabel(/Prompt \/ Szene \/ Bewegung|Prompt \/ scene \/ motion/).fill('slow cinematic camera movement');
+  assert.equal(await workspace.getByRole('button',{name:/GIF generieren|Generate GIF/}).isDisabled(),true);
+  await workspace.getByRole('button',{name:/gif-studio-source.png/}).click();
+  await workspace.locator('.gif-canvas-viewport img').waitFor();
   await page.screenshot({path:path.join(artifacts,'gif-studio-ai.png')});
   await workspace.getByRole('button',{name:/Aus Bildern|From images/}).click();
   await workspace.getByRole('button',{name:/gif-studio-source.png/}).click();

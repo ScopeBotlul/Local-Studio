@@ -12,6 +12,8 @@
 .gif-config .section-heading { margin: 0 0 8px; }
 .gif-config .image-model-select { width: 100%; }
 .gif-config .gif-file-button { max-width: 100%; margin: 9px 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gif-source-actions { display:flex;align-items:center;gap:7px;flex-wrap:wrap; }
+.gif-source-actions .gif-file-button { flex:1 1 190px; }
 .gif-control-group { padding: 16px 0; border-top: 1px solid var(--border); }
 .gif-control-group .field-label + .field-label { margin-top: 12px; }
 .gif-config .field-label { display: grid; gap: 7px; min-width: 0; }

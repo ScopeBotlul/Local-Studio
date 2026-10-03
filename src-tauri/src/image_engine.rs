@@ -72,7 +72,7 @@ pub enum ImageBackend {
 }
 
 pub(crate) struct NativeVideoRequest {
-    pub source_path: String,
+    pub source_path: Option<String>,
     pub model_path: String,
     pub encoder_path: String,
     pub vae_path: String,
@@ -945,13 +945,19 @@ impl ImageEngine {
         {
             return Err("gif_vulkan_parameters".into());
         }
-        let source = native_video_input(
-            &request.source_path,
-            &["png", "jpg", "jpeg", "webp", "bmp"],
-            "gif_ai_source",
-        )?;
-        if fs::metadata(&source).map_err(|_| "gif_ai_source")?.len() > 32 * 1024 * 1024 {
-            return Err("gif_ai_source".into());
+        let source = request.source_path.as_deref().filter(|path| !path.trim().is_empty()).map(|path| -> Result<PathBuf> {
+            let source = native_video_input(
+                path,
+                &["png", "jpg", "jpeg", "webp", "bmp"],
+                "gif_ai_source",
+            )?;
+            if fs::metadata(&source).map_err(|_| "gif_ai_source")?.len() > 32 * 1024 * 1024 {
+                return Err("gif_ai_source".into());
+            }
+            Ok(source)
+        }).transpose()?;
+        if source.is_none() && request.prompt.trim().is_empty() {
+            return Err("gif_ai_prompt".into());
         }
         let model = native_video_input(
             &request.model_path,
@@ -969,23 +975,30 @@ impl ImageEngine {
             "gif_vulkan_vae",
         )?;
         let model_name = model.file_name().and_then(|name| name.to_str()).unwrap_or("").to_ascii_lowercase();
-        if model_name.contains("_t2v_")
-            || model_name.contains("-t2v-")
-            || model_name.contains("wan2.1_t2v")
-            || model_name.contains("wan2.2_t2v")
+        if source.is_some()
+            && (model_name.contains("_t2v") || model_name.contains("-t2v"))
+            && !model_name.contains("ti2v")
         {
             return Err("gif_vulkan_model".into());
+        }
+        if source.is_none()
+            && (model_name.contains("_i2v") || model_name.contains("-i2v"))
+            && !model_name.contains("ti2v")
+        {
+            return Err("gif_vulkan_model_i2v".into());
         }
         model_library::no_links(directory).map_err(|_| "gif_storage")?;
         let directory = fs::canonicalize(directory).map_err(|_| "gif_storage")?;
         let _directory_guards = crate::gallery::directory_guards(&directory)?;
         let _runtime_locks = runtime_files(&self.runtime)?;
-        let _input_locks = [
-            read_locked(&source).map_err(|_| "gif_ai_source")?,
-            read_locked(&model).map_err(|_| "gif_vulkan_model")?,
-            read_locked(&encoder).map_err(|_| "gif_vulkan_encoder")?,
-            read_locked(&vae).map_err(|_| "gif_vulkan_vae")?,
-        ];
+        let mut input_locks = Vec::with_capacity(4);
+        if let Some(source) = source.as_ref() {
+            input_locks.push(read_locked(source).map_err(|_| "gif_ai_source")?);
+        }
+        input_locks.push(read_locked(&model).map_err(|_| "gif_vulkan_model")?);
+        input_locks.push(read_locked(&encoder).map_err(|_| "gif_vulkan_encoder")?);
+        input_locks.push(read_locked(&vae).map_err(|_| "gif_vulkan_vae")?);
+        let _input_locks = input_locks;
         let hardware = crate::hardware::discover();
         let mut vendors = Vec::new();
         for vendor in ["NVIDIA", "AMD", "Intel"] {
@@ -1015,10 +1028,11 @@ impl ImageEngine {
             .arg("--t5xxl")
             .arg(&encoder)
             .arg("--vae")
-            .arg(&vae)
-            .arg("--init-img")
-            .arg(&source)
-            .arg("--prompt-file")
+            .arg(&vae);
+        if let Some(source) = source.as_ref() {
+            cmd.arg("--init-img").arg(source);
+        }
+        cmd.arg("--prompt-file")
             .arg(&prompt)
             .arg("--negative-prompt-file")
             .arg(&negative)
@@ -1081,7 +1095,8 @@ impl ImageEngine {
         let mut log_text = String::new();
         let _ = File::open(log_path).and_then(|file| file.take(4 * 1024 * 1024).read_to_string(&mut log_text));
         let lower = log_text.to_ascii_lowercase();
-        if (lower.contains("wan2.x-t2v-") || lower.contains("wan2.1-t2v-") || lower.contains("wan2.2-t2v-"))
+        if source.is_some()
+            && (lower.contains("wan2.x-t2v-") || lower.contains("wan2.1-t2v-") || lower.contains("wan2.2-t2v-"))
             && !lower.contains("ti2v")
         {
             return Err("gif_vulkan_model".into());

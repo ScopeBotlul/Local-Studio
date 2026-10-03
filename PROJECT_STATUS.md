@@ -1001,3 +1001,11 @@ Als Nächstes stehen die noch offenen M0-Punkte und anschließend M1 gemäß `PL
 - Downloadübersicht und Benachrichtigungsfenster werden als modale Browser-Top-Layer direkt unter der eigenen Windows-Titelleiste geöffnet. Dadurch bleiben sie bei jeder UI-Skalierung vor Hauptnavigation, Canvas und nativen Inhaltsflächen.
 - Das gemeinsame Galerie-Rechtsklickmenü wird außerhalb scrollender und skalierter Galeriecontainer gerendert. Es bleibt in Hauptgalerie, Bildstudio und GIF-Studio an der angeklickten Medienkachel und wird nicht mehr abgeschnitten.
 - Während ein Bildauftrag läuft oder wartet, zeigt das Bildstudio den zusätzlichen großen Auftrags-/Fortschrittsblock unter dem Canvas nicht mehr. Canvas-Status, Auftragsseite und Verlauf bleiben verfügbar; der Ergebnisbereich erscheint weiterhin nach Abschluss zum Speichern oder Verwerfen.
+
+# Version 0.36.37 — GIFs mit oder ohne Referenzbild (2026-10-03)
+
+- Das Referenzbild im GIF-Studio ist jetzt optional und kann mit **Bild entfernen** aus dem Auftrag genommen werden. Ohne Referenzbild erzeugt das Studio ein GIF ausschließlich aus Prompt, negativem Prompt und den gewählten Parametern.
+- ComfyUI verwendet für Wan 2.1 ohne Bild einen echten Text-zu-Video-Latent-Workflow. Mit Bild bleibt der Bild-zu-Video-Workflow aktiv. Wan 2.2 verwendet seinen kombinierten Latent-Knoten mit optionalem Startbild.
+- Der lokale Vulkan-Pfad übergibt `--init-img` nur noch bei tatsächlich gewähltem Referenzbild. Damit kann dieselbe Oberfläche auch echte Wan-T2V-/TI2V-Modelle ohne ComfyUI starten.
+- Die Modellliste kennzeichnet I2V, T2V und kombinierte beziehungsweise nicht eindeutig benannte Modelle. Eindeutige I2V- und T2V-Dateinamen werden vor dem Start gegen den gewählten Modus geprüft, damit ein unpassender Workflow nicht erst nach langer Inferenz scheitert oder unbrauchbare Ergebnisse erzeugt.
+- Ohne Referenzbild ist ein Prompt Pflicht. Sämtliche Medien, Modellpfade und Prompts bleiben lokal; die Änderung installiert keine Modellabhängigkeiten und führt keinen Modellcode aus.

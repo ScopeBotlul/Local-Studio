@@ -7,6 +7,15 @@
 - Veröffentlichung: Installer und Portable-ZIP wurden vollständig von GitHub zurückgeladen; alle fünf öffentlichen Assets stimmen in Größe und SHA-256 mit den lokalen Dateien überein. Die Ed25519-Signatur von `update.json` wurde mit dem eingebetteten öffentlichen Schlüssel bestätigt. Nachweis: `.artifacts/github-release-verification-0.36.36.json`.
 - Unveränderte Inferenz-, Modell-, Installer- und Datenschutzpfade werden für diese UI-/Vorschaukorrektur nicht erneut vollständig ausgeführt.
 
+# Version 0.36.37 — gezielte GIF-Modusprüfung (2026-10-03)
+
+- `scripts/desktop.ps1 check`: bestanden. Der Rust-Compiler akzeptiert die optionale, typisierte Referenz in ComfyUI- und Vulkan-Aufträgen.
+- `cargo test --manifest-path src-tauri/Cargo.toml comfy::tests::wan_ --lib`: 3/3 bestanden. Geprüft sind Wan-Version/VAE-Zuordnung, Aufnahme von I2V- und T2V-Modellen in den Katalog sowie die Trennung eindeutiger I2V-, T2V- und TI2V-Dateinamen.
+- `npm.cmd run build` im Release-Build: bestanden. TypeScript und Vite kompilieren die optionale Referenz, Moduskennzeichnung und typisierten IPC-Anfragen.
+- `node scripts/check-gif-studio32.mjs`: bestanden. Die echte Windows-App entfernt das Referenzbild, zeigt den Prompt-zu-Video-Modus, verhindert einen Start ohne Modell und bestätigt weiterhin Canvas-Einpassung, temporäres Ergebnis, Speichern, Rechtsklickmenü und Panelgrößen. Nachweis: `.artifacts/gif-studio32-1791028611865`.
+- Optimierter Windows-Build, Installer, Portable-ZIP, Paket-Hashes und Ed25519-signierte Update-Metadaten wurden lokal erfolgreich erzeugt und geprüft. Portable SHA-256 `07440764ddc24bdeb2c54e77530a88fcfa076dc3cd4e51ac4c3326e6b7bae205`; Installer SHA-256 `534d8c5cc56a9801f4532ea8209eae4813152eb0c27058b744096cf4c6aba850`.
+- Grenze: Ein vollständiger Wan-T2V-/I2V-GPU-Lauf wird für diesen Build nicht automatisch angestoßen. Modellqualität hängt weiterhin vom tatsächlich passenden Wan-Modell, Encoder, VAE, Prompt und den Generierungsparametern ab.
+
 # Release 0.36.31 publication verification (2026-09-30)
 
 - Public installer and portable downloads passed size and SHA-256 verification. update.json and update.sig passed Ed25519 verification against the embedded public key; all five GitHub assets match the local release files. Evidence: .artifacts/github-release-verification-0.36.31.json.

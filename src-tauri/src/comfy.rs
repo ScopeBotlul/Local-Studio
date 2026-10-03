@@ -63,6 +63,8 @@ pub struct WanModel {
     path: String,
     name: String,
     bytes: u64,
+    supports_image: bool,
+    supports_prompt: bool,
 }
 #[derive(Clone, Default, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -165,10 +167,26 @@ fn wan_version(name: &str) -> WanVersion {
     }
 }
 
-fn wan_image_to_video_name(name: &str) -> bool {
+fn wan_text_to_video_name(name: &str) -> bool {
     let name = name.to_ascii_lowercase();
-    name.contains("wan") && !["_t2v_", "-t2v-", "wan2.1_t2v", "wan2.2_t2v"]
-        .iter().any(|part| name.contains(part))
+    (name.contains("_t2v") || name.contains("-t2v")) && !name.contains("ti2v")
+}
+
+fn wan_explicit_image_to_video_name(name: &str) -> bool {
+    let name = name.to_ascii_lowercase();
+    (name.contains("_i2v") || name.contains("-i2v")) && !name.contains("ti2v")
+}
+
+fn wan_video_name(name: &str) -> bool {
+    name.to_ascii_lowercase().contains("wan")
+}
+
+fn wan_latent_node(version: WanVersion, has_source: bool) -> &'static str {
+    match (version, has_source) {
+        (WanVersion::V21, false) => "EmptyHunyuanLatentVideo",
+        (WanVersion::V21, true) => "WanImageToVideo",
+        (WanVersion::V22, _) => "Wan22ImageToVideoLatent",
+    }
 }
 
 fn wan_vae_matches(name: &str, version: WanVersion) -> bool {
@@ -1409,12 +1427,14 @@ impl Comfy {
                 } else if metadata.is_file() {
                     let name = entry.file_name().to_string_lossy().into_owned();
                     let extension = path.extension().and_then(|value| value.to_str()).unwrap_or("");
-                    if wan_image_to_video_name(&name)
+                    if wan_video_name(&name)
                         && (extension.eq_ignore_ascii_case("gguf")
                             || extension.eq_ignore_ascii_case("safetensors"))
                     {
                         models.push(WanModel {
                             path: path.to_string_lossy().into_owned(),
+                            supports_image: !wan_text_to_video_name(&name),
+                            supports_prompt: !wan_explicit_image_to_video_name(&name),
                             name,
                             bytes: metadata.len(),
                         });
@@ -1465,15 +1485,21 @@ impl Comfy {
         {
             return Err("gif_ai_parameters".into());
         }
-        let source = fs::canonicalize(&request.source_path).map_err(|_| "gif_ai_source")?;
-        model_library::no_links(&source).map_err(|_| "gif_ai_source")?;
-        let source_metadata = fs::metadata(&source).map_err(|_| "gif_ai_source")?;
-        let extension = source.extension().and_then(|value| value.to_str()).map(str::to_ascii_lowercase);
-        if !source_metadata.is_file()
-            || source_metadata.len() > 32 * 1024 * 1024
-            || !matches!(extension.as_deref(), Some("png" | "jpg" | "jpeg" | "webp" | "bmp"))
-        {
-            return Err("gif_ai_source".into());
+        let source = request.source_path.as_deref().filter(|path| !path.trim().is_empty()).map(|requested| -> Result<(PathBuf, String)> {
+            let source = fs::canonicalize(requested).map_err(|_| "gif_ai_source")?;
+            model_library::no_links(&source).map_err(|_| "gif_ai_source")?;
+            let metadata = fs::metadata(&source).map_err(|_| "gif_ai_source")?;
+            let extension = source.extension().and_then(|value| value.to_str()).map(str::to_ascii_lowercase);
+            if !metadata.is_file()
+                || metadata.len() > 32 * 1024 * 1024
+                || !matches!(extension.as_deref(), Some("png" | "jpg" | "jpeg" | "webp" | "bmp"))
+            {
+                return Err("gif_ai_source".into());
+            }
+            Ok((source, extension.unwrap_or_else(|| "png".into())))
+        }).transpose()?;
+        if source.is_none() && request.prompt.trim().is_empty() {
+            return Err("gif_ai_prompt".into());
         }
         let model = fs::canonicalize(&request.model_path).map_err(|_| "gif_ai_model")?;
         model_library::no_links(&model).map_err(|_| "gif_ai_model")?;
@@ -1482,16 +1508,15 @@ impl Comfy {
         let root = self.config.lock().map_err(|_| "comfy_storage")?.path.clone().map(PathBuf::from).ok_or("comfy_missing")?;
         let is_gguf = model.extension().and_then(|value| value.to_str()).is_some_and(|value| value.eq_ignore_ascii_case("gguf"));
         let is_safetensors = model.extension().and_then(|value| value.to_str()).is_some_and(|value| value.eq_ignore_ascii_case("safetensors"));
-        if model_name.contains("_t2v_")
-            || model_name.contains("-t2v-")
-            || model_name.contains("wan2.1_t2v")
-            || model_name.contains("wan2.2_t2v")
-        {
+        if source.is_some() && wan_text_to_video_name(&model_name) {
             return Err("gif_ai_model_t2v".into());
+        }
+        if source.is_none() && wan_explicit_image_to_video_name(&model_name) {
+            return Err("gif_ai_model_i2v".into());
         }
         if !valid_root(&root)
             || !(is_safetensors || is_gguf)
-            || !wan_image_to_video_name(&model_name)
+            || !wan_video_name(&model_name)
         {
             return Err("gif_ai_model".into());
         }
@@ -1502,9 +1527,14 @@ impl Comfy {
         let input = root.join("ComfyUI/input");
         fs::create_dir_all(&input).map_err(|_| "comfy_storage")?;
         model_library::no_links(&input).map_err(|_| "comfy_storage")?;
-        let source_name = format!("local-studio-gif-{}.{}", uuid::Uuid::new_v4(), extension.unwrap_or_else(|| "png".into()));
-        let imported = input.join(&source_name);
-        fs::copy(&source, &imported).map_err(|_| "gif_ai_source")?;
+        let imported = if let Some((source, extension)) = source.as_ref() {
+            let source_name = format!("local-studio-gif-{}.{}", uuid::Uuid::new_v4(), extension);
+            let imported = input.join(&source_name);
+            fs::copy(source, &imported).map_err(|_| "gif_ai_source")?;
+            Some((imported, source_name))
+        } else {
+            None
+        };
         let cleanup_import = |path: &Path| { let _ = fs::remove_file(path); };
         let result = (|| {
             self.active_generations.fetch_add(1, Ordering::SeqCst);
@@ -1518,12 +1548,9 @@ impl Comfy {
             let clip = object("CLIPLoader")?;
             let vae = object("VAELoader")?;
             let sampler_info = object("KSampler")?;
-            let latent_node = match wan_version {
-                WanVersion::V21 => "WanImageToVideo",
-                WanVersion::V22 => "Wan22ImageToVideoLatent",
-            };
+            let latent_node = wan_latent_node(wan_version, imported.is_some());
             let _wan = object(latent_node).map_err(|_| "gif_ai_workflow")?;
-            let _load_image = object("LoadImage")?;
+            if imported.is_some() { let _load_image = object("LoadImage")?; }
             let _encode = object("CLIPTextEncode")?;
             let _preview = object("PreviewImage")?;
             let unet_name = resolve_comfy_option(&unet, unet_node, "unet_name", &model).ok_or("gif_ai_model_unavailable")?;
@@ -1536,28 +1563,39 @@ impl Comfy {
             let scheduler = resolve_comfy_option(&sampler_info, "KSampler", "scheduler", "simple")
                 .or_else(|| first_comfy_option(&sampler_info, "KSampler", "scheduler", |_| true)).ok_or("gif_ai_workflow")?;
             let loader_inputs = if is_gguf { json!({"unet_name":unet_name}) } else { json!({"unet_name":unet_name,"weight_dtype":"default"}) };
-            let (latent_inputs, positive, negative) = match wan_version {
-                WanVersion::V21 => (
-                    json!({"positive":["4",0],"negative":["5",0],"vae":["3",0],"width":request.width,"height":request.height,"length":request.frames,"batch_size":1,"start_image":["6",0]}),
-                    json!(["7",0]), json!(["7",1]),
+            let start_image = imported.as_ref().map(|_| json!(["6",0]));
+            let (mut latent_inputs, positive, negative, latent_output) = match latent_node {
+                "WanImageToVideo" => (
+                    json!({"positive":["4",0],"negative":["5",0],"vae":["3",0],"width":request.width,"height":request.height,"length":request.frames,"batch_size":1}),
+                    json!(["7",0]), json!(["7",1]), 2,
                 ),
-                WanVersion::V22 => (
-                    json!({"vae":["3",0],"width":request.width,"height":request.height,"length":request.frames,"batch_size":1,"start_image":["6",0]}),
-                    json!(["4",0]), json!(["5",0]),
+                "Wan22ImageToVideoLatent" => (
+                    json!({"vae":["3",0],"width":request.width,"height":request.height,"length":request.frames,"batch_size":1}),
+                    json!(["4",0]), json!(["5",0]), 0,
+                ),
+                _ => (
+                    json!({"width":request.width,"height":request.height,"length":request.frames,"batch_size":1}),
+                    json!(["4",0]), json!(["5",0]), 0,
                 ),
             };
-            let workflow = json!({
+            if let Some(start_image) = start_image {
+                latent_inputs.as_object_mut().ok_or("gif_ai_workflow")?.insert("start_image".into(), start_image);
+            }
+            let mut workflow = json!({
                 "1":{"class_type":unet_node,"inputs":loader_inputs},
                 "2":{"class_type":"CLIPLoader","inputs":{"clip_name":clip_name,"type":clip_type,"device":"default"}},
                 "3":{"class_type":"VAELoader","inputs":{"vae_name":vae_name}},
                 "4":{"class_type":"CLIPTextEncode","inputs":{"text":request.prompt,"clip":["2",0]}},
                 "5":{"class_type":"CLIPTextEncode","inputs":{"text":request.negative_prompt,"clip":["2",0]}},
-                "6":{"class_type":"LoadImage","inputs":{"image":source_name}},
+                "6":{"class_type":"LoadImage","inputs":{"image":imported.as_ref().map(|(_, name)| name.as_str()).unwrap_or("")}},
                 "7":{"class_type":latent_node,"inputs":latent_inputs},
-                "8":{"class_type":"KSampler","inputs":{"seed":request.seed,"steps":request.steps,"cfg":request.guidance,"sampler_name":sampler,"scheduler":scheduler,"denoise":1.0,"model":["1",0],"positive":positive,"negative":negative,"latent_image":["7",if wan_version == WanVersion::V21 { 2 } else { 0 }]}},
+                "8":{"class_type":"KSampler","inputs":{"seed":request.seed,"steps":request.steps,"cfg":request.guidance,"sampler_name":sampler,"scheduler":scheduler,"denoise":1.0,"model":["1",0],"positive":positive,"negative":negative,"latent_image":["7",latent_output]}},
                 "9":{"class_type":"VAEDecode","inputs":{"samples":["8",0],"vae":["3",0]}},
                 "10":{"class_type":"PreviewImage","inputs":{"images":["9",0]}}
             });
+            if imported.is_none() {
+                workflow.as_object_mut().ok_or("gif_ai_workflow")?.remove("6");
+            }
             let response = client.post(format!("{ENDPOINT}/prompt")).json(&json!({"prompt":workflow,"client_id":uuid::Uuid::new_v4().to_string()})).send().map_err(|_| "comfy_connection")?;
             if !response.status().is_success() { return Err("gif_ai_workflow".into()); }
             let id = response.json::<Value>().map_err(|_| "comfy_response")?["prompt_id"].as_str().ok_or("comfy_response")?.to_owned();
@@ -1589,7 +1627,7 @@ impl Comfy {
                 std::thread::sleep(Duration::from_millis(350));
             }
         })();
-        cleanup_import(&imported);
+        if let Some((imported, _)) = imported.as_ref() { cleanup_import(imported); }
         result
     }
     pub fn generate(
@@ -2024,18 +2062,26 @@ mod tests {
         }).unwrap()).unwrap();
         let comfy = Comfy::new_with_checkpoints(&config, None).unwrap();
         let found = comfy.wan_models().unwrap();
-        assert_eq!(found.len(), 2);
-        assert!(found.iter().all(|model| model.name.starts_with("wan_i2v.")));
-        assert!(found.iter().all(|model| model.bytes == 5));
+        assert_eq!(found.len(), 3);
+        assert!(found.iter().all(|model| model.name.contains("wan")));
+        assert!(found.iter().any(|model| model.name.contains("t2v") && !model.supports_image && model.supports_prompt));
+        assert!(found.iter().filter(|model| model.name.contains("i2v")).all(|model| model.supports_image && !model.supports_prompt));
     }
 
     #[test]
-    fn wan_image_to_video_names_allow_i2v_and_ti2v_but_reject_t2v() {
-        assert!(wan_image_to_video_name("wan2.1_i2v_14B_fp16.safetensors"));
-        assert!(wan_image_to_video_name("wan2.2_ti2v_5B_fp16.safetensors"));
-        assert!(wan_image_to_video_name("nsfw_wan_14b_e15_q4_k.gguf"));
-        assert!(!wan_image_to_video_name("wan2.1_t2v_1.3B_fp16.safetensors"));
-        assert!(!wan_image_to_video_name("image_model.safetensors"));
+    fn wan_video_modes_distinguish_explicit_i2v_t2v_and_ti2v_names() {
+        assert!(wan_video_name("wan2.1_i2v_14B_fp16.safetensors"));
+        assert!(wan_video_name("wan2.2_ti2v_5B_fp16.safetensors"));
+        assert!(wan_video_name("nsfw_wan_14b_e15_q4_k.gguf"));
+        assert!(!wan_video_name("image_model.safetensors"));
+        assert!(wan_video_name("wan2.1_t2v_1.3B_fp16.safetensors"));
+        assert!(wan_text_to_video_name("wan2.1_t2v_1.3B_fp16.safetensors"));
+        assert!(!wan_text_to_video_name("wan2.2_ti2v_5B_fp16.safetensors"));
+        assert!(wan_explicit_image_to_video_name("wan2.1_i2v_14B_fp16.safetensors"));
+        assert!(!wan_explicit_image_to_video_name("nsfw_wan_14b_e15_q4_k.gguf"));
+        assert_eq!(wan_latent_node(WanVersion::V21, false), "EmptyHunyuanLatentVideo");
+        assert_eq!(wan_latent_node(WanVersion::V21, true), "WanImageToVideo");
+        assert_eq!(wan_latent_node(WanVersion::V22, false), "Wan22ImageToVideoLatent");
     }
 
     #[test]
