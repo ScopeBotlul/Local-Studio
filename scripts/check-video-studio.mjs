@@ -11,7 +11,7 @@ const root=path.resolve(import.meta.dirname,'..');
 const artifacts=path.join(root,'.artifacts',`video-studio-${Date.now()}`);
 await fs.mkdir(artifacts,{recursive:true});
 const exe=path.join(artifacts,'Local Studio.exe');
-await fs.copyFile(path.join(root,'src-tauri/target/release/local-studio.exe'),exe);
+await fs.copyFile(process.env.LOCAL_STUDIO_TEST_EXE||path.join(root,'src-tauri/target/release/local-studio.exe'),exe);
 await fs.cp(path.join(root,'.tools/video-runtime'),path.join(artifacts,'video-runtime'),{recursive:true});
 await fs.writeFile(path.join(artifacts,'portable.marker'),'isolated video verification');
 const server=net.createServer();await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));const port=server.address().port;await new Promise(resolve=>server.close(resolve));
@@ -23,7 +23,9 @@ try{
   assert.ok(browser);const page=browser.contexts()[0].pages()[0];page.on('pageerror',e=>errors.push(String(e)));
   await page.waitForFunction(()=>!!window.__TAURI_INTERNALS__?.invoke);
   const invoke=(command,args={})=>page.evaluate(({command,args})=>window.__TAURI_INTERNALS__.invoke(command,args),{command,args});
-  await page.getByRole('button',{name:/Studio einrichten|Set up studio/}).click();
+  const setup=page.getByRole('button',{name:/Studio einrichten|Set up studio/});
+  await page.waitForFunction(()=>[...document.querySelectorAll('button')].some(button=>/Studio einrichten|Set up studio/.test(button.textContent)),{},{timeout:60000});
+  if(await setup.isVisible())await setup.click();
   const snapshot=await invoke('bootstrap');
   await invoke('video_generation_cancel');assert.equal(await invoke('video_generation_status'),null);
   const source=path.join(snapshot.paths.gallery,'video-source.png');
@@ -55,6 +57,26 @@ try{
   assert.equal(await workspace.getByRole('button',{name:/Prompt zu Video|Prompt to video/}).getAttribute('aria-pressed'),'true');
   await workspace.getByLabel('FPS',{exact:true}).fill('0');assert.equal(await workspace.getByRole('button',{name:/Video generieren|Generate Video/}).isDisabled(),true);
   await workspace.getByLabel('FPS',{exact:true}).fill('10');
+  if(process.env.LOCAL_STUDIO_REFERENCE_DROP==='1'){
+    const reference=workspace.locator('[data-file-drop="reference"]');await reference.scrollIntoViewIfNeeded();
+    const emit=paths=>page.evaluate(paths=>window.dispatchEvent(new CustomEvent('studio-reference-drop',{detail:{paths}})),paths);
+    await emit([source]);await workspace.locator('.gif-canvas-media img').waitFor();
+    assert.equal(await workspace.getByRole('button',{name:/Bild zu Video|Image to video/}).getAttribute('aria-pressed'),'true');
+    assert.equal(await workspace.getByLabel(/^Breite$|^Width$/).inputValue(),'160');
+    await workspace.getByRole('button',{name:/Bild entfernen|Remove image/}).click();
+    await emit([path.join(snapshot.paths.gallery,'not-image.txt')]);
+    assert.equal(await workspace.getByRole('button',{name:/Prompt zu Video|Prompt to video/}).getAttribute('aria-pressed'),'true');
+    evidence.drop='controlled drop event in native WebView, real image validation, I2V mode and automatic dimensions passed; physical Explorer drag not automated';
+    await tabs.getByRole('button',{name:/Bild erstellen|Create image/}).click();
+    await page.getByText(/Referenzbild und Inpainting|Reference image and inpainting/,{exact:false}).first().click();
+    const imageSource=path.join(snapshot.paths.gallery,'image-reference.png');
+    const imagePng=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=256;c.height=256;const ctx=c.getContext('2d');ctx.fillStyle='#45a';ctx.fillRect(0,0,256,256);return c.toDataURL('image/png').split(',')[1];});
+    await fs.writeFile(imageSource,Buffer.from(imagePng,'base64'));
+    await emit([imageSource]);await page.locator('.image-reference img').waitFor();
+    assert.ok(await page.locator('.image-reference').getByRole('button',{name:/Referenz entfernen|Remove reference/}).isVisible());
+    evidence.imageDrop='image studio accepts a real validated PNG reference via controlled drop event';
+    await tabs.getByRole('button',{name:/Video erstellen|Create video/}).click();
+  }
   await page.screenshot({path:path.join(artifacts,'video-workspace.png')});
   evidence.ui='real MP4 playback, explicit modes, reference sizing/removal, FPS validation, confirmed gallery save and timeline transfer passed';
   if(process.env.LOCAL_STUDIO_VIDEO_AI==='1'){
@@ -86,6 +108,7 @@ try{
   assert.deepEqual(errors,[]);evidence.passed=true;
   console.log(`PASS Video Studio; ${artifacts}`);
 }finally{
+  if(browser){const page=browser.contexts()[0]?.pages()[0];if(page){await page.screenshot({path:path.join(artifacts,'final.png')}).catch(()=>{});evidence.page=await page.locator('body').innerText().catch(()=> '');}}
   await fs.writeFile(path.join(artifacts,'report.json'),JSON.stringify({...evidence,errors},null,2));
   await browser?.close().catch(()=>{});child?.kill();
 }

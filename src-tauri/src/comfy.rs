@@ -1660,9 +1660,8 @@ impl Comfy {
             let response = client.post(format!("{ENDPOINT}/prompt")).json(&json!({"prompt":workflow,"client_id":uuid::Uuid::new_v4().to_string()})).send().map_err(|_| "comfy_connection")?;
             if !response.status().is_success() { return Err("gif_ai_workflow".into()); }
             let id = response.json::<Value>().map_err(|_| "comfy_response")?["prompt_id"].as_str().ok_or("comfy_response")?.to_owned();
-            let started = Instant::now();
             loop {
-                if cancel.load(Ordering::SeqCst) || started.elapsed() > Duration::from_secs(900) {
+                if cancel.load(Ordering::SeqCst) {
                     // Delete only our queued prompt. Interrupt only if our prompt is running.
                     if let Ok(queue) = client.get(format!("{ENDPOINT}/queue")).send().and_then(|r| r.json::<Value>()) {
                         if queue["queue_running"].as_array().is_some_and(|items| items.iter().any(|item| item[1].as_str() == Some(&id))) {
@@ -1670,7 +1669,7 @@ impl Comfy {
                         }
                     }
                     let _ = client.post(format!("{ENDPOINT}/queue")).json(&json!({"delete":[id]})).send();
-                    return Err(if cancel.load(Ordering::SeqCst) {"video_generation_cancelled"} else {"gif_ai_timeout"}.into());
+                    return Err("video_generation_cancelled".into());
                 }
                 let history = client.get(format!("{ENDPOINT}/history/{id}")).send().and_then(|response| response.error_for_status()).and_then(|response| response.json::<Value>()).map_err(|_| "comfy_connection")?;
                 if let Some(entry) = history.get(&id) {
@@ -1846,16 +1845,11 @@ impl Comfy {
             .ok_or("comfy_response")?
             .to_owned();
         update("processing");
-        let started = Instant::now();
         let mut connection_failures = 0u8;
         loop {
             if cancel.load(Ordering::Relaxed) {
                 let _ = client.post(format!("{ENDPOINT}/interrupt")).send();
                 return Err("image_cancelled".into());
-            }
-            if started.elapsed() > Duration::from_secs(900) {
-                let _ = client.post(format!("{ENDPOINT}/interrupt")).send();
-                return Err("image_timeout".into());
             }
             let history = client
                 .get(format!("{ENDPOINT}/history/{id}"))
@@ -1980,10 +1974,9 @@ impl Comfy {
             return Err("comfy_workflow".into());
         }
         let id = response.json::<Value>().map_err(|_| "comfy_response")?["prompt_id"].as_str().ok_or("comfy_response")?.to_owned();
-        update("processing"); let started = Instant::now(); let mut failures = 0u8;
+        update("processing"); let mut failures = 0u8;
         loop {
             if cancel.load(Ordering::Relaxed) { let _ = client.post(format!("{ENDPOINT}/interrupt")).send(); return Err("image_cancelled".into()); }
-            if started.elapsed() > Duration::from_secs(900) { let _ = client.post(format!("{ENDPOINT}/interrupt")).send(); return Err("image_timeout".into()); }
             let history = client.get(format!("{ENDPOINT}/history/{id}")).send().and_then(|r| r.error_for_status()).and_then(|r| r.json::<Value>());
             let history = match history { Ok(history) => { failures=0; history }, Err(_) => { if self.reap_runtime_exit() { log_detail("ComfyUI process exited during image generation."); return Err("comfy_runtime_exit".into()); } failures=failures.saturating_add(1); if failures>=3 { log_detail("ComfyUI API stopped responding during image generation."); return Err("comfy_connection".into()); } std::thread::sleep(Duration::from_millis(250)); continue; } };
             if let Some(entry) = history.get(&id) {

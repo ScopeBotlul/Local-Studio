@@ -356,17 +356,11 @@ fn encode(
             return Err(error);
         }
     };
-    let start = Instant::now();
     loop {
-        if cancel.load(Ordering::SeqCst) || start.elapsed() > Duration::from_secs(180) {
+        if cancel.load(Ordering::SeqCst) {
             let _ = child.kill();
             let _ = child.wait();
-            return Err(if cancel.load(Ordering::SeqCst) {
-                "video_generation_cancelled"
-            } else {
-                "video_generation_encode_timeout"
-            }
-            .into());
+            return Err("video_generation_cancelled".into());
         }
         if let Some(status) = child.try_wait().map_err(|_| "video_generation_encode")? {
             if !status.success() {

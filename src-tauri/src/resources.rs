@@ -4,7 +4,7 @@ use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc, Mutex, OnceLock,
 };
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -119,14 +119,10 @@ impl Resources {
             manager: self.clone(),
             id: ticket.clone(),
         };
-        let begin = Instant::now();
         let mut memory = sysinfo::System::new();
         loop {
             if cancel.load(Ordering::SeqCst) {
                 return Err("resource_cancelled".into());
-            }
-            if begin.elapsed() > Duration::from_secs(1800) {
-                return Err("resource_timeout".into());
             }
             memory.refresh_memory();
             let available = memory.available_memory();

@@ -1091,7 +1091,6 @@ impl ImageEngine {
                 return Err(error);
             }
         };
-        let started = Instant::now();
         let status = loop {
             if cancel.load(Ordering::SeqCst) {
                 let _ = child.kill();
@@ -1100,11 +1099,6 @@ impl ImageEngine {
             }
             if let Some(status) = child.try_wait().map_err(|_| "image_runtime_start")? {
                 break status;
-            }
-            if started.elapsed() > Duration::from_secs(1800) {
-                let _ = child.kill();
-                let _ = child.wait();
-                return Err("gif_vulkan_timeout".into());
             }
             std::thread::sleep(Duration::from_millis(100));
         };
@@ -1372,9 +1366,6 @@ impl ImageEngine {
                 }
                 if cancel.load(Ordering::Relaxed) {
                     terminal = Some("image_cancelled");
-                    let _ = child.kill();
-                } else if started.elapsed() > Duration::from_secs(600) {
-                    terminal = Some("image_timeout");
                     let _ = child.kill();
                 }
                 match child.try_wait() {

@@ -589,7 +589,7 @@ export default function App() {
         </div>
       </main><footer className="statusbar"><span><HardDrive size={12} />{snapshot.settings.dataRoot}</span><span>{Math.round(snapshot.settings.uiScale * 100)} %<i />v{snapshot.version}</span></footer>
     </div>
-    {dropTarget && <div className="file-drop-notice" role="status">{language === 'de' ? `Dateien in ${dropTarget === 'project' ? 'Projekt' : 'Galerie'} kopieren` : `Copy files to ${dropTarget}`}</div>}
+    {dropTarget && <div className="file-drop-notice" role="status">{dropTarget==='reference'?(language==='de'?'Bild als Referenz verwenden':'Use image as reference'):(language === 'de' ? `Dateien in ${dropTarget === 'project' ? 'Projekt' : 'Galerie'} kopieren` : `Copy files to ${dropTarget}`)}</div>}
     {exitPrompt && <ExitDialog prompt={exitPrompt} language={language} onChoose={(choice, save) => { setExitPrompt(null); exitPrompt.resolve(choice, save); }} />}
     {exitBusy && <div className="modal-backdrop" role="status"><div className="setup-dialog">{language === 'de' ? 'Bilder sichern und Anwendung beenden …' : 'Finishing images and closing …'}</div></div>}
     {toast && <div className="toast" role="status"><CheckCircle2 size={17} />{toast}</div>}

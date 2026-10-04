@@ -1021,3 +1021,9 @@ Als Nächstes stehen die noch offenen M0-Punkte und anschließend M1 gemäß `PL
 - Von Local Studio gestartetes ComfyUI erhält den Local-Studio-Modellspeicher auch für Diffusionsmodelle, Textencoder und VAE. Wan-Modellliste umfasst diesen Speicher und blendet Komponenten aus. Neue Downloads können einen Engine-Neustart benötigen.
 - Keine Modellgewichte oder Abhängigkeiten beigepackt, keine Ausführung von Modellcode, kein Medien-/Prompt-Upload. Bedienung und Grenzen: docs/VIDEO_GENERATION.md. M7 ist teilweise umgesetzt; Animate/Motion und andere Architekturen bleiben erhaltene Zukunftsanforderungen.
 - Version 0.37.0 veröffentlicht: https://github.com/ScopeBotlul/Local-Studio/releases/tag/v0.37.0. Installer, portable ZIP, Prüfsummen und signierte Update-Metadaten vollständig von GitHub zurückgeladen und verifiziert.
+
+# Ergänzungen nach 0.37.0 — Referenzbild-Drop und unbegrenzte Generierungsdauer (2026-10-04)
+
+- Referenzbilder können über die vorhandene native Tauri-Datei-Drop-Verarbeitung in die Referenzbereiche des Bild-, GIF- und Video-Studios gezogen werden. Aktives Ziel folgt der Akzentfarbe; der Hinweis benennt die Referenzübernahme. Bilder werden vor Übernahme mit den bestehenden Backend-Prüfungen validiert. Video/GIF übernimmt passende Abmessungen und I2V; Bildstudio behält seine PNG-Anforderungen. Originaldateien bleiben unverändert.
+- Feste 10-/15-/30-Minuten-Inferenzlimits in Vulkan-Bild, Vulkan-Wan, ComfyUI-SDXL/Qwen/Wan entfernt. Gemeinsame Ressourcenwarteschlange wartet ohne Dauerlimit; Abbruch bleibt wirksam. Die MP4-Ergebniskodierung hat ebenfalls keine feste Laufzeitgrenze. Verbindungs-, Modellprüfungs-, Update- und reine Mediendiagnose-Timeouts bleiben bestehen.
+- Diese Quelländerungen sind noch kein neuer veröffentlichter Installer. Release 0.37.0 bleibt unverändert.

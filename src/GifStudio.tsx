@@ -170,8 +170,32 @@ export default function GifStudio({de,output='gif',onEditVideo}:{de:boolean;outp
   }
   async function chooseSource(){
     const picked=await open({multiple:false,title:de?'Startbild wählen':'Choose start image',filters:[{name:de?'Bilder':'Images',extensions:imageExtensions}]});
-    if(typeof picked==='string'){setSource(picked);if(video)setVideoMode('image');setSelectedPath('');showLocal(picked,true);}
+    if(typeof picked==='string')await acceptSource(picked);
   }
+  async function acceptSource(path:string){
+    const id=++previewRequest.current;
+    try {
+      const result=await invoke<SourcePreview>('gif_source_preview',{path});
+      if(id!==previewRequest.current)return;
+      const fitted=fittedSourceSize(result.width,result.height);
+      setSource(path);setMode('ai');if(video)setVideoMode('image');
+      setSelectedPath('');setActivePending(null);setResultInfo(null);setSavedVideoPath('');setError('');
+      setWidth(fitted.width);setHeight(fitted.height);setZoom(1);
+      setPreview({url:result.url,path,label:fileName(path),width:result.width,height:result.height});
+    }catch(e){if(id===previewRequest.current)setError(message(e,de));}
+  }
+  useEffect(()=>{
+    const dropped=(event:Event)=>{
+      if(busy)return;
+      const paths=(event as CustomEvent<{paths:string[]}>).detail?.paths;
+      if(!Array.isArray(paths))return;
+      const path=paths.find(path=>typeof path==='string'&&imageExtensions.includes(path.split('.').pop()?.toLowerCase()??''));
+      if(!path){setError(de?'Ziehe eine PNG-, JPEG-, WebP- oder BMP-Datei in das Referenzbild-Feld.':'Drop a PNG, JPEG, WebP or BMP file into the reference image area.');return;}
+      void acceptSource(path);
+    };
+    window.addEventListener('studio-reference-drop',dropped);
+    return()=>{window.removeEventListener('studio-reference-drop',dropped);++previewRequest.current;};
+  },[busy,video,de]);
   function clearSource(){
     ++previewRequest.current;
     setSource('');
@@ -316,8 +340,9 @@ export default function GifStudio({de,output='gif',onEditVideo}:{de:boolean;outp
             <p className="hub-hint">{de?'Läuft direkt über die mitgelieferte Vulkan-Runtime, auch auf AMD- und Intel-GPUs. Die drei Dateien werden nur gelesen; Local Studio installiert keine Modellabhängigkeiten.':'Runs directly through the bundled Vulkan runtime, including AMD and Intel GPUs. The three files are read only; Local Studio does not install model dependencies.'}</p>
           </div>}
           {!comfyModeCompatible&&aiEngine==='comfy'&&<p className="notice warning">{de?'Das Modell passt nicht zum gewählten Eingabemodus. Wähle ein passendes I2V-/T2V-Modell.':'This model does not match the selected input mode. Choose a matching I2V/T2V model.'}</p>}
-          <div className="gif-control-group">
+          <div className="gif-control-group gif-reference-drop" data-file-drop={busy?undefined:'reference'}>
             <div className="section-heading"><h2>{video&&videoMode==='image'?(de?'Referenzbild':'Reference image'):(de?'Referenzbild (optional)':'Reference image (optional)')}</h2></div>
+            <p className="hub-hint">{de?'Bild hierher ziehen oder über „Bild wählen“ öffnen.':'Drop an image here or use Choose image.'}</p>
             <div className="gif-source-actions"><button type="button" className="button secondary gif-file-button" onClick={()=>void chooseSource()}><FolderOpen size={15}/>{source?fileName(source):(de?'Bild wählen':'Choose image')}</button>{source&&<button type="button" className="button secondary" onClick={clearSource}><X size={15}/>{de?'Bild entfernen':'Remove image'}</button>}</div>
             <p className="hub-hint">{source?(de?'Mit Referenzbild läuft Bild-zu-Video (I2V).':'With a reference image, image-to-video (I2V) is used.'):(de?'Ohne Referenzbild läuft Prompt-zu-Video (T2V). Wähle dafür ein T2V-/TI2V-Modell.':'Without a reference image, prompt-to-video (T2V) is used. Choose a T2V/TI2V model.')}</p>
           </div>
