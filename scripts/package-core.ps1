@@ -444,6 +444,7 @@ die vollstaendige Produktabnahme bleibt offen. Keine automatische
 Selbstaktualisierung in dieser portablen Version.
 '@
 $readme = $readme.Replace('{VERSION}', $version)
+$readme += "`r`nNeu in 0.37.1: Bild erstellen konzentriert sich auf Modell, Prompt und Format.`r`nBild bearbeiten bietet lokale SDXL/Vulkan-KI-Bearbeitung mit Pinsel, Rechteck,`r`nRadierer, Undo/Redo und optionalem CPU-VAE. Originale bleiben unveraendert;`r`nunmarkierte Bereiche der angepassten Arbeitskopie bleiben erhalten. Der`r`nEbeneneditor ist weiterhin verfuegbar. Ergebnisse erst nach Bestaetigung speichern.`r`nVideo-/GIF-Referenzen lassen sich hineinziehen; keine feste Generierungslaufzeit.`r`nGPU-Inpainting im Entwicklungstest scheiterte an freiem Grafikspeicher;`r`nkein erfolgreicher vollstaendiger GPU-Lauf fuer diese Oberflaeche nachgewiesen.`r`n"
 [IO.File]::WriteAllText((Join-Path $portableRoot 'LIESMICH.txt'), $readme, [Text.UTF8Encoding]::new($false))
 $archive = Join-Path $releaseRoot "Local-Studio-$version-hub-portable.zip"
 # Package only the known build files, never local test or user data.

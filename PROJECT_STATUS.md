@@ -1036,3 +1036,9 @@ Als Nächstes stehen die noch offenen M0-Punkte und anschließend M1 gemäß `PL
 - Neue typisierte lokale IPC-Kommandos erstellen einzigartige PNG-Arbeitskopien und geprüfte Masken. Originale werden nicht überschrieben; unmarkierte Pixel der gegebenenfalls angepassten Arbeitskopie bleiben im Ergebnis exakt erhalten. Kein automatisches Speichern von Ergebnissen.
 - Getrennte lokale Bearbeitungseingaben und Markierungsentwürfe, gefilterte Auftragsverläufe sowie Weiterleitung aus Galerie/Auftragsübersicht. Alte Referenzeingaben werden in die Bearbeitung übernommen. Qwen/ComfyUI ist in diesem Bearbeitungspfad nicht unterstützt. Anleitung: docs/IMAGE_EDITING.md.
 - Kein neuer Installer oder GitHub-Release in diesem Schritt; Version bleibt 0.37.0. Verifikation und GPU-Speichergrenze stehen separat in TEST_MATRIX.md.
+
+
+# Release 0.37.1 — Paketierung (2026-10-04)
+
+- Versionsdateien auf 0.37.1 angehoben. Die Bildstudio-Überarbeitung und der zuvor auf main enthaltene Referenz-Drop/Entfall fester Generierungslaufzeiten sind im optimierten Release-Build enthalten.
+- Releasehinweise: docs/RELEASE_0.37.1.md. Der bestehende Update-Signaturschlüssel bleibt unverändert. Persönliche Dateien und Modellgewichte sind vom Paket ausgeschlossen.
