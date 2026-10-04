@@ -83,7 +83,7 @@ Arbeitsauftrag: alle verbleibenden Anforderungen aus dem unveränderten Masterpr
 | 77 | Wasserzeichen | Offen | Vollständige Abnahme offen; SPEC §77 bleibt verbindlich |
 | 78 | Mehrfache Exportvarianten | Offen | Vollständige Abnahme offen; SPEC §78 bleibt verbindlich |
 | 79 | VIDEO – Grundsystem | Teilweise vorhanden | Vollständige Abnahme offen; SPEC §79 bleibt verbindlich |
-| 80 | Video-KI | Offen | Vollständige Abnahme offen; SPEC §80 bleibt verbindlich |
+| 80 | Video-KI | Teilweise vorhanden | 0.37.0: lokales Wan-T2V/I2V-Studio, zwei T2V-Modelle und I2V real geprüft, MP4/Galerie/Videoschnitt. Vollständige Abnahme offen; SPEC §80 bleibt verbindlich |
 | 81 | Timeline | Teilweise vorhanden | Vollständige Abnahme offen; SPEC §81 bleibt verbindlich |
 | 82 | Keyframes | Teilweise vorhanden | Vollständige Abnahme offen; SPEC §82 bleibt verbindlich |
 | 83 | Klassische Videoeffekte | Teilweise vorhanden | Vollständige Abnahme offen; SPEC §83 bleibt verbindlich |

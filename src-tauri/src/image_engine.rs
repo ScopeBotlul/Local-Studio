@@ -930,6 +930,15 @@ impl ImageEngine {
         request: NativeVideoRequest,
         directory: &Path,
     ) -> Result<Vec<String>> {
+        self.generate_vulkan_video_cancellable(request, directory, &AtomicBool::new(false))
+    }
+
+    pub(crate) fn generate_vulkan_video_cancellable(
+        &self,
+        request: NativeVideoRequest,
+        directory: &Path,
+        cancel: &AtomicBool,
+    ) -> Result<Vec<String>> {
         if request.prompt.len() > 8_000
             || request.negative_prompt.len() > 8_000
             || !(128..=2048).contains(&request.width)
@@ -975,6 +984,10 @@ impl ImageEngine {
             "gif_vulkan_vae",
         )?;
         let model_name = model.file_name().and_then(|name| name.to_str()).unwrap_or("").to_ascii_lowercase();
+        let channels=crate::comfy::wan_input_channels(&model);
+        if source.is_some() && channels==Some(16) {return Err("gif_ai_model_t2v".into());}
+        if source.is_none() && channels==Some(36) {return Err("gif_ai_model_i2v".into());}
+        if (model_name.contains("wan2.2") || model_name.contains("wan_2.2") || model_name.contains("wan2_2")) && !model_name.contains("ti2v") {return Err("gif_ai_model_split".into());}
         if source.is_some()
             && (model_name.contains("_t2v") || model_name.contains("-t2v"))
             && !model_name.contains("ti2v")
@@ -1009,7 +1022,6 @@ impl ImageEngine {
         let device = devices(&self.runtime, &vendors)?;
         let backend = device.split('\t').next().ok_or("image_gpu")?;
         let backend_assignment = format!("diffusion={backend},vae=cpu");
-        let cancel = AtomicBool::new(false);
         let task_id = uuid::Uuid::new_v4().to_string();
         let _admission = crate::resources::shared()
             .acquire_unmeasured(&task_id, "gif", true, &cancel)
@@ -1081,6 +1093,11 @@ impl ImageEngine {
         };
         let started = Instant::now();
         let status = loop {
+            if cancel.load(Ordering::SeqCst) {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err("video_generation_cancelled".into());
+            }
             if let Some(status) = child.try_wait().map_err(|_| "image_runtime_start")? {
                 break status;
             }

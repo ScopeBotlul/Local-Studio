@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-video-generation-create"
+description = "Enables the video_generation_create command without any pre-configured scope."
+commands.allow = ["video_generation_create"]
+
+[[permission]]
+identifier = "deny-video-generation-create"
+description = "Denies the video_generation_create command without any pre-configured scope."
+commands.deny = ["video_generation_create"]

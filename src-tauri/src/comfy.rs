@@ -178,7 +178,38 @@ fn wan_explicit_image_to_video_name(name: &str) -> bool {
 }
 
 fn wan_video_name(name: &str) -> bool {
-    name.to_ascii_lowercase().contains("wan")
+    let name = name.to_ascii_lowercase();
+    name.contains("wan") && !["vae", "encoder", "clip", "lora"].iter().any(|part| name.contains(part))
+}
+
+/// Read only a bounded model header, never tensor weights or model code.
+pub(crate) fn wan_input_channels(path: &Path) -> Option<u64> {
+    let mut file=crate::gallery::lock_file(path).ok()?;
+    if path.extension()?.to_str()?.eq_ignore_ascii_case("safetensors") {
+        let mut length=[0u8;8];file.read_exact(&mut length).ok()?;
+        let length=u64::from_le_bytes(length);
+        if length>16*1024*1024 {return None;}
+        let mut bytes=vec![0;length as usize];file.read_exact(&mut bytes).ok()?;
+        let header:Value=serde_json::from_slice(&bytes).ok()?;
+        return header.as_object()?.iter().find(|(name,_)|name.ends_with("patch_embedding.weight"))?.1["shape"][1].as_u64();
+    }
+    if path.extension()?.to_str()?.eq_ignore_ascii_case("gguf") {
+        let mut bytes=Vec::new();file.take(4*1024*1024).read_to_end(&mut bytes).ok()?;
+        if bytes.get(..4)!=Some(b"GGUF") {return None;}
+        // GGUF tensor descriptors use an exact length-prefixed name followed by
+        // rank and dimensions in reverse order. Limit the search to the header.
+        for name in ["patch_embedding.weight","diffusion_model.patch_embedding.weight"] {
+            let mut pattern=(name.len() as u64).to_le_bytes().to_vec();pattern.extend_from_slice(name.as_bytes());
+            if let Some(offset)=bytes.windows(pattern.len()).position(|slice|slice==pattern) {
+                let start=offset+pattern.len();
+                let rank=u32::from_le_bytes(bytes.get(start..start+4)?.try_into().ok()?) as usize;
+                if rank!=5 {return None;}
+                let position=start+4+(rank-2)*8;
+                return Some(u64::from_le_bytes(bytes.get(position..position+8)?.try_into().ok()?));
+            }
+        }
+    }
+    None
 }
 
 fn wan_latent_node(version: WanVersion, has_source: bool) -> &'static str {
@@ -596,7 +627,7 @@ impl Comfy {
         }
         let root = root.replace('\'', "''");
         let lora_paths = self.configured_lora_paths()?;
-        let mut yaml = format!("local_studio:\n  checkpoints: '{root}'\n");
+        let mut yaml = format!("local_studio:\n  checkpoints: '{root}'\n  diffusion_models: '{root}'\n  text_encoders: '{root}'\n  vae: '{root}'\n");
         for (index, lora_path) in lora_paths.iter().enumerate() {
             let lora_path = lora_path
                 .to_string_lossy()
@@ -1411,6 +1442,9 @@ impl Comfy {
         let folder = root.join("ComfyUI/models/diffusion_models");
         model_library::no_links(&folder).map_err(|_| "comfy_model_path")?;
         let mut pending = vec![(folder, 0usize)];
+        if self.external_checkpoints.is_dir() && model_library::no_links(&self.external_checkpoints).is_ok() {
+            pending.push((self.external_checkpoints.clone(), 0));
+        }
         let mut models = Vec::new();
         while let Some((directory, depth)) = pending.pop() {
             for entry in fs::read_dir(&directory).map_err(|_| "comfy_model_path")?.flatten() {
@@ -1431,10 +1465,12 @@ impl Comfy {
                         && (extension.eq_ignore_ascii_case("gguf")
                             || extension.eq_ignore_ascii_case("safetensors"))
                     {
+                        if wan_version(&name)==WanVersion::V22 && !name.to_ascii_lowercase().contains("ti2v") {continue;}
+                        let channels=wan_input_channels(&path);
                         models.push(WanModel {
                             path: path.to_string_lossy().into_owned(),
-                            supports_image: !wan_text_to_video_name(&name),
-                            supports_prompt: !wan_explicit_image_to_video_name(&name),
+                            supports_image: channels.map_or(!wan_text_to_video_name(&name),|channels|channels!=16),
+                            supports_prompt: channels.map_or(!wan_explicit_image_to_video_name(&name),|channels|channels!=36),
                             name,
                             bytes: metadata.len(),
                         });
@@ -1469,6 +1505,13 @@ impl Comfy {
     /// The caller owns the returned temporary PNG files and must remove them after
     /// turning them into the requested media format.
     pub fn wan_image_to_frames(&self, request: GifAiRequest) -> Result<Vec<String>> {
+        self.wan_frames(request, &std::sync::atomic::AtomicBool::new(false))
+    }
+
+    pub(crate) fn wan_frames(&self, request: GifAiRequest, cancel: &std::sync::atomic::AtomicBool) -> Result<Vec<String>> {
+        if cancel.load(Ordering::SeqCst) { return Err("video_generation_cancelled".into()); }
+        let task_id=uuid::Uuid::new_v4().to_string();
+        let _admission=crate::resources::shared().acquire_unmeasured(&task_id,"video",true,cancel)?;
         if self.update.lock().ok().is_some_and(|state| state.phase == "updating") {
             return Err("comfy_update_busy".into());
         }
@@ -1505,6 +1548,10 @@ impl Comfy {
         model_library::no_links(&model).map_err(|_| "gif_ai_model")?;
         let model_name = model.file_name().and_then(|value| value.to_str()).unwrap_or("").to_ascii_lowercase();
         let wan_version = wan_version(&model_name);
+        let channels=wan_input_channels(&model);
+        if source.is_some() && channels==Some(16) {return Err("gif_ai_model_t2v".into());}
+        if source.is_none() && channels==Some(36) {return Err("gif_ai_model_i2v".into());}
+        if wan_version==WanVersion::V22 && !model_name.contains("ti2v") {return Err("gif_ai_model_split".into());}
         let root = self.config.lock().map_err(|_| "comfy_storage")?.path.clone().map(PathBuf::from).ok_or("comfy_missing")?;
         let is_gguf = model.extension().and_then(|value| value.to_str()).is_some_and(|value| value.eq_ignore_ascii_case("gguf"));
         let is_safetensors = model.extension().and_then(|value| value.to_str()).is_some_and(|value| value.eq_ignore_ascii_case("safetensors"));
@@ -1523,7 +1570,8 @@ impl Comfy {
         if wan_version == WanVersion::V22 && (request.width % 32 != 0 || request.height % 32 != 0) {
             return Err("gif_ai_dimensions_22".into());
         }
-        let model = relative_model_path(&model, &root.join("ComfyUI/models/diffusion_models")).ok_or("gif_ai_model")?;
+        let model = relative_model_path(&model, &root.join("ComfyUI/models/diffusion_models"))
+            .or_else(|| relative_model_path(&model, &self.external_checkpoints)).ok_or("gif_ai_model")?;
         let input = root.join("ComfyUI/input");
         fs::create_dir_all(&input).map_err(|_| "comfy_storage")?;
         model_library::no_links(&input).map_err(|_| "comfy_storage")?;
@@ -1548,6 +1596,7 @@ impl Comfy {
             let clip = object("CLIPLoader")?;
             let vae = object("VAELoader")?;
             let sampler_info = object("KSampler")?;
+            let _sampling=object("ModelSamplingSD3").map_err(|_| "gif_ai_workflow")?;
             let latent_node = wan_latent_node(wan_version, imported.is_some());
             let _wan = object(latent_node).map_err(|_| "gif_ai_workflow")?;
             if imported.is_some() { let _load_image = object("LoadImage")?; }
@@ -1581,6 +1630,13 @@ impl Comfy {
             if let Some(start_image) = start_image {
                 latent_inputs.as_object_mut().ok_or("gif_ai_workflow")?.insert("start_image".into(), start_image);
             }
+            let vision_name=if wan_version==WanVersion::V21 && imported.is_some() {
+                let vision=object("CLIPVisionLoader")?;
+                let _encode=object("CLIPVisionEncode")?;
+                let name=first_comfy_option(&vision,"CLIPVisionLoader","clip_name",|value|value.to_ascii_lowercase().contains("clip_vision_h")).ok_or("gif_ai_vision")?;
+                latent_inputs.as_object_mut().ok_or("gif_ai_workflow")?.insert("clip_vision_output".into(),json!(["13",0]));
+                Some(name)
+            }else{None};
             let mut workflow = json!({
                 "1":{"class_type":unet_node,"inputs":loader_inputs},
                 "2":{"class_type":"CLIPLoader","inputs":{"clip_name":clip_name,"type":clip_type,"device":"default"}},
@@ -1589,10 +1645,15 @@ impl Comfy {
                 "5":{"class_type":"CLIPTextEncode","inputs":{"text":request.negative_prompt,"clip":["2",0]}},
                 "6":{"class_type":"LoadImage","inputs":{"image":imported.as_ref().map(|(_, name)| name.as_str()).unwrap_or("")}},
                 "7":{"class_type":latent_node,"inputs":latent_inputs},
-                "8":{"class_type":"KSampler","inputs":{"seed":request.seed,"steps":request.steps,"cfg":request.guidance,"sampler_name":sampler,"scheduler":scheduler,"denoise":1.0,"model":["1",0],"positive":positive,"negative":negative,"latent_image":["7",latent_output]}},
+                "8":{"class_type":"KSampler","inputs":{"seed":request.seed,"steps":request.steps,"cfg":request.guidance,"sampler_name":sampler,"scheduler":scheduler,"denoise":1.0,"model":["11",0],"positive":positive,"negative":negative,"latent_image":["7",latent_output]}},
                 "9":{"class_type":"VAEDecode","inputs":{"samples":["8",0],"vae":["3",0]}},
-                "10":{"class_type":"PreviewImage","inputs":{"images":["9",0]}}
+                "10":{"class_type":"PreviewImage","inputs":{"images":["9",0]}},
+                "11":{"class_type":"ModelSamplingSD3","inputs":{"model":["1",0],"shift":if wan_version==WanVersion::V21 {8.0}else{5.0}}}
             });
+            if let Some(vision_name)=vision_name {
+                workflow["12"]=json!({"class_type":"CLIPVisionLoader","inputs":{"clip_name":vision_name}});
+                workflow["13"]=json!({"class_type":"CLIPVisionEncode","inputs":{"clip_vision":["12",0],"image":["6",0],"crop":"center"}});
+            }
             if imported.is_none() {
                 workflow.as_object_mut().ok_or("gif_ai_workflow")?.remove("6");
             }
@@ -1601,7 +1662,16 @@ impl Comfy {
             let id = response.json::<Value>().map_err(|_| "comfy_response")?["prompt_id"].as_str().ok_or("comfy_response")?.to_owned();
             let started = Instant::now();
             loop {
-                if started.elapsed() > Duration::from_secs(900) { let _ = client.post(format!("{ENDPOINT}/interrupt")).send(); return Err("gif_ai_timeout".into()); }
+                if cancel.load(Ordering::SeqCst) || started.elapsed() > Duration::from_secs(900) {
+                    // Delete only our queued prompt. Interrupt only if our prompt is running.
+                    if let Ok(queue) = client.get(format!("{ENDPOINT}/queue")).send().and_then(|r| r.json::<Value>()) {
+                        if queue["queue_running"].as_array().is_some_and(|items| items.iter().any(|item| item[1].as_str() == Some(&id))) {
+                            let _ = client.post(format!("{ENDPOINT}/interrupt")).json(&json!({"prompt_id":id})).send();
+                        }
+                    }
+                    let _ = client.post(format!("{ENDPOINT}/queue")).json(&json!({"delete":[id]})).send();
+                    return Err(if cancel.load(Ordering::SeqCst) {"video_generation_cancelled"} else {"gif_ai_timeout"}.into());
+                }
                 let history = client.get(format!("{ENDPOINT}/history/{id}")).send().and_then(|response| response.error_for_status()).and_then(|response| response.json::<Value>()).map_err(|_| "comfy_connection")?;
                 if let Some(entry) = history.get(&id) {
                     if entry.pointer("/status/status_str").and_then(Value::as_str) == Some("error") || entry.pointer("/status/completed").and_then(Value::as_bool) == Some(false) { return Err(wan_execution_error(entry).into()); }
@@ -2029,6 +2099,20 @@ mod tests {
     use super::*;
 
     #[test]
+    fn wan_model_headers_distinguish_input_channels_without_loading_weights() {
+        let temp=tempfile::tempdir().unwrap();
+        let path=temp.path().join("unmarked.safetensors");
+        let header=serde_json::to_vec(&json!({"patch_embedding.weight":{"shape":[5120,16,1,2,2],"dtype":"F16","data_offsets":[0,0]}})).unwrap();
+        let mut bytes=(header.len() as u64).to_le_bytes().to_vec();bytes.extend(header);fs::write(&path,bytes).unwrap();
+        assert_eq!(wan_input_channels(&path),Some(16));
+        let gguf=temp.path().join("unmarked.gguf");let name="patch_embedding.weight";
+        let mut bytes=b"GGUF".to_vec();bytes.extend((name.len() as u64).to_le_bytes());bytes.extend(name.as_bytes());bytes.extend(5u32.to_le_bytes());
+        for dim in [2u64,2,1,36,5120]{bytes.extend(dim.to_le_bytes());}fs::write(&gguf,bytes).unwrap();
+        assert_eq!(wan_input_channels(&gguf),Some(36));
+        fs::write(&path,(32u64*1024*1024).to_le_bytes()).unwrap();assert_eq!(wan_input_channels(&path),None);
+    }
+
+    #[test]
     fn wan_vae_family_matches_the_selected_model() {
         assert_eq!(wan_version("nsfw_wan_14b_e15_q4_k.gguf"), WanVersion::V21);
         assert_eq!(wan_version("wan2.2_ti2v_5B_fp16.safetensors"), WanVersion::V22);
@@ -2060,12 +2144,17 @@ mod tests {
             path: Some(portable.to_string_lossy().into_owned()),
             ..Config::default()
         }).unwrap()).unwrap();
-        let comfy = Comfy::new_with_checkpoints(&config, None).unwrap();
+        let external = temp.path().join("downloaded");
+        fs::create_dir(&external).unwrap();
+        fs::write(external.join("wan_2.1_vae.safetensors"), b"component").unwrap();
+        fs::write(external.join("wan2.2_ti2v_5B.safetensors"), b"diffusion").unwrap();
+        let comfy = Comfy::new_with_checkpoints(&config, Some(external)).unwrap();
         let found = comfy.wan_models().unwrap();
-        assert_eq!(found.len(), 3);
+        assert_eq!(found.len(), 4);
         assert!(found.iter().all(|model| model.name.contains("wan")));
         assert!(found.iter().any(|model| model.name.contains("t2v") && !model.supports_image && model.supports_prompt));
-        assert!(found.iter().filter(|model| model.name.contains("i2v")).all(|model| model.supports_image && !model.supports_prompt));
+        assert!(found.iter().filter(|model| model.name.contains("i2v") && !model.name.contains("ti2v")).all(|model| model.supports_image && !model.supports_prompt));
+        assert!(found.iter().filter(|model| model.name.contains("ti2v")).all(|model| model.supports_image && model.supports_prompt));
     }
 
     #[test]
@@ -2143,7 +2232,7 @@ mod tests {
             .replace('\'', "''");
         assert_eq!(
             yaml,
-            format!("local_studio:\n  checkpoints: '{expected}'\n")
+            format!("local_studio:\n  checkpoints: '{expected}'\n  diffusion_models: '{expected}'\n  text_encoders: '{expected}'\n  vae: '{expected}'\n")
         );
         assert_eq!(
             relative_model_path(&checkpoint, &models).as_deref(),

@@ -162,7 +162,7 @@ fn command(path: &Path) -> Command {
     c.creation_flags(0x08000000).stdin(Stdio::null());
     c
 }
-fn capture(mut c: Command) -> Result<Vec<u8>> {
+pub(crate) fn capture(mut c: Command) -> Result<Vec<u8>> {
     let mut child = c
         .stdout(Stdio::piped())
         .stderr(Stdio::null())

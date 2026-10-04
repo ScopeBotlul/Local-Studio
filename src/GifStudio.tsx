@@ -13,8 +13,9 @@ import './gif-studio.css';
 type Mode = 'ai' | 'frames';
 type AiEngine = 'comfy' | 'vulkan';
 type WanModel = {path:string; name:string; bytes:number; supportsImage:boolean; supportsPrompt:boolean};
-type GifPending = {id:string; bytes:number; createdAt:number};
-type Preview = {url:string; path:string; label:string; width?:number; height?:number};
+type VideoRequest = {engine:AiEngine;mode:'image'|'prompt';sourcePath:string|null;modelPath:string;encoderPath:string|null;vaePath:string|null;prompt:string;negativePrompt:string;width:number;height:number;frames:number;fps:number;steps:number;guidance:number;seed:number};
+type GifPending = {id:string; bytes:number; createdAt:number;request?:VideoRequest};
+type Preview = {url:string; path:string; label:string; width?:number; height?:number; video?:boolean};
 type SourcePreview = {url:string;width:number;height:number};
 type PanelWidths = {left:number; right:number};
 const defaultWidths:PanelWidths = {left:410,right:300};
@@ -42,14 +43,26 @@ function fittedSourceSize(width:number,height:number){
 function message(error:unknown,de:boolean){
   const code=String(error);
   const labels:Record<string,[string,string]>={
+    video_generation_parameters:['Video-Parameter ungültig. Maße müssen durch 32 teilbar sein; Frames: 5, 9, … 81; FPS: 1–50.','Invalid video parameters. Dimensions must be divisible by 32; frames: 5, 9, … 81; FPS: 1–50.'],
+    video_generation_cancelled:['Videogenerierung abgebrochen.','Video generation cancelled.'],
+    resource_cancelled:['Auftrag vor dem Start abgebrochen.','Job cancelled before starting.'],
+    video_generation_busy:['Eine Videogenerierung läuft bereits.','A video generation is already running.'],
+    video_generation_encode:['Das Video konnte nicht als MP4 codiert werden.','The video could not be encoded as MP4.'],
+    video_generation_dimensions:['Die erzeugten Frames haben unerwartete Abmessungen.','Generated frames have unexpected dimensions.'],
+    video_generation_preview_large:['Das Video ist für die direkte Vorschau zu groß. Speichere es in der Galerie.','The video is too large for direct preview. Save it to the gallery.'],
+    video_generation_missing:['Das temporäre Video ist nicht mehr vorhanden.','The temporary video is no longer available.'],
+    video_generation_interrupted:['Der letzte Videoauftrag wurde durch das Beenden unterbrochen. Fertige ungespeicherte Videos bleiben in der Auswahl erhalten.','The last video job was interrupted by closing the app. Completed unsaved videos remain available.'],
+    video_runtime:['Die mitgelieferte Video-Runtime fehlt oder wurde verändert. Installiere Local Studio erneut.','The bundled video runtime is missing or modified. Reinstall Local Studio.'],
     comfy_missing:['ComfyUI ist nicht eingerichtet. Richte es in den Einstellungen ein.','ComfyUI is not set up. Configure it in Settings.'],
     comfy_connection:['ComfyUI antwortet nicht. Starte die Engine in den Einstellungen.','ComfyUI is not responding. Start the engine in Settings.'],
     gif_ai_model_t2v:['Dieses Modell unterstützt nur Text-zu-Video. Für ein Startbild brauchst du ein Wan-I2V- oder TI2V-Modell.','This model is text-to-video only. A start image requires a Wan I2V or TI2V model.'],
     gif_ai_model_i2v:['Dieses Modell unterstützt nur Bild-zu-Video. Für eine reine Prompt-Generierung brauchst du ein Wan-T2V- oder TI2V-Modell.','This model supports image-to-video only. Prompt-only generation needs a Wan T2V or TI2V model.'],
+    gif_ai_model_split:['Dieses Wan-2.2-Modell benötigt einen getrennten High-/Low-Noise-Workflow. Wähle für diesen Adapter ein Wan-2.2-TI2V-5B-Modell.','This Wan 2.2 model needs a separate high/low noise workflow. Choose a Wan 2.2 TI2V 5B model for this adapter.'],
+    gif_ai_vision:['Wan 2.1 Bild-zu-Video benötigt CLIP Vision H in ComfyUI/models/clip_vision. Lade es über den Modellmanager herunter.','Wan 2.1 image-to-video requires CLIP Vision H in ComfyUI/models/clip_vision. Download it using the model manager.'],
     gif_vulkan_model_i2v:['Dieses Modell ist eindeutig als I2V markiert. Entferne das Referenzbild nur mit einem T2V-/TI2V-Modell.','This model is explicitly marked as I2V. Remove the reference image only with a T2V/TI2V model.'],
     gif_ai_prompt:['Gib für ein GIF ohne Referenzbild einen Prompt ein.','Enter a prompt when generating a GIF without a reference image.'],
     gif_ai_model_unavailable:['ComfyUI erkennt das gewählte Modell noch nicht. Starte die Engine nach dem Hinzufügen neu.','ComfyUI does not see this model yet. Restart the engine after adding it.'],
-    gif_ai_model:['Das Wan-Modell muss im diffusion_models-Ordner der eingerichteten ComfyUI-Installation liegen.','The Wan model must be in the configured ComfyUI diffusion_models folder.'],
+    gif_ai_model:['Das Wan-Modell muss im ComfyUI-Ordner diffusion_models oder im Local-Studio-Modellspeicher liegen.','The Wan model must be in ComfyUI diffusion_models or the Local Studio model library.'],
     gif_ai_encoder:['Ein Wan-UMT5-Textencoder fehlt in ComfyUI.','A Wan UMT5 text encoder is missing from ComfyUI.'],
     gif_ai_vae_21:['Für dieses Wan-2.1-Modell fehlt eine Wan-2.1-VAE in ComfyUI. Die installierte Wan-2.2-VAE ist nicht kompatibel.','This Wan 2.1 model needs a Wan 2.1 VAE in ComfyUI. The Wan 2.2 VAE is incompatible.'],
     gif_ai_vae_22:['Für dieses Wan-2.2-Modell fehlt eine Wan-2.2-VAE in ComfyUI.','This Wan 2.2 model needs a Wan 2.2 VAE in ComfyUI.'],
@@ -62,7 +75,7 @@ function message(error:unknown,de:boolean){
     gif_ai_timeout:['Die Wan-Generierung hat das Zeitlimit erreicht.','Wan generation timed out.'],
     gif_vulkan_memory:['Der Vulkan-Auftrag hat nicht genug freien Grafik- oder Arbeitsspeicher. Versuche weniger Frames, eine kleinere Auflösung oder ein stärker quantisiertes Modell.','The Vulkan job ran out of graphics or system memory. Try fewer frames, a smaller resolution, or a more heavily quantized model.'],
     gif_vulkan_parameters:['Auflösung, Framezahl oder Vulkan-Parameter sind ungültig.','The resolution, frame count, or Vulkan parameters are invalid.'],
-    gif_vulkan_model:['Das gewählte Modell ist kein erreichbares einzelnes Wan-I2V-/TI2V-Diffusionsmodell. Reine T2V-Modelle können kein Startbild übernehmen.','The selected model is not an accessible single-file Wan I2V/TI2V diffusion model. T2V-only models cannot use a start image.'],
+    gif_vulkan_model:['Das gewählte Modell ist kein erreichbares einzelnes Wan-Videodiffusionsmodell. Reine T2V-Modelle können kein Startbild übernehmen.','The selected model is not an accessible single-file Wan video diffusion model. T2V-only models cannot use a start image.'],
     gif_vulkan_encoder:['Wähle einen erreichbaren UMT5-Textencoder als Safetensors- oder GGUF-Datei.','Choose an accessible UMT5 text encoder in Safetensors or GGUF format.'],
     gif_vulkan_vae:['Wähle die zur Wan-Version passende VAE-Datei.','Choose the VAE file matching the Wan version.'],
     gif_vulkan_output:['Die Vulkan-Runtime hat keine vollständige Framefolge erzeugt.','The Vulkan runtime did not produce a complete frame sequence.'],
@@ -83,8 +96,16 @@ function message(error:unknown,de:boolean){
   return galleryError(error,de);
 }
 
-export default function GifStudio({de}:{de:boolean}){
+export default function GifStudio({de,output='gif',onEditVideo}:{de:boolean;output?:'gif'|'video';onEditVideo?:(path:string)=>Promise<void>}){
+  const video=output==='video';
+  const pendingCommand=(action:'list'|'preview'|'save'|'discard')=>`${output}_pending_${action}`;
   const language:Language=de?'de':'en';
+  const [videoMode,setVideoMode]=useState<'image'|'prompt'>('prompt');
+  const [fps,setFps]=useState(16);
+  const [seedValue,setSeedValue]=useState('');
+  const [generationStatus,setGenerationStatus]=useState<{id:string;phase:string;error?:string;elapsedSeconds:number}|null>(null);
+  const [resultInfo,setResultInfo]=useState<VideoRequest|null>(null);
+  const [savedVideoPath,setSavedVideoPath]=useState('');
   const [mode,setMode]=useState<Mode>('ai');
   const [aiEngine,setAiEngine]=useState<AiEngine>(()=>savedPath('gif-ai-engine')==='vulkan'?'vulkan':'comfy');
   const [panelWidths,setPanelWidths]=useState<PanelWidths>(savedWidths);
@@ -118,7 +139,26 @@ export default function GifStudio({de}:{de:boolean}){
   }
   useEffect(()=>{void refreshModels();},[]);
   useEffect(()=>{try{localStorage.setItem('gif-ai-engine',aiEngine);}catch{/* local preference */}},[aiEngine]);
-  useEffect(()=>{let live=true;void invoke<GifPending[]>('gif_pending_list').then(items=>{if(live){setPending(items);if(items[0])void showPending(items[0].id);}}).catch(e=>{if(live)setError(message(e,de));});return()=>{live=false;};},[]);
+  useEffect(()=>{let live=true;void invoke<GifPending[]>(pendingCommand('list')).then(items=>{if(live){setPending(items);if(items[0])void showPending(items[0].id);}}).catch(e=>{if(live)setError(message(e,de));});return()=>{live=false;};},[output]);
+  useEffect(()=>{
+    if(!video)return;
+    let live=true,previous='';
+    const poll=async()=>{try{
+      const status=await invoke<typeof generationStatus>('video_generation_status');
+      if(!live)return;
+      setGenerationStatus(status);
+      if(status&&['generating','encoding','cancelling'].includes(status.phase))setBusy(true);
+      else if(['generating','encoding','cancelling'].includes(previous))setBusy(false);
+      if(status?.phase==='done'&&previous!=='done'){
+        const items=await invoke<GifPending[]>('video_pending_list');
+        if(live){setPending(items);if(items.some(item=>item.id===status.id))void showPending(status.id);}
+      }
+      if(status&&['failed','interrupted'].includes(status.phase)&&status.error)setError(message(status.error,de));
+      previous=status?.phase??'';
+    }catch{/* transient polling error does not alter a running job */}};
+    void poll();const timer=setInterval(()=>void poll(),1000);
+    return()=>{live=false;clearInterval(timer);};
+  },[video,de]);
   useEffect(()=>{try{localStorage.setItem('gif-studio-panel-widths',JSON.stringify(panelWidths));}catch{/* local preference */}},[panelWidths]);
   function onFolder(folder:string){setGalleryFolder(folder);setSelectedPath('');try{sessionStorage.setItem('studio-gallery-folder',folder);}catch{/* session only */}}
   function showLocal(path:string,adaptDimensions=false){
@@ -130,18 +170,20 @@ export default function GifStudio({de}:{de:boolean}){
   }
   async function chooseSource(){
     const picked=await open({multiple:false,title:de?'Startbild wählen':'Choose start image',filters:[{name:de?'Bilder':'Images',extensions:imageExtensions}]});
-    if(typeof picked==='string'){setSource(picked);setSelectedPath('');showLocal(picked,true);}
+    if(typeof picked==='string'){setSource(picked);if(video)setVideoMode('image');setSelectedPath('');showLocal(picked,true);}
   }
   function clearSource(){
     ++previewRequest.current;
     setSource('');
+    setResultInfo(null);setSavedVideoPath('');
+    if(video)setVideoMode('prompt');
     setSelectedPath('');
     setActivePending(null);
     setPreview(null);
     setZoom(1);
   }
   async function chooseFrames(){
-    const picked=await open({multiple:true,title:de?'GIF-Frames wählen':'Choose GIF frames',filters:[{name:de?'Bilder':'Images',extensions:imageExtensions}]});
+    const picked=await open({multiple:true,title:de?(video?'Video-Frames wählen':'GIF-Frames wählen'):(video?'Choose Video frames':'Choose GIF frames'),filters:[{name:de?'Bilder':'Images',extensions:imageExtensions}]});
     if(Array.isArray(picked)&&picked.length){setFrames(current=>[...current,...picked].slice(0,200));showLocal(picked[0]);}
   }
   async function chooseModel(){
@@ -149,7 +191,7 @@ export default function GifStudio({de}:{de:boolean}){
     if(typeof picked==='string')setModel(picked);
   }
   async function chooseVulkanPart(kind:'model'|'encoder'|'vae'){
-    const labels={model:de?'Wan-I2V-/TI2V-Modell wählen':'Choose Wan I2V/TI2V model',encoder:de?'UMT5-Textencoder wählen':'Choose UMT5 text encoder',vae:de?'Wan-VAE wählen':'Choose Wan VAE'};
+    const labels={model:de?'Wan-T2V-/I2V-/TI2V-Modell wählen':'Choose Wan T2V/I2V/TI2V model',encoder:de?'UMT5-Textencoder wählen':'Choose UMT5 text encoder',vae:de?'Wan-VAE wählen':'Choose Wan VAE'};
     const picked=await open({multiple:false,title:labels[kind],filters:[{name:'Safetensors / GGUF',extensions:['safetensors','gguf']} ]});
     if(typeof picked!=='string')return;
     if(kind==='model'){setVulkanModel(picked);try{localStorage.setItem('gif-vulkan-model',picked);}catch{/* local only */}}
@@ -157,17 +199,19 @@ export default function GifStudio({de}:{de:boolean}){
     if(kind==='vae'){setVulkanVae(picked);try{localStorage.setItem('gif-vulkan-vae',picked);}catch{/* local only */}}
   }
   async function selectGallery(entry:GalleryEntry,root:string){
-    if(entry.kind!=='image')return;
+    if(entry.kind!=='image'&&!(video&&entry.kind==='video'))return;
     ++previewRequest.current;
     setActivePending(null);
     setError('');
     setSelectedPath(entry.path);
     try {
       const detail=await galleryApi.detail(entry.path);
-      setPreview({url:detail.url,path:entry.path,label:entry.name,width:detail.dimensions?.[0],height:detail.dimensions?.[1]});
+      if(video)setResultInfo(entry.kind==='video'?await invoke<VideoRequest|null>('video_result_info',{path:entry.path}):null);
+      setPreview({url:detail.url,path:entry.path,label:entry.name,width:detail.dimensions?.[0],height:detail.dimensions?.[1],video:entry.kind==='video'});
       setZoom(1);
       const fullPath=root.replace(/[\\/]$/,'')+'\\'+entry.path.replace(/\//g,'\\');
-      if(mode==='ai'&& !entry.name.toLowerCase().endsWith('.gif')){setSource(fullPath);if(detail.dimensions){const fitted=fittedSourceSize(detail.dimensions[0],detail.dimensions[1]);setWidth(fitted.width);setHeight(fitted.height);}}
+      if(video)setSavedVideoPath(entry.kind==='video'?fullPath:'');
+      if(mode==='ai'&&entry.kind==='image'&& !entry.name.toLowerCase().endsWith('.gif')){setSource(fullPath);if(video)setVideoMode('image');if(detail.dimensions){const fitted=fittedSourceSize(detail.dimensions[0],detail.dimensions[1]);setWidth(fitted.width);setHeight(fitted.height);}}
       if(mode==='frames'&&frames.length<200)setFrames(current=>[...current,fullPath]);
     }catch(e){setError(message(e,de));}
   }
@@ -175,21 +219,25 @@ export default function GifStudio({de}:{de:boolean}){
   async function showPending(id:string){
     const request=++previewRequest.current;
     setActivePending(id);setSelectedPath('');setError('');
-    try {const url=await invoke<string>('gif_pending_preview',{id});if(previewRequest.current===request){setPreview({url,path:'',label:`Local-Studio-${id}.gif`});setZoom(1);}}
+    if(video){setSavedVideoPath('');const items=await invoke<GifPending[]>('video_pending_list');setResultInfo(items.find(item=>item.id===id)?.request??null);}
+    try {const url=await invoke<string>(pendingCommand('preview'),{id});if(previewRequest.current===request){setPreview({url,path:'',label:`Local-Studio-${id}.${video?'mp4':'gif'}`,video});setZoom(1);}}
     catch(e){if(previewRequest.current===request){setPreview(null);setError(message(e,de));}}
   }
   async function create(){
     if(busy)return;
     setBusy(true);setError('');
     try {
-      const seed=crypto.getRandomValues(new Uint32Array(1))[0];
-      const result=mode==='ai'
+      const seed=video&&seedValue!==''?Number(seedValue):crypto.getRandomValues(new Uint32Array(1))[0];
+      const result=video
+        ? await invoke<GifPending>('video_generation_create',{request:{engine:aiEngine,mode:videoMode,sourcePath:videoMode==='image'?source:null,modelPath:aiEngine==='vulkan'?vulkanModel:model,encoderPath:aiEngine==='vulkan'?vulkanEncoder:null,vaePath:aiEngine==='vulkan'?vulkanVae:null,prompt,negativePrompt,width,height,frames:length,fps,steps,guidance,seed}})
+        : mode==='ai'
         ? aiEngine==='vulkan'
           ? await invoke<GifPending>('gif_vulkan_create',{request:{sourcePath:source||null,modelPath:vulkanModel,encoderPath:vulkanEncoder,vaePath:vulkanVae,prompt,negativePrompt,width,height,frames:length,steps,guidance,seed,delayMs:delay,looped}})
           : await invoke<GifPending>('gif_ai_create',{request:{sourcePath:source||null,modelPath:model,prompt,negativePrompt,width,height,frames:length,steps,guidance,seed,delayMs:delay,looped}})
         : await invoke<GifPending>('gif_create',{paths:frames,delayMs:delay,looped});
       setPending(current=>[result,...current]);
       await showPending(result.id);
+      if(video)setResultInfo(result.request??null);
     }catch(e){setError(message(e,de));}
     finally {setBusy(false);}
   }
@@ -199,20 +247,21 @@ export default function GifStudio({de}:{de:boolean}){
     try {
       let folder=galleryFolder;
       let path:string;
-      try {path=await invoke<string>('gif_pending_save',{id,folder});}
-      catch(e){if(!folder||!['gallery_missing','gallery_path'].some(code=>String(e).includes(code)))throw e;folder='';path=await invoke<string>('gif_pending_save',{id,folder});onFolder('');}
+      try {path=await invoke<string>(pendingCommand('save'),{id,folder});}
+      catch(e){if(!folder||!['gallery_missing','gallery_path'].some(code=>String(e).includes(code)))throw e;folder='';path=await invoke<string>(pendingCommand('save'),{id,folder});onFolder('');}
       setPending(current=>current.filter(item=>item.id!==id));setActivePending(null);
+      if(video)setSavedVideoPath(path);
       const relative=[folder,fileName(path)].filter(Boolean).join('/');
       setGalleryRefresh(value=>value+1);setSelectedPath(relative);
       const detail=await galleryApi.detail(relative);
-      setPreview({url:detail.url,path:relative,label:fileName(path),width:detail.dimensions?.[0],height:detail.dimensions?.[1]});
+      setPreview({url:detail.url,path:relative,label:fileName(path),width:detail.dimensions?.[0],height:detail.dimensions?.[1],video});
     }catch(e){setError(message(e,de));}
     finally{setBusy(false);}
   }
   async function discardPending(){
     if(!activePending||busy)return;
     const id=activePending;setBusy(true);setError('');
-    try {await invoke('gif_pending_discard',{id});setPending(current=>current.filter(item=>item.id!==id));setActivePending(null);setPreview(null);}
+    try {await invoke(pendingCommand('discard'),{id});setPending(current=>current.filter(item=>item.id!==id));setActivePending(null);setPreview(null);}
     catch(e){setError(message(e,de));}finally{setBusy(false);}
   }
   function startDrag(side:keyof PanelWidths,event:ReactPointerEvent<HTMLDivElement>){
@@ -230,16 +279,21 @@ export default function GifStudio({de}:{de:boolean}){
   const canGenerate=mode==='ai'
     ? (!!source||!!prompt.trim())&&(aiEngine==='vulkan'?!!vulkanModel&&!!vulkanEncoder&&!!vulkanVae:!!model&&comfyModeCompatible)&&Number.isInteger(width)&&Number.isInteger(height)&&width>=128&&height>=128&&width<=2048&&height<=2048&&width%16===0&&height%16===0&&Number.isInteger(length)&&length>=5&&length<=81&&(length-1)%4===0&&Number.isInteger(steps)&&steps>=1&&steps<=50&&Number.isFinite(guidance)&&guidance>=0&&guidance<=20
     : frames.length>0&&frames.length<=200;
-  const validOutput=Number.isInteger(delay)&&delay>=20&&delay<=10000;
+  const validOutput=video
+    ? Number.isInteger(fps)&&fps>=1&&fps<=50&&(seedValue===''||(Number.isInteger(Number(seedValue))&&Number(seedValue)>=0&&Number(seedValue)<=4294967295))&&(videoMode==='image'?!!source:!!prompt.trim())&&width%32===0&&height%32===0
+    : Number.isInteger(delay)&&delay>=20&&delay<=10000;
 
-  return <div className="page image-studio gif-studio">
+  return <div className={`page image-studio gif-studio${video?' video-generation-studio':''}`}>
     {error&&<p className="notice warning" role="alert">{error}</p>}
     <div className="image-workspace gif-workspace" style={{'--image-left-panel':`${panelWidths.left}px`,'--image-right-panel':`${panelWidths.right}px`} as CSSProperties}>
       <fieldset className="panel image-config gif-config" disabled={busy}>
-        <div className="gif-mode-switch" role="group" aria-label={de?'GIF-Methode':'GIF method'}>
+        {video?<div className="gif-mode-switch" role="group" aria-label={de?'Video-Modus':'Video mode'}>
+          <button type="button" className="button secondary" aria-pressed={videoMode==='prompt'} onClick={()=>{clearSource();setVideoMode('prompt');}}><Sparkles size={15}/>{de?'Prompt zu Video':'Prompt to video'}</button>
+          <button type="button" className="button secondary" aria-pressed={videoMode==='image'} onClick={()=>setVideoMode('image')}><Images size={15}/>{de?'Bild zu Video':'Image to video'}</button>
+        </div>:<div className="gif-mode-switch" role="group" aria-label={de?(video?'Video-Methode':'GIF-Methode'):(video?'Video method':'GIF method')}>
           <button type="button" className="button secondary" aria-pressed={mode==='ai'} onClick={()=>setMode('ai')}><Sparkles size={15}/>{de?'Mit KI':'With AI'}</button>
           <button type="button" className="button secondary" aria-pressed={mode==='frames'} onClick={()=>setMode('frames')}><Images size={15}/>{de?'Aus Bildern':'From images'}</button>
-        </div>
+        </div>}
         {mode==='ai'?<>
           <div className="section-heading"><h2>{de?'Engine und Modell':'Engine and model'}</h2>{aiEngine==='comfy'&&<button type="button" className="text-button" title={de?'Modelle aktualisieren':'Refresh models'} aria-label={de?'Modelle aktualisieren':'Refresh models'} onClick={()=>void refreshModels()}><RefreshCw size={15}/></button>}</div>
           <div className="gif-engine-switch" role="group" aria-label={de?'KI-Engine':'AI engine'}>
@@ -254,15 +308,16 @@ export default function GifStudio({de}:{de:boolean}){
               {models.map(item=><option key={item.path} value={item.path}>{item.name} · {item.supportsImage&&item.supportsPrompt?'I2V + T2V':item.supportsImage?'I2V':'T2V'} · {formatGigabytes(item.bytes,language)}</option>)}
             </select>
             <button type="button" className="button secondary gif-file-button" onClick={()=>void chooseModel()}><FolderOpen size={15}/>{de?'Modelldatei wählen':'Choose model file'}</button>
-            <p className="hub-hint">{de?'ComfyUI verwendet sein Wan-I2V-/TI2V-Modell sowie die dort installierten Encoder und VAE-Dateien.':'ComfyUI uses its Wan I2V/TI2V model and the encoder and VAE files installed there.'}</p>
+            <p className="hub-hint">{de?'ComfyUI verwendet das passende Wan-I2V-/T2V-/TI2V-Modell sowie die dort installierten Encoder und VAE-Dateien.':'ComfyUI uses the matching Wan I2V/T2V/TI2V model and the encoder and VAE files installed there.'}</p>
           </>:<div className="gif-vulkan-files">
-            <label>{de?'Wan-I2V-/TI2V-Diffusionsmodell':'Wan I2V/TI2V diffusion model'}<button type="button" className="button secondary gif-file-button" onClick={()=>void chooseVulkanPart('model')}><FolderOpen size={15}/>{vulkanModel?fileName(vulkanModel):(de?'Modell wählen':'Choose model')}</button></label>
+            <label>{de?'Wan-Videodiffusionsmodell':'Wan video diffusion model'}<button type="button" className="button secondary gif-file-button" onClick={()=>void chooseVulkanPart('model')}><FolderOpen size={15}/>{vulkanModel?fileName(vulkanModel):(de?'Modell wählen':'Choose model')}</button></label>
             <label>{de?'UMT5-Textencoder':'UMT5 text encoder'}<button type="button" className="button secondary gif-file-button" onClick={()=>void chooseVulkanPart('encoder')}><FolderOpen size={15}/>{vulkanEncoder?fileName(vulkanEncoder):(de?'Encoder wählen':'Choose encoder')}</button></label>
             <label>{de?'Passende Wan-VAE':'Matching Wan VAE'}<button type="button" className="button secondary gif-file-button" onClick={()=>void chooseVulkanPart('vae')}><FolderOpen size={15}/>{vulkanVae?fileName(vulkanVae):(de?'VAE wählen':'Choose VAE')}</button></label>
             <p className="hub-hint">{de?'Läuft direkt über die mitgelieferte Vulkan-Runtime, auch auf AMD- und Intel-GPUs. Die drei Dateien werden nur gelesen; Local Studio installiert keine Modellabhängigkeiten.':'Runs directly through the bundled Vulkan runtime, including AMD and Intel GPUs. The three files are read only; Local Studio does not install model dependencies.'}</p>
           </div>}
+          {!comfyModeCompatible&&aiEngine==='comfy'&&<p className="notice warning">{de?'Das Modell passt nicht zum gewählten Eingabemodus. Wähle ein passendes I2V-/T2V-Modell.':'This model does not match the selected input mode. Choose a matching I2V/T2V model.'}</p>}
           <div className="gif-control-group">
-            <div className="section-heading"><h2>{de?'Referenzbild (optional)':'Reference image (optional)'}</h2></div>
+            <div className="section-heading"><h2>{video&&videoMode==='image'?(de?'Referenzbild':'Reference image'):(de?'Referenzbild (optional)':'Reference image (optional)')}</h2></div>
             <div className="gif-source-actions"><button type="button" className="button secondary gif-file-button" onClick={()=>void chooseSource()}><FolderOpen size={15}/>{source?fileName(source):(de?'Bild wählen':'Choose image')}</button>{source&&<button type="button" className="button secondary" onClick={clearSource}><X size={15}/>{de?'Bild entfernen':'Remove image'}</button>}</div>
             <p className="hub-hint">{source?(de?'Mit Referenzbild läuft Bild-zu-Video (I2V).':'With a reference image, image-to-video (I2V) is used.'):(de?'Ohne Referenzbild läuft Prompt-zu-Video (T2V). Wähle dafür ein T2V-/TI2V-Modell.':'Without a reference image, prompt-to-video (T2V) is used. Choose a T2V/TI2V model.')}</p>
           </div>
@@ -272,8 +327,9 @@ export default function GifStudio({de}:{de:boolean}){
             <TagImporter de={de} removeCensor={false} onImport={tags=>setPrompt(current=>[current.trim(),tags.join(', ')].filter(Boolean).join(', ').slice(0,8000))}/>
           </div>
           <details className="image-control-details" open><summary>{de?'Größe und Bewegung':'Size and motion'}</summary>
-            <div className="image-parameters"><label className="field-label">{de?'Breite':'Width'}<input type="number" min={128} max={2048} step={16} value={width} onChange={event=>setWidth(Number(event.target.value))}/></label><label className="field-label">{de?'Höhe':'Height'}<input type="number" min={128} max={2048} step={16} value={height} onChange={event=>setHeight(Number(event.target.value))}/></label><label className="field-label">Frames<input type="number" min={5} max={81} step={4} value={length} onChange={event=>setLength(Number(event.target.value))}/></label><label className="field-label">{de?'Schritte':'Steps'}<input type="number" min={1} max={50} value={steps} onChange={event=>setSteps(Number(event.target.value))}/></label><label className="field-label">Guidance<input type="number" min={0} max={20} step={0.5} value={guidance} onChange={event=>setGuidance(Number(event.target.value))}/></label></div>
-            <p className="hub-hint">{de?'Maße in 16er-Schritten. Framezahl: 5, 9, 13 … 81.':'Dimensions in steps of 16. Frame count: 5, 9, 13 … 81.'}</p>
+            {video&&<div className="gif-engine-switch" role="group" aria-label={de?'Seitenverhältnis':'Aspect ratio'}>{[[832,480,'16:9'],[480,832,'9:16'],[512,512,'1:1']].map(([w,h,label])=><button type="button" className="button secondary" key={label} onClick={()=>{setWidth(Number(w));setHeight(Number(h));}}>{label}</button>)}</div>}
+            <div className="image-parameters"><label className="field-label">{de?'Breite':'Width'}<input type="number" min={128} max={2048} step={video?32:16} value={width} onChange={event=>setWidth(Number(event.target.value))}/></label><label className="field-label">{de?'Höhe':'Height'}<input type="number" min={128} max={2048} step={video?32:16} value={height} onChange={event=>setHeight(Number(event.target.value))}/></label><label className="field-label">Frames<input type="number" min={5} max={81} step={4} value={length} onChange={event=>setLength(Number(event.target.value))}/></label><label className="field-label">{de?'Schritte':'Steps'}<input type="number" min={1} max={50} value={steps} onChange={event=>setSteps(Number(event.target.value))}/></label><label className="field-label">Guidance<input type="number" min={0} max={20} step={0.5} value={guidance} onChange={event=>setGuidance(Number(event.target.value))}/></label></div>
+            <p className="hub-hint">{de?`Maße in ${video?32:16}er-Schritten. Framezahl: 5, 9, 13 … 81.`:`Dimensions in steps of ${video?32:16}. Frame count: 5, 9, 13 … 81.`}</p>
           </details>
         </>:<>
           <div className="section-heading"><h2>{de?'Bilder in Reihenfolge':'Images in order'} · {frames.length}</h2></div>
@@ -281,22 +337,29 @@ export default function GifStudio({de}:{de:boolean}){
           <p className="hub-hint">{de?'Bilder rechts in der Galerie anklicken oder Dateien wählen. Bis zu 200 Frames.':'Click images in the gallery or choose files. Up to 200 frames.'}</p>
           <ol className="gif-frame-list">{frames.map((path,index)=><li key={`${path}-${index}`}><span title={displayPath(path)}>{index+1}. {fileName(path)}</span><button type="button" className="icon-button" disabled={index===0} aria-label={de?'Nach oben':'Move up'} onClick={()=>moveFrame(index,-1)}><ArrowUp size={14}/></button><button type="button" className="icon-button" disabled={index===frames.length-1} aria-label={de?'Nach unten':'Move down'} onClick={()=>moveFrame(index,1)}><ArrowDown size={14}/></button><button type="button" className="icon-button" aria-label={de?'Entfernen':'Remove'} onClick={()=>setFrames(current=>current.filter((_,i)=>i!==index))}><Trash2 size={14}/></button></li>)}</ol>
         </>}
-        <details className="image-control-details" open><summary>{de?'GIF-Ausgabe':'GIF output'}</summary>
+        {video?<details className="image-control-details" open><summary>{de?'Video-Ausgabe':'Video output'}</summary>
+          <div className="image-parameters"><label className="field-label">FPS<input type="number" min={1} max={50} value={fps} onChange={event=>setFps(Number(event.target.value))}/></label><label className="field-label">Seed<input type="number" min={0} max={4294967295} placeholder={de?'Zufällig':'Random'} value={seedValue} onChange={event=>setSeedValue(event.target.value)}/></label></div>
+          <p className="hub-hint">MP4 · H.264 · {Number.isFinite(length/fps)?(length/fps).toFixed(2):'—'} s · {de?'ohne Ton':'silent'}</p>
+          <p className="hub-hint">{de?'Leerer Seed = zufällig. Ergebnisse bleiben ungespeichert, bis du sie in die Galerie übernimmst.':'Empty seed = random. Results remain unsaved until you save them to the gallery.'}</p>
+        </details>:<details className="image-control-details" open><summary>{de?(video?'Video-Ausgabe':'GIF-Ausgabe'):(video?'Video output':'GIF output')}</summary>
           <div className="image-parameters"><label className="field-label">{de?'Zeit je Frame (ms)':'Time per frame (ms)'}<input type="number" min={20} max={10000} value={delay} onChange={event=>setDelay(Number(event.target.value))}/></label></div>
           <label className="privacy-check"><input type="checkbox" checked={looped} onChange={event=>setLooped(event.target.checked)}/>{de?'Endlosschleife':'Loop forever'}</label>
           <p className="hub-hint">{de?'Das Ergebnis bleibt zunächst ungespeichert. Erst „In Galerie speichern“ legt es unter einer eindeutigen ID im gewählten Ordner ab.':'The result stays unsaved until you choose Save to gallery. It then receives a unique ID in the selected folder.'}</p>
-        </details>
-        <div className="image-generate-bar"><button type="button" className="button primary" disabled={!canGenerate||!validOutput||busy} onClick={()=>void create()}>{busy?<LoaderCircle className="spin" size={17}/>:<Film size={17}/>} {busy?(de?'GIF wird erstellt …':'Creating GIF …'):mode==='ai'?(de?'GIF generieren':'Generate GIF'):(de?'GIF aus Bildern erstellen':'Create GIF from images')}</button></div>
+        </details>}
+        <div className="image-generate-bar"><button type="button" className="button primary" disabled={!canGenerate||!validOutput||busy} onClick={()=>void create()}>{busy?<LoaderCircle className="spin" size={17}/>:<Film size={17}/>} {busy?(de?(video?'Video wird erstellt …':'GIF wird erstellt …'):(video?'Creating Video …':'Creating GIF …')):mode==='ai'?(de?(video?'Video generieren':'GIF generieren'):(video?'Generate Video':'Generate GIF')):(de?(video?'Video aus Bildern erstellen':'GIF aus Bildern erstellen'):(video?'Create Video from images':'Create GIF from images'))}</button></div>
       </fieldset>
       <div className="image-panel-resizer left" role="separator" aria-orientation="vertical" aria-label={de?'Breite der Einstellungen':'Settings width'} aria-valuemin={320} aria-valuemax={560} aria-valuenow={Math.round(panelWidths.left)} tabIndex={0} onPointerDown={event=>startDrag('left',event)} onPointerMove={dragPanel} onPointerUp={()=>panelDrag.current=null} onPointerCancel={()=>panelDrag.current=null} onDoubleClick={()=>setPanelWidths(defaultWidths)} onKeyDown={event=>{if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();setPanelWidths(current=>({...current,left:Math.max(320,Math.min(560,current.left+(event.key==='ArrowRight'?20:-20)))}));}}}/>
       <main className="image-workspace-output">
-        <section className="image-canvas gif-canvas" aria-label={de?'GIF-Canvas':'GIF canvas'}>
+        {video&&resultInfo&&<details className="gif-pending-history"><summary>{de?'Modell und Generierungsdaten':'Model and generation settings'}</summary><p>{fileName(resultInfo.modelPath)} · {resultInfo.mode==='image'?'I2V':'T2V'} · {resultInfo.width} × {resultInfo.height} · {resultInfo.frames} Frames · {resultInfo.fps} FPS · Seed {resultInfo.seed}</p><p>{resultInfo.prompt}</p><button type="button" className="button secondary" disabled={busy} onClick={()=>{setAiEngine(resultInfo.engine);setVideoMode(resultInfo.mode);setSource(resultInfo.sourcePath??'');setModel(resultInfo.modelPath);setVulkanModel(resultInfo.modelPath);setVulkanEncoder(resultInfo.encoderPath??'');setVulkanVae(resultInfo.vaePath??'');setPrompt(resultInfo.prompt);setNegativePrompt(resultInfo.negativePrompt);setWidth(resultInfo.width);setHeight(resultInfo.height);setLength(resultInfo.frames);setFps(resultInfo.fps);setSteps(resultInfo.steps);setGuidance(resultInfo.guidance);setSeedValue(String(resultInfo.seed));}}>{de?'Einstellungen übernehmen':'Restore settings'}</button></details>}
+        <section className="image-canvas gif-canvas" aria-label={de?(video?'Video-Canvas':'GIF-Canvas'):(video?'Video canvas':'GIF canvas')}>
           <div className="image-canvas-toolbar"><div><strong>Canvas</strong><span>{preview?.label??(de?'Vorschau':'Preview')}</span></div><div role="group" aria-label={de?'Vorschaugröße':'Preview zoom'}><button type="button" className="text-button" disabled={!preview} aria-label={de?'Verkleinern':'Zoom out'} onClick={()=>setZoom(value=>Math.max(.25,value-.25))}><Minus size={15}/></button><button type="button" className="text-button" disabled={!preview} onClick={()=>setZoom(1)}>{Math.round(zoom*100)}%</button><button type="button" className="text-button" disabled={!preview} aria-label={de?'Vergrößern':'Zoom in'} onClick={()=>setZoom(value=>Math.min(4,value+.25))}><Plus size={15}/></button><button type="button" className="text-button" disabled={!preview} aria-label={de?'Einpassen':'Fit'} onClick={()=>setZoom(1)}><Maximize size={15}/></button></div></div>
-          <div className="image-canvas-viewport gif-canvas-viewport">{preview?<div className="gif-canvas-media"><img src={preview.url} alt={preview.label} style={{transform:`scale(${zoom})`}}/></div>:<div className="image-canvas-empty"><div className="image-canvas-symbol"><Film size={32}/></div><h2>{busy?(de?'GIF wird erzeugt …':'Generating GIF …'):(de?'Dein GIF erscheint hier':'Your GIF appears here')}</h2><p>{mode==='ai'?(source?(de?'I2V nutzt das Referenzbild und deinen optionalen Bewegungs-Prompt.':'I2V uses the reference image and your optional motion prompt.'):(de?'T2V erzeugt das GIF vollständig aus deinem Prompt.':'T2V creates the GIF entirely from your prompt.')):(de?'Bilder hinzufügen und als GIF erzeugen.':'Add images and create a GIF.')}</p>{busy&&<progress aria-label={de?'GIF wird erstellt':'Creating GIF'}/>}</div>}{busy&&preview&&<div className="gif-canvas-progress"><LoaderCircle className="spin" size={16}/><span>{de?'GIF wird erstellt …':'Creating GIF …'}</span><progress aria-label={de?'GIF wird erstellt':'Creating GIF'}/></div>}</div>
+          <div className="image-canvas-viewport gif-canvas-viewport">{preview?<div className="gif-canvas-media">{preview.video?<video key={preview.url} src={preview.url} controls playsInline preload="metadata" aria-label={preview.label} style={{transform:`scale(${zoom})`}}/>:<img src={preview.url} alt={preview.label} style={{transform:`scale(${zoom})`}}/>}</div>:<div className="image-canvas-empty"><div className="image-canvas-symbol"><Film size={32}/></div><h2>{busy?(de?(video?'Video wird erzeugt …':'GIF wird erzeugt …'):(video?'Generating Video …':'Generating GIF …')):(de?(video?'Dein Video erscheint hier':'Dein GIF erscheint hier'):(video?'Your Video appears here':'Your GIF appears here'))}</h2><p>{mode==='ai'?(source?(de?'I2V nutzt das Referenzbild und deinen optionalen Bewegungs-Prompt.':'I2V uses the reference image and your optional motion prompt.'):(de?(video?'T2V erzeugt das Video vollständig aus deinem Prompt.':'T2V erzeugt das GIF vollständig aus deinem Prompt.'):(video?'T2V creates the Video entirely from your prompt.':'T2V creates the GIF entirely from your prompt.'))):(de?(video?'Bilder hinzufügen und als Video erzeugen.':'Bilder hinzufügen und als GIF erzeugen.'):(video?'Add images and create a Video.':'Add images and create a GIF.'))}</p>{busy&&<progress aria-label={de?(video?'Video wird erstellt':'GIF wird erstellt'):(video?'Creating Video':'Creating GIF')}/>}</div>}{busy&&preview&&<div className="gif-canvas-progress"><LoaderCircle className="spin" size={16}/><span>{de?(video?'Video wird erstellt …':'GIF wird erstellt …'):(video?'Creating Video …':'Creating GIF …')}</span><progress aria-label={de?(video?'Video wird erstellt':'GIF wird erstellt'):(video?'Creating Video':'Creating GIF')}/></div>}</div>
           <div className="image-canvas-status"><span>{busy?(de?'Lokale Verarbeitung läuft':'Local processing in progress'):(preview?.path??(de?'Bereit':'Ready'))}</span><span>{preview?.width&&preview.height?`${preview.width} × ${preview.height} px`:(de?'Lokal auf deinem PC':'Local on your PC')}</span></div>
         </section>
-        {activePending&&<div className="gif-result-actions"><strong>{de?'Ungespeichertes GIF':'Unsaved GIF'}</strong><span>{de?'Ziel:':'Destination:'} {galleryFolder||(de?'Galerie-Hauptordner':'Gallery root')}</span><button type="button" className="button primary" disabled={busy} onClick={()=>void savePending()}><Save size={15}/>{de?'In Galerie speichern':'Save to gallery'}</button><button type="button" className="button secondary" disabled={busy} onClick={()=>void discardPending()}><Trash2 size={15}/>{de?'Verwerfen':'Discard'}</button></div>}
-        {pending.length>0&&<section className="gif-pending-history" aria-label={de?'Ungespeicherte GIFs':'Unsaved GIFs'}><h2>{de?'Ungespeicherte GIFs':'Unsaved GIFs'} · {pending.length}</h2><div>{pending.map(item=><button type="button" key={item.id} className="button secondary" aria-pressed={activePending===item.id} onClick={()=>void showPending(item.id)}>GIF {item.id.slice(0,8)}</button>)}</div></section>}
+        {video&&busy&&<div className="gif-result-actions" role="status"><LoaderCircle className="spin" size={16}/><strong>{generationStatus?.phase==='encoding'?(de?'Video wird codiert …':'Encoding video …'):(de?'Video wird generiert …':'Generating video …')}</strong><span>{generationStatus?.elapsedSeconds??0} s · {de?'Fortschritt dieser Phase nicht messbar':'Progress in this phase is not measurable'}</span><button type="button" className="button secondary" disabled={generationStatus?.phase==='cancelling'} onClick={()=>void invoke('video_generation_cancel')}>{de?'Generierung abbrechen':'Cancel generation'}</button></div>}
+        {activePending&&<div className="gif-result-actions"><strong>{de?(video?'Ungespeichertes Video':'Ungespeichertes GIF'):(video?'Unsaved Video':'Unsaved GIF')}</strong><span>{de?'Ziel:':'Destination:'} {galleryFolder||(de?'Galerie-Hauptordner':'Gallery root')}</span><button type="button" className="button primary" disabled={busy} onClick={()=>void savePending()}><Save size={15}/>{de?'In Galerie speichern':'Save to gallery'}</button><button type="button" className="button secondary" disabled={busy} onClick={()=>void discardPending()}><Trash2 size={15}/>{de?'Verwerfen':'Discard'}</button></div>}
+        {video&&savedVideoPath&&onEditVideo&&<div className="gif-result-actions"><button type="button" className="button secondary" disabled={busy} onClick={()=>void onEditVideo(savedVideoPath).catch(e=>setError(message(e,de)))}>{de?'Im Videoschnitt öffnen':'Open in video editor'}</button></div>}
+        {pending.length>0&&<section className="gif-pending-history" aria-label={de?(video?'Ungespeicherte Videos':'Ungespeicherte GIFs'):(video?'Unsaved Videos':'Unsaved GIFs')}><h2>{de?(video?'Ungespeicherte Videos':'Ungespeicherte GIFs'):(video?'Unsaved Videos':'Unsaved GIFs')} · {pending.length}</h2><div>{pending.map(item=><button type="button" key={item.id} className="button secondary" aria-pressed={activePending===item.id} onClick={()=>void showPending(item.id)}>{video?'Video':'GIF'} {item.id.slice(0,8)}</button>)}</div></section>}
       </main>
       <div className="image-panel-resizer right" role="separator" aria-orientation="vertical" aria-label={de?'Breite der Galerie':'Gallery width'} aria-valuemin={250} aria-valuemax={440} aria-valuenow={Math.round(panelWidths.right)} tabIndex={0} onPointerDown={event=>startDrag('right',event)} onPointerMove={dragPanel} onPointerUp={()=>panelDrag.current=null} onPointerCancel={()=>panelDrag.current=null} onDoubleClick={()=>setPanelWidths(defaultWidths)} onKeyDown={event=>{if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();setPanelWidths(current=>({...current,right:Math.max(250,Math.min(440,current.right+(event.key==='ArrowLeft'?20:-20)))}));}}}/>
       <StudioGallery language={language} folder={galleryFolder} onFolder={onFolder} refreshKey={galleryRefresh} onSelect={(entry,root)=>void selectGallery(entry,root)} onDeleted={entry=>{if(entry.path===selectedPath){setSelectedPath('');setPreview(null);}}} selectedPath={selectedPath}/>

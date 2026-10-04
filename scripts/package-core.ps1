@@ -420,7 +420,11 @@ Der Importstatus allein bestaetigt keine Ausfuehrbarkeit; SDXL seit 0.6.0 im Stu
 
 Neu in 0.4.2: Installer und Deinstallation passen sich beim Start an Windows an.
 
-Neu in {VERSION}: Ausgewählte LoRAs können in mehreren frei gewählten lokalen Ordnern liegen. Local Studio registriert sichere Elternordner automatisch für ComfyUI und setzt nicht mehr erreichbare Studio-Galerieordner sofort auf den Hauptordner zurück.
+Neu in 0.37.0: Video erstellen bietet lokale Prompt-zu-Video- und Bild-zu-Video-Auftraege
+mit Wan-Modellwahl, ComfyUI/Vulkan, Canvas, FPS/Seed und bestaetigtem MP4-Speichern.
+Gespeicherte Videos koennen in den Videoschnitt uebernommen werden.
+
+Neu in 0.36.29: Ausgewählte LoRAs können in mehreren frei gewählten lokalen Ordnern liegen. Local Studio registriert sichere Elternordner automatisch für ComfyUI und setzt nicht mehr erreichbare Studio-Galerieordner sofort auf den Hauptordner zurück.
 Repository-Gesamtgroesse umfasst alle Varianten; die Auswahl bestimmt den Download.
 
 Neu in 0.4.0: Dateien in den Modell-Details selbst auswÃ¤hlen, Download prÃ¼fen

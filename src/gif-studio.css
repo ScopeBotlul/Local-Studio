@@ -39,3 +39,5 @@
 .gif-workspace .studio-gallery-media-tile { cursor: pointer; }
 .gif-workspace .studio-gallery-media-tile.selected { border-color: var(--accent); background: color-mix(in srgb,var(--accent) 9%,var(--panel)); }
 @media(max-width:1180px){.gif-workspace .studio-gallery{grid-column:1/-1;}}
+
+.gif-canvas-media > video { display:block;width:100%;height:100%;object-fit:contain;transform-origin:center; }

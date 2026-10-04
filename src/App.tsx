@@ -9,7 +9,7 @@ import GifStudio from './GifStudio';
 import VideoJobs from './VideoJobs';
 import {mediaApi} from './media-tools';
 import {useCreative} from './useCreative';
-import {creativeApi} from './creative-state';
+import {creativeApi,newTimeline,timelineEnd,uid,defaultPose,type Clip} from './creative-state';
 import {setMenuContext} from './menu-context';
 import './creative.css';
 import AppMenu from './AppMenu';
@@ -308,22 +308,26 @@ export default function App() {
         const imagesRunning = imageJobs.some(activeImage);
         const unsaved = imageState.unsaved;
         const gifPending = await invoke<Array<{id:string}>>('gif_pending_list');
+        const videoPending = await invoke<Array<{id:string}>>('video_pending_list');
+        const videoGeneration = await invoke<{phase:string}|null>('video_generation_status');
         const aiState=await ai.status();
         const aiRunning=['loading','running'].includes(aiState.phase)||(await ai.jobs()).some(j=>j.status==='running');
-        const videoRunning=aiRunning || (await creativeApi.jobs()).some(j=>j.status==='running') || (await mediaApi.status())?.status==='running';
+        const videoRunning=!!videoGeneration && ['generating','encoding','cancelling'].includes(videoGeneration.phase) || aiRunning || (await creativeApi.jobs()).some(j=>j.status==='running') || (await mediaApi.status())?.status==='running';
         const warnings = [videoRunning?(languageRef.current==='de'?'Beim Beenden werden laufende KI-Aufgaben, Videoexporte und Medienvorbereitungen abgebrochen. Die Timeline bleibt im lokalen Projektarbeitsstand.':'Closing cancels active AI tasks, video renders and media preparation. The timeline remains in the local project workspace.'):'',!snapshotRef.current?.settings.restoreSession && (imageState.workspace.request?.prompt || imageState.workspace.request?.negativePrompt) ? (languageRef.current === 'de' ? 'Die aktuellen Studio-Eingaben werden beim nächsten Start geleert. Prompts fertiger Aufträge bleiben in deren Metadaten erhalten.' : 'Current Studio inputs will be cleared on the next start. Prompts of completed jobs remain in their metadata.') : '', imagesRunning ? (languageRef.current === 'de' ? 'Beim Beenden wird die laufende Bildgenerierung abgebrochen; wartende Aufträge werden pausiert. Bereits fertig gewordene Bilder werden in deine Auswahl einbezogen.' : 'Closing cancels the running image generation and pauses waiting jobs. Images that have already completed are included in your choice.') : '', latest.some(isActiveJob) ? copy.exitActive : '', transfers.some(activeDownload) ? (languageRef.current === 'de' ? 'Downloads werden pausiert; Teil-Dateien bleiben zum Fortsetzen erhalten.' : 'Downloads will pause; partial files are kept for resuming.') : '', dirtyRef.current ? copy.exitUnsaved : ''].filter(Boolean);
         if ((await invoke<{status:string}|null>('model_move_status'))?.status==='running') warnings.push(languageRef.current==='de'?'Das Verschieben von Modelldateien wird sicher beendet oder abgebrochen. Bereits geprüfte Kopien bleiben bei einer unterbrochenen Umstellung erhalten.':'Moving model files will finish safely or be cancelled. Verified copies are retained if switching references is interrupted.');
         if (activeProject?.dirty) warnings.push(languageRef.current === 'de' ? 'Das Projekt enthält ungespeicherte Änderungen. Ohne Speichern bleibt die bisherige Projektdatei unverändert; die lokale Arbeitskopie kann später fortgesetzt werden.' : 'The project has unsaved changes. Without saving, the previous project file stays unchanged; the local working copy can be resumed later.');
         if(editorActivity.draft) warnings.push(languageRef.current === 'de' ? (editorActivity.persisted ? 'Bildbearbeitung noch nicht exportiert. Der lokale Entwurf bleibt zum Fortsetzen über dasselbe Bild in Galerie oder Projekt erhalten.' : 'Der Bildentwurf konnte nicht gespeichert werden. Abbrechen und im Editor exportieren, um die Änderungen zu behalten.') : (editorActivity.persisted ? 'Image edits have not been exported. The local draft can be resumed from the same image in the gallery or project.' : 'The image draft could not be saved. Cancel and export in the editor to retain changes.'));
         let saveProject = false;
         let choice: ExitChoice = 'close';
-        if (warnings.length || unsaved || gifPending.length) {
+        if (warnings.length || unsaved || gifPending.length || videoPending.length) {
           window.dispatchEvent(new CustomEvent('studio-modal', { detail: true }));
-          choice = await new Promise<ExitChoice>(resolve => setExitPrompt({ warnings, unsaved, gifUnsaved: gifPending.length, imagesRunning, restoreSession: snapshotRef.current?.settings.restoreSession ?? false, project: !!activeProject && !activeProject.recovery, projectDirty: !!activeProject?.dirty, resolve: (value, save) => { saveProject = !!save; resolve(value); } }));
+          choice = await new Promise<ExitChoice>(resolve => setExitPrompt({ warnings, unsaved, gifUnsaved: gifPending.length + videoPending.length, imagesRunning, restoreSession: snapshotRef.current?.settings.restoreSession ?? false, project: !!activeProject && !activeProject.recovery, projectDirty: !!activeProject?.dirty, resolve: (value, save) => { saveProject = !!save; resolve(value); } }));
         }
         if (choice === 'cancel') { installing.current=false; return; }
         if (saveProject && !await projectRef.current.save()) { installing.current=false; return; }
         setExitBusy(true);
+        if(choice==='save')for(const item of videoPending)await invoke('video_pending_save',{id:item.id,folder:''});
+        if(choice==='discard')for(const item of videoPending)await invoke('video_pending_discard',{id:item.id});
         if(choice==='save')for(const item of gifPending)await invoke('gif_pending_save',{id:item.id,folder:''});
         if(choice==='discard')for(const item of gifPending)await invoke('gif_pending_discard',{id:item.id});
         await flushStudio();
@@ -568,7 +572,18 @@ export default function App() {
         {(page === 'hub' || page === 'models') && <HubPage key={page} language={language} modelSource={modelSource} onModelSource={setModelSource} showImage={path => { studio.selectModel(path); setSelectedImageJob(null); setStudioTab('generate'); setPage('studio'); }} mode={page} showDownloads={() => setPage('downloads')} initialRepo={page === 'models' ? initialModelRepo : null} showModels={repo => { setInitialModelRepo(repo ?? null); setModelSource('huggingface'); setPage('models'); }} />}
         {page === 'assistant' && <AssistantPage de={language==='de'} onGallery={()=>setPage('gallery')} onApply={request=>{if(!studio.ready||studio.recovery){setError(language==='de'?'Zuerst den Bild-Arbeitsstand wiederherstellen oder verwerfen.':'First restore or discard the image workspace.');return;}studio.restore(request);setSelectedImageJob(null);setStudioTab('generate');setPage('studio');}}/>}
         {page === 'downloads' && <DownloadsPage language={language} />}
-        {page === 'studio' && <>{studioTab === 'generate' && <ImageStudio projectDisabled={!projects.ready || projects.busy || !!projects.project?.recovery || studio.recovery} onAddToProject={projects.addImage} shortcuts={snapshot.settings.shortcuts} removeCensorTags={snapshot.settings.removeCensorTags} key={page} language={language} request={studio.request} setRequest={studio.setRequest} selectModel={studio.selectModel} onRestore={request => { studio.restore(request); setSelectedImageJob(null); setStudioTab('generate'); setPage('studio'); }} selectedJob={selectedImageJob} disabled={!studio.ready || studio.recovery}  />}{studioTab==='canvas'&&<CanvasStudio workspace={creative} projects={projects} de={language==='de'}/>} {studioTab==='video-generate'&&<StudioWorkInProgress kind="video" de={language==='de'}/>} {studioTab==='timeline'&&<TimelineStudio workspace={creative} projects={projects} de={language==='de'}/>}{studioTab==='gif'&&<GifStudio de={language==='de'}/>} {studioTab==='code'&&<StudioWorkInProgress kind="code" de={language==='de'}/>}</>}
+        {page === 'studio' && <>{studioTab === 'generate' && <ImageStudio projectDisabled={!projects.ready || projects.busy || !!projects.project?.recovery || studio.recovery} onAddToProject={projects.addImage} shortcuts={snapshot.settings.shortcuts} removeCensorTags={snapshot.settings.removeCensorTags} key={page} language={language} request={studio.request} setRequest={studio.setRequest} selectModel={studio.selectModel} onRestore={request => { studio.restore(request); setSelectedImageJob(null); setStudioTab('generate'); setPage('studio'); }} selectedJob={selectedImageJob} disabled={!studio.ready || studio.recovery}  />}{studioTab==='canvas'&&<CanvasStudio workspace={creative} projects={projects} de={language==='de'}/>} {studioTab==='video-generate'&&<GifStudio key="video" output="video" de={language==='de'} onEditVideo={async path=>{
+            if(!await creative.ensure())return;await creative.flush();
+            const before=new Set(projects.get()!.assets.map(asset=>asset.id));
+            if(!await projects.addFiles([path]))throw Error('project_media');
+            const project=projects.get()!,asset=project.assets.find(asset=>!before.has(asset.id));
+            if(!asset)throw Error('project_media');
+            const probe=await creativeApi.probe(project.id,asset.id),next=structuredClone(creative.get().video??newTimeline());
+            let track=next.tracks.find(track=>!track.audio&&!track.locked);
+            if(!track){track={id:uid(),name:'Video',audio:false,muted:false,locked:false};next.tracks.push(track);}
+            const clip:Clip={id:uid(),assetId:asset.id,trackId:track.id,name:asset.name,start:timelineEnd(next),sourceIn:0,sourceOut:probe.duration,speed:1,fadeIn:0,fadeOut:0,blur:0,brightness:0,contrast:1,saturation:1,keyframes:[defaultPose()]};
+            next.clips.push(clip);creative.change({...creative.get(),video:next});await creative.flush();setStudioTab('timeline');
+          }}/>} {studioTab==='timeline'&&<TimelineStudio workspace={creative} projects={projects} de={language==='de'}/>}{studioTab==='gif'&&<GifStudio key="gif" de={language==='de'}/>} {studioTab==='code'&&<StudioWorkInProgress kind="code" de={language==='de'}/>}</>}
         {page === 'gallery' && <Gallery onReference={reference=>{if(!studio.ready||studio.recovery)return;studio.setRequest(r=>({...r,reference,width:reference.width,height:reference.height}));setSelectedImageJob(null);setStudioTab('generate');setPage('studio');}} onAddEdit={async(selection,ops)=>{if(!await projects.addEdit(selection,ops))return null;const p=projects.get()!;const a=p.assets.at(-1)!;return {id:p.id,assetId:a.id,sha256:a.sha256};}} onSaveEdit={projects.saveEdit} maxUndo={snapshot.settings.maxUndo} projectDisabled={!projects.ready || projects.busy || !!projects.project?.recovery || studio.recovery} onAddToProject={projects.addGallery} shortcuts={snapshot.settings.shortcuts} language={language} restoreDisabled={!studio.ready || studio.recovery} onRestore={request => { studio.restore(request); setSelectedImageJob(null); setStudioTab('generate'); setPage('studio'); }} />}
         {!['home', 'jobs', 'settings', 'hub', 'models', 'downloads', 'studio', 'gallery', 'assistant'].includes(page) && <PlannedPage page={page as Exclude<Page, 'home' | 'jobs' | 'settings'>} t={t} goHome={() => setPage('home')} />}
         </div>

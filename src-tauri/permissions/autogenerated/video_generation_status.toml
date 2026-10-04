@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-video-generation-status"
+description = "Enables the video_generation_status command without any pre-configured scope."
+commands.allow = ["video_generation_status"]
+
+[[permission]]
+identifier = "deny-video-generation-status"
+description = "Denies the video_generation_status command without any pre-configured scope."
+commands.deny = ["video_generation_status"]
