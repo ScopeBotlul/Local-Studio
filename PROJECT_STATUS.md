@@ -1027,3 +1027,12 @@ Als Nächstes stehen die noch offenen M0-Punkte und anschließend M1 gemäß `PL
 - Referenzbilder können über die vorhandene native Tauri-Datei-Drop-Verarbeitung in die Referenzbereiche des Bild-, GIF- und Video-Studios gezogen werden. Aktives Ziel folgt der Akzentfarbe; der Hinweis benennt die Referenzübernahme. Bilder werden vor Übernahme mit den bestehenden Backend-Prüfungen validiert. Video/GIF übernimmt passende Abmessungen und I2V; Bildstudio behält seine PNG-Anforderungen. Originaldateien bleiben unverändert.
 - Feste 10-/15-/30-Minuten-Inferenzlimits in Vulkan-Bild, Vulkan-Wan, ComfyUI-SDXL/Qwen/Wan entfernt. Gemeinsame Ressourcenwarteschlange wartet ohne Dauerlimit; Abbruch bleibt wirksam. Die MP4-Ergebniskodierung hat ebenfalls keine feste Laufzeitgrenze. Verbindungs-, Modellprüfungs-, Update- und reine Mediendiagnose-Timeouts bleiben bestehen.
 - Diese Quelländerungen sind noch kein neuer veröffentlichter Installer. Release 0.37.0 bleibt unverändert.
+
+
+# Bildstudio und KI-Bildbearbeitung (2026-10-04)
+
+- Bildgenerierung zeigt Modell, Prompt, offenen Negativ-Prompt und Bildformat zuerst. LoRAs, Engineinformationen, Civitai-Import und Detailparameter sind aufklappbar; die anpassbaren Seitenleisten und Galerie bleiben erhalten. Referenzbild/Inpainting ist aus Bild erstellen entfernt.
+- Bild bearbeiten enthält eine echte lokale SDXL/Vulkan-KI-Bearbeitung und den weiterhin verfügbaren Ebeneneditor. Import per Dateidialog, Drop und Studio-Galerie, Pinsel/Rechteck/Radierer, Rückgängig/Wiederholen, ganze Bildfläche oder markierte Bereiche, Veränderungsstärke und optional CPU-VAE verwenden den vorhandenen isolierten Inpainting-Worker.
+- Neue typisierte lokale IPC-Kommandos erstellen einzigartige PNG-Arbeitskopien und geprüfte Masken. Originale werden nicht überschrieben; unmarkierte Pixel der gegebenenfalls angepassten Arbeitskopie bleiben im Ergebnis exakt erhalten. Kein automatisches Speichern von Ergebnissen.
+- Getrennte lokale Bearbeitungseingaben und Markierungsentwürfe, gefilterte Auftragsverläufe sowie Weiterleitung aus Galerie/Auftragsübersicht. Alte Referenzeingaben werden in die Bearbeitung übernommen. Qwen/ComfyUI ist in diesem Bearbeitungspfad nicht unterstützt. Anleitung: docs/IMAGE_EDITING.md.
+- Kein neuer Installer oder GitHub-Release in diesem Schritt; Version bleibt 0.37.0. Verifikation und GPU-Speichergrenze stehen separat in TEST_MATRIX.md.

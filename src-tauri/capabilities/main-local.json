@@ -207,6 +207,8 @@
     "allow-preference-save",
     "allow-preference-forget",
     "allow-image-reference",
+    "allow-image-edit-source",
+    "allow-image-edit-mask",
     "allow-image-generate-batch",
     "allow-canvas-export-mask",
     "core:window:allow-minimize",

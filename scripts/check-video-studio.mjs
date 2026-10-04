@@ -68,13 +68,13 @@ try{
     assert.equal(await workspace.getByRole('button',{name:/Prompt zu Video|Prompt to video/}).getAttribute('aria-pressed'),'true');
     evidence.drop='controlled drop event in native WebView, real image validation, I2V mode and automatic dimensions passed; physical Explorer drag not automated';
     await tabs.getByRole('button',{name:/Bild erstellen|Create image/}).click();
-    await page.getByText(/Referenzbild und Inpainting|Reference image and inpainting/,{exact:false}).first().click();
+    assert.equal(await page.locator('.image-reference').count(),0);await tabs.getByRole('button',{name:/Bild bearbeiten|Edit image/}).click();await page.waitForFunction(()=>!!document.querySelector('.image-edit-source[data-file-drop]'));
     const imageSource=path.join(snapshot.paths.gallery,'image-reference.png');
     const imagePng=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=256;c.height=256;const ctx=c.getContext('2d');ctx.fillStyle='#45a';ctx.fillRect(0,0,256,256);return c.toDataURL('image/png').split(',')[1];});
     await fs.writeFile(imageSource,Buffer.from(imagePng,'base64'));
-    await emit([imageSource]);await page.locator('.image-reference img').waitFor();
-    assert.ok(await page.locator('.image-reference').getByRole('button',{name:/Referenz entfernen|Remove reference/}).isVisible());
-    evidence.imageDrop='image studio accepts a real validated PNG reference via controlled drop event';
+    await emit([imageSource]);await page.locator('.edit-image-surface img').waitFor();
+    assert.ok(await page.locator('.image-edit-source').getByRole('button',{name:/Bild entfernen|Remove image/}).isVisible());
+    evidence.imageDrop='image editing studio accepts a real validated PNG working copy via controlled drop event';
     await tabs.getByRole('button',{name:/Video erstellen|Create video/}).click();
   }
   await page.screenshot({path:path.join(artifacts,'video-workspace.png')});

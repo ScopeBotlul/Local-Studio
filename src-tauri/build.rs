@@ -150,6 +150,8 @@ fn main() {
             "image_save",
             "image_generate_batch",
             "image_reference",
+            "image_edit_source",
+            "image_edit_mask",
             "preferences_list",
             "preference_save",
             "preference_forget",

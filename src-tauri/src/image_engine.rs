@@ -18,6 +18,8 @@ use std::{
 };
 
 mod catalog;
+mod edit;
+pub use edit::{image_edit_source,image_edit_mask};
 mod queue;
 pub use catalog::image_model_catalog;
 pub(crate) mod reference;

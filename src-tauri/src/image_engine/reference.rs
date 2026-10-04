@@ -131,7 +131,7 @@ pub(super) fn prepare(request: &ImageRequest, directory: &Path, resume: bool) ->
     }
     result
 }
-fn validate_mask(data: &[u8]) -> Result<image::RgbaImage> {
+pub(super) fn validate_mask(data: &[u8]) -> Result<image::RgbaImage> {
     let image = image::load_from_memory_with_format(data, image::ImageFormat::Png)
         .map_err(|_| "image_mask")?
         .to_rgba8();
