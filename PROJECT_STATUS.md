@@ -1042,3 +1042,5 @@ Als Nächstes stehen die noch offenen M0-Punkte und anschließend M1 gemäß `PL
 
 - Versionsdateien auf 0.37.1 angehoben. Die Bildstudio-Überarbeitung und der zuvor auf main enthaltene Referenz-Drop/Entfall fester Generierungslaufzeiten sind im optimierten Release-Build enthalten.
 - Releasehinweise: docs/RELEASE_0.37.1.md. Der bestehende Update-Signaturschlüssel bleibt unverändert. Persönliche Dateien und Modellgewichte sind vom Paket ausgeschlossen.
+
+- Veröffentlichung abgeschlossen: https://github.com/ScopeBotlul/Local-Studio/releases/tag/v0.37.1 ist Latest mit Installer, Portable-ZIP, SHA256SUMS, update.json und update.sig.
