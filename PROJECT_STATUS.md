@@ -1057,3 +1057,5 @@ Als Nächstes stehen die noch offenen M0-Punkte und anschließend M1 gemäß `PL
 # Release 0.37.2 (2026-10-20)
 
 - Versionsdateien und Portable-Hinweise auf 0.37.2 aktualisiert. Enthält die Wan-LoRA-Auswahl und Engine-Anbindung aus Commit 97bd75d. Releasehinweise: docs/RELEASE_0.37.2.md. Bestehender Update-Signaturschlüssel unverändert.
+
+- Veröffentlichung abgeschlossen: https://github.com/ScopeBotlul/Local-Studio/releases/tag/v0.37.2 ist Latest mit Installer, Portable-ZIP, Prüfsummen und signierten Update-Metadaten.
