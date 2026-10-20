@@ -1239,3 +1239,10 @@ ZIP-Inhalt/CRC, Anleitung, EXE-Identität und Prüfsummen geprüft. Vollständig
 - cargo test --manifest-path src-tauri/Cargo.toml loras --lib: 3/3 bestanden. ComfyUI-LoRA-Verkettung vor Sampling bei unverändertem CLIP, Ablehnung ungültiger Stärke/Anzahl/Dateiendung/Prüfsumme, Windows-Schreibsperre sowie gemeinsames neutrales Vulkan-Staging, Promptstärke und Bereinigung.
 - node scripts/check-gif-loras.mjs: bestanden in isolierter echter Windows-App. Kontrollierte Bibliothek und abgefangene Generierungsanfragen prüfen Auswahl, Stärke 0.65, identische LoRA-IPC-Daten für ComfyUI und Vulkan, lokale Wiederherstellung nach Studio-Wechsel und Entfernen. Zusätzlich weist das echte Rust-IPC eine ungültige Stärke mit image_lora zurück. Nachweis .artifacts/gif-loras-1792519628660. Tauri-Invoke ist unveränderlich; der Test ersetzt die Core-Weiterleitung ausschließlich im lokalen Test-WebView über Playwright-Routing.
 - Grenze: Keine vollständige GPU-Generierung mit einem echten Wan-LoRA-Modell, keine Qualitäts-/Kompatibilitätsgarantie und kein neuer Installer. Keine unveränderten Inferenz-, Installer- oder vollständigen Regressionstests wiederholt. Vorläufige Testläufe scheiterten an Test-Interception bzw. frühem Reload, nicht an der Produktfunktion; finaler Lauf bestanden.
+
+
+# Release 0.37.2 — gezielte Buildprüfung (2026-10-20)
+
+- scripts/desktop.ps1 build: bestanden. TypeScript/Vite, optimiertes Rust/Tauri, verifizierte Runtimes und Inno-Installer kompiliert. Bestehende Bundlegrößen-/Linker-Informationswarnungen bleiben.
+- node scripts/check-gif-lora-release.mjs: bestanden in echter isolierter Release-App ohne Test-IPC. Version aus echtem bootstrap bestätigt; lokale Testauswahl, Stärke, Speicherung, Enginewechsel und Entfernen geprüft. Nachweis .artifacts/gif-lora-release-1792519877893. Die zuvor bestandenen drei Rust-LoRA-Tests und der kontrollierte native Anfrageübergabetest aus 97bd75d werden wiederverwendet.
+- Kein vollständiger GPU-Wan-LoRA-Lauf, keine vollständige Regression und kein erneuter Installationsdurchlauf. Diese Grenzen stehen in den Releasehinweisen.

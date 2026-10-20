@@ -1052,3 +1052,8 @@ Als Nächstes stehen die noch offenen M0-Punkte und anschließend M1 gemäß `PL
 - ComfyUI registriert gewählte externe LoRA-Ordner über den vorhandenen Mechanismus und verbindet LoraLoaderModelOnly-Knoten vor ModelSamplingSD3. Der Textencoder wird unverändert verwendet. Extern gestartete Engines werden nicht eigenmächtig beendet; nötige Neustarts werden verständlich gemeldet.
 - Vulkan prüft und sperrt ausgewählte lokale Safetensors-Dateien, kopiert sie unter neutralen Namen in einen temporären Auftragsordner und übergibt Stärken über LoRA-Promptmarker samt --lora-model-dir/--lora-apply-mode. Arbeitskopien werden wieder entfernt. Die vorhandene Bild-LoRA-Stagingfunktion wird gemeinsam verwendet.
 - Nur zum gewählten Wan-Modell passende LoRAs verwenden; keine automatische Garantie der Architekturkompatibilität. Keine Modellabhängigkeiten installiert, keine Medien hochgeladen. Kein neuer Installer/Release in diesem Schritt.
+
+
+# Release 0.37.2 (2026-10-20)
+
+- Versionsdateien und Portable-Hinweise auf 0.37.2 aktualisiert. Enthält die Wan-LoRA-Auswahl und Engine-Anbindung aus Commit 97bd75d. Releasehinweise: docs/RELEASE_0.37.2.md. Bestehender Update-Signaturschlüssel unverändert.
