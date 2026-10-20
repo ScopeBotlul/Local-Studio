@@ -74,6 +74,7 @@ pub enum ImageBackend {
 }
 
 pub(crate) struct NativeVideoRequest {
+    pub loras: Vec<ImageLora>,
     pub source_path: Option<String>,
     pub model_path: String,
     pub encoder_path: String,
@@ -563,6 +564,29 @@ fn native_video_frames(directory: &Path, expected: u32) -> Result<Vec<String>> {
     Ok(frames)
 }
 
+/// Pin user-selected Wan LoRAs until generation ends, just like image inputs.
+pub(crate) fn lock_video_loras(loras: &[ImageLora], cancel: &AtomicBool) -> Result<Vec<File>> {
+    if loras.len() > 8 { return Err("image_lora".into()); }
+    let mut files = Vec::with_capacity(loras.len());
+    for lora in loras {
+        if !lora.strength.is_finite() || !(-2.0..=2.0).contains(&lora.strength) {
+            return Err("image_lora".into());
+        }
+        let path = Path::new(&lora.path);
+        crate::privacy::check(path)?;
+        if !path.extension().is_some_and(|e| e.eq_ignore_ascii_case("safetensors")) {
+            return Err("image_lora_path".into());
+        }
+        let mut file = read_locked(path).map_err(|_| "image_lora_path")?;
+        if file.metadata().map_err(|_| "image_lora_path")?.len() == 0 { return Err("image_lora_path".into()); }
+        if let Some(expected) = &lora.sha256 {
+            if sha(&mut file, Some(cancel), |_| {})? != *expected { return Err("image_lora_changed".into()); }
+        }
+        files.push(file);
+    }
+    Ok(files)
+}
+
 struct StagedLoras {
     directory: PathBuf,
     files: Vec<PathBuf>,
@@ -578,14 +602,14 @@ impl Drop for StagedLoras {
 
 fn stage_native_loras(
     job_directory: &Path,
-    request: &ImageRequest,
+    loras: &[ImageLora],
     sources: &mut [File],
     cancel: &AtomicBool,
 ) -> Result<Option<StagedLoras>> {
-    if request.loras.is_empty() {
+    if loras.is_empty() {
         return Ok(None);
     }
-    if request.loras.len() != sources.len() {
+    if loras.len() != sources.len() {
         return Err("image_lora_stage".into());
     }
     let directory = job_directory.join(format!("native-loras-{}", uuid::Uuid::new_v4()));
@@ -625,11 +649,11 @@ fn stage_native_loras(
     Ok(Some(staged))
 }
 
-fn native_lora_prompt(request: &ImageRequest) -> String {
-    let mut prompt = request.prompt.clone();
-    if !request.loras.is_empty() {
+fn native_lora_prompt(prompt: &str, loras: &[ImageLora]) -> String {
+    let mut prompt = prompt.to_owned();
+    if !loras.is_empty() {
         prompt.push('\n');
-        for (index, lora) in request.loras.iter().enumerate() {
+        for (index, lora) in loras.iter().enumerate() {
             prompt.push_str(&format!(
                 "<lora:local-studio-{}:{}>",
                 index + 1,
@@ -1014,6 +1038,8 @@ impl ImageEngine {
         input_locks.push(read_locked(&encoder).map_err(|_| "gif_vulkan_encoder")?);
         input_locks.push(read_locked(&vae).map_err(|_| "gif_vulkan_vae")?);
         let _input_locks = input_locks;
+        let mut lora_locks = lock_video_loras(&request.loras, cancel)?;
+        let staged_loras = stage_native_loras(&directory, &request.loras, &mut lora_locks, cancel)?;
         let hardware = crate::hardware::discover();
         let mut vendors = Vec::new();
         for vendor in ["NVIDIA", "AMD", "Intel"] {
@@ -1030,13 +1056,16 @@ impl ImageEngine {
             .map_err(|error| if error == "resource_cancelled" { "gif_vulkan_cancelled".into() } else { error })?;
         let prompt = directory.join("prompt.txt");
         let negative = directory.join("negative.txt");
-        fs::write(&prompt, request.prompt).map_err(|_| "gif_storage")?;
+        fs::write(&prompt, native_lora_prompt(&request.prompt, &request.loras)).map_err(|_| "gif_storage")?;
         fs::write(&negative, request.negative_prompt).map_err(|_| "gif_storage")?;
         let output = directory.join("frame_%03d.png");
         let log_path = directory.join("runtime.log");
         let log = File::options().write(true).create_new(true).open(&log_path).map_err(|_| "gif_storage")?;
         let stderr = log.try_clone().map_err(|_| "gif_storage")?;
         let mut cmd = command(&self.runtime);
+        if let Some(staged) = &staged_loras {
+            cmd.arg("--lora-model-dir").arg(&staged.directory).args(["--lora-apply-mode", "auto"]);
+        }
         cmd.args(["-M", "vid_gen", "--diffusion-model"])
             .arg(&model)
             .arg("--t5xxl")
@@ -1241,10 +1270,10 @@ impl ImageEngine {
             let mut cmd = command(&self.runtime);
             let _reference_pins = reference::run_inputs(request, &directory, &mut cmd)?;
             let staged_loras =
-                stage_native_loras(&directory, request, &mut extension_pins, &cancel)?;
+                stage_native_loras(&directory, &request.loras, &mut extension_pins, &cancel)?;
             let runtime_prompt = if staged_loras.is_some() {
                 let path = directory.join("runtime-prompt.txt");
-                fs::write(&path, native_lora_prompt(request)).map_err(|_| "image_storage")?;
+                fs::write(&path, native_lora_prompt(&request.prompt, &request.loras)).map_err(|_| "image_storage")?;
                 path
             } else {
                 directory.join("prompt.txt")
@@ -1856,6 +1885,22 @@ mod tests {
         assert_eq!(decoded.engine, ImageBackend::Auto);
     }
     #[test]
+    fn video_loras_reject_invalid_inputs_and_pin_selected_files() {
+        let dir=tempfile::tempdir().unwrap();
+        let path=dir.path().join("motion.safetensors");
+        fs::write(&path,b"local model data").unwrap();
+        let lora=ImageLora{path:path.to_string_lossy().into(),strength:0.75,sha256:None};
+        let cancel=AtomicBool::new(false);
+        let pins=lock_video_loras(&[lora.clone()],&cancel).unwrap();
+        assert!(OpenOptions::new().write(true).open(&path).is_err());
+        drop(pins);
+        assert!(lock_video_loras(&[ImageLora{strength:f32::NAN,..lora.clone()}],&cancel).is_err());
+        assert!(lock_video_loras(&vec![lora.clone();9],&cancel).is_err());
+        assert!(lock_video_loras(&[ImageLora{path:"not-a-model.py".into(),..lora.clone()}],&cancel).is_err());
+        assert!(lock_video_loras(&[ImageLora{sha256:Some("wrong".into()),..lora}],&cancel).is_err());
+    }
+
+    #[test]
     fn native_loras_are_staged_with_neutral_names_and_cleaned_up() {
         let directory = tempfile::tempdir().unwrap();
         let source_path = directory.path().join("user-name.safetensors");
@@ -1870,7 +1915,7 @@ mod tests {
         let mut sources = vec![File::open(&source_path).unwrap()];
         let staged = stage_native_loras(
             directory.path(),
-            &request,
+            &request.loras,
             &mut sources,
             &AtomicBool::new(false),
         )
@@ -1882,7 +1927,7 @@ mod tests {
             b"checked lora bytes"
         );
         assert_eq!(
-            native_lora_prompt(&request),
+            native_lora_prompt(&request.prompt, &request.loras),
             "portrait\n<lora:local-studio-1:0.75>"
         );
         drop(staged);

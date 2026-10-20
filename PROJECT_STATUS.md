@@ -1044,3 +1044,11 @@ Als Nächstes stehen die noch offenen M0-Punkte und anschließend M1 gemäß `PL
 - Releasehinweise: docs/RELEASE_0.37.1.md. Der bestehende Update-Signaturschlüssel bleibt unverändert. Persönliche Dateien und Modellgewichte sind vom Paket ausgeschlossen.
 
 - Veröffentlichung abgeschlossen: https://github.com/ScopeBotlul/Local-Studio/releases/tag/v0.37.1 ist Latest mit Installer, Portable-ZIP, SHA256SUMS, update.json und update.sig.
+
+
+# Wan-LoRAs im GIF-Studio (2026-10-20)
+
+- GIF erstellen / Mit KI hat einen LoRA-Bereich: Auswahl aus der lokalen Modellbibliothek oder Safetensors-Dateidialog, bis zu acht Einträge mit individueller Stärke (-2 bis 2), Entfernen und lokale Speicherung. Die gemeinsame Videooberfläche erhält dieselbe Auswahl; Videoaufträge speichern und restaurieren ihre LoRAs. Alte Anfragen ohne LoRAs bleiben kompatibel.
+- ComfyUI registriert gewählte externe LoRA-Ordner über den vorhandenen Mechanismus und verbindet LoraLoaderModelOnly-Knoten vor ModelSamplingSD3. Der Textencoder wird unverändert verwendet. Extern gestartete Engines werden nicht eigenmächtig beendet; nötige Neustarts werden verständlich gemeldet.
+- Vulkan prüft und sperrt ausgewählte lokale Safetensors-Dateien, kopiert sie unter neutralen Namen in einen temporären Auftragsordner und übergibt Stärken über LoRA-Promptmarker samt --lora-model-dir/--lora-apply-mode. Arbeitskopien werden wieder entfernt. Die vorhandene Bild-LoRA-Stagingfunktion wird gemeinsam verwendet.
+- Nur zum gewählten Wan-Modell passende LoRAs verwenden; keine automatische Garantie der Architekturkompatibilität. Keine Modellabhängigkeiten installiert, keine Medien hochgeladen. Kein neuer Installer/Release in diesem Schritt.

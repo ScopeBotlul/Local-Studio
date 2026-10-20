@@ -1231,3 +1231,11 @@ ZIP-Inhalt/CRC, Anleitung, EXE-Identität und Prüfsummen geprüft. Vollständig
 
 - Paketprüfung bestanden: exakt 80 freigegebene ZIP-Dateien, Release-EXE identisch, Runtime-Hashes korrekt, Installer identisch und Versionsdateien konsistent. Nachweis .artifacts/package-bytes-verification-0.37.1.json. Installer SHA-256 201002a884ca2386ab7ca9616c7d93c5a0962cb32d66a458f7f0ce6c8d895090; Portable SHA-256 50625bb16d36339b7bc008bb167ab25e7bdee53ae9b1544aec714ac87f0ac9b9.
 - Öffentliche Gegenprüfung bestanden: beide GitHub-Pakete vollständig zurückgeladen, Größen und SHA-256 korrekt; alle fünf Asset-Digests entsprechen lokalen Dateien. Ed25519-Signatur gegen eingebetteten öffentlichen Schlüssel verifiziert; Version 0.37.1 ist Latest. Nachweis .artifacts/github-release-verification-0.37.1.json.
+
+
+# Wan-LoRAs — gezielte Verifikation (2026-10-20)
+
+- npm.cmd run build und cargo check: bestanden; typisierte GIF-/Videoanfragen und neue LoRA-Oberfläche kompilieren. Debug-App mit Änderungen erfolgreich gebaut. Bestehende Bundlegrößen-/Linker-Informationswarnungen bleiben.
+- cargo test --manifest-path src-tauri/Cargo.toml loras --lib: 3/3 bestanden. ComfyUI-LoRA-Verkettung vor Sampling bei unverändertem CLIP, Ablehnung ungültiger Stärke/Anzahl/Dateiendung/Prüfsumme, Windows-Schreibsperre sowie gemeinsames neutrales Vulkan-Staging, Promptstärke und Bereinigung.
+- node scripts/check-gif-loras.mjs: bestanden in isolierter echter Windows-App. Kontrollierte Bibliothek und abgefangene Generierungsanfragen prüfen Auswahl, Stärke 0.65, identische LoRA-IPC-Daten für ComfyUI und Vulkan, lokale Wiederherstellung nach Studio-Wechsel und Entfernen. Zusätzlich weist das echte Rust-IPC eine ungültige Stärke mit image_lora zurück. Nachweis .artifacts/gif-loras-1792519628660. Tauri-Invoke ist unveränderlich; der Test ersetzt die Core-Weiterleitung ausschließlich im lokalen Test-WebView über Playwright-Routing.
+- Grenze: Keine vollständige GPU-Generierung mit einem echten Wan-LoRA-Modell, keine Qualitäts-/Kompatibilitätsgarantie und kein neuer Installer. Keine unveränderten Inferenz-, Installer- oder vollständigen Regressionstests wiederholt. Vorläufige Testläufe scheiterten an Test-Interception bzw. frühem Reload, nicht an der Produktfunktion; finaler Lauf bestanden.

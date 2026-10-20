@@ -308,6 +308,8 @@ pub struct GifSourcePreview {
 pub struct GifAiRequest {
     pub source_path: Option<String>,
     pub model_path: String,
+    #[serde(default)]
+    pub loras: Vec<crate::image_engine::ImageLora>,
     pub prompt: String,
     pub negative_prompt: String,
     pub width: u32,
@@ -325,6 +327,8 @@ pub struct GifAiRequest {
 pub struct GifVulkanRequest {
     pub source_path: Option<String>,
     pub model_path: String,
+    #[serde(default)]
+    pub loras: Vec<crate::image_engine::ImageLora>,
     pub encoder_path: String,
     pub vae_path: String,
     pub prompt: String,
@@ -393,6 +397,7 @@ pub async fn gif_vulkan_create(
         let generation = NativeVideoRequest {
             source_path: request.source_path,
             model_path: request.model_path,
+            loras: request.loras,
             encoder_path: request.encoder_path,
             vae_path: request.vae_path,
             prompt: request.prompt,

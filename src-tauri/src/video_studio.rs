@@ -32,6 +32,8 @@ pub struct VideoGenerationRequest {
     mode: String,
     source_path: Option<String>,
     model_path: String,
+    #[serde(default)]
+    loras: Vec<crate::image_engine::ImageLora>,
     encoder_path: Option<String>,
     vae_path: Option<String>,
     prompt: String,
@@ -80,6 +82,7 @@ impl VideoGenerationRequest {
         GifAiRequest {
             source_path: self.source_path.clone(),
             model_path: self.model_path.clone(),
+            loras: self.loras.clone(),
             prompt: self.prompt.clone(),
             negative_prompt: self.negative_prompt.clone(),
             width: self.width,
@@ -438,6 +441,7 @@ pub async fn video_generation_create(
                     NativeVideoRequest {
                         source_path: request.source_path.clone(),
                         model_path: request.model_path.clone(),
+                        loras: request.loras.clone(),
                         encoder_path: request.encoder_path.clone().ok_or("gif_vulkan_encoder")?,
                         vae_path: request.vae_path.clone().ok_or("gif_vulkan_vae")?,
                         prompt: request.prompt.clone(),
@@ -677,6 +681,7 @@ mod tests {
             mode: "prompt".into(),
             source_path: None,
             model_path: "wan2.1_t2v.safetensors".into(),
+            loras: vec![],
             encoder_path: None,
             vae_path: None,
             prompt: "a red square moving right".into(),

@@ -22,6 +22,18 @@ use std::{
 
 type Result<T> = std::result::Result<T, String>;
 const ENDPOINT: &str = "http://127.0.0.1:8188";
+
+fn attach_wan_loras(workflow: &mut Value, loras: &[(String, f32)]) {
+    let mut model = json!(["1", 0]);
+    for (index, (name, strength)) in loras.iter().enumerate() {
+        let id = format!("wan_lora_{index}");
+        workflow[&id] = json!({"class_type":"LoraLoaderModelOnly","inputs":{
+            "model":model,"lora_name":name,"strength_model":strength
+        }});
+        model = json!([id, 0]);
+    }
+    workflow["11"]["inputs"]["model"] = model;
+}
 const RELEASE_API: &str = "https://api.github.com/repos/Comfy-Org/ComfyUI/releases/latest";
 const MAX_ARCHIVE_BYTES: u64 = 12 * 1024 * 1024 * 1024;
 const AMD_COMPAT_ARGS: [&str; 3] = [
@@ -1528,6 +1540,8 @@ impl Comfy {
         {
             return Err("gif_ai_parameters".into());
         }
+        let _lora_pins = crate::image_engine::lock_video_loras(&request.loras, cancel)?;
+        if self.register_lora_parents(&request.loras)? { self.reload_after_lora_registration()?; }
         let source = request.source_path.as_deref().filter(|path| !path.trim().is_empty()).map(|requested| -> Result<(PathBuf, String)> {
             let source = fs::canonicalize(requested).map_err(|_| "gif_ai_source")?;
             model_library::no_links(&source).map_err(|_| "gif_ai_source")?;
@@ -1650,6 +1664,16 @@ impl Comfy {
                 "10":{"class_type":"PreviewImage","inputs":{"images":["9",0]}},
                 "11":{"class_type":"ModelSamplingSD3","inputs":{"model":["1",0],"shift":if wan_version==WanVersion::V21 {8.0}else{5.0}}}
             });
+            let mut lora_names = Vec::new();
+            if !request.loras.is_empty() {
+                let info = object("LoraLoaderModelOnly").map_err(|_| "gif_ai_lora_loader")?;
+                for lora in &request.loras {
+                    let relative = self.model_relative(Path::new(&lora.path), "loras").ok_or("image_lora_path")?;
+                    let name = resolve_comfy_option(&info, "LoraLoaderModelOnly", "lora_name", &relative).ok_or("gif_ai_lora_unavailable")?;
+                    lora_names.push((name, lora.strength));
+                }
+            }
+            attach_wan_loras(&mut workflow, &lora_names);
             if let Some(vision_name)=vision_name {
                 workflow["12"]=json!({"class_type":"CLIPVisionLoader","inputs":{"clip_name":vision_name}});
                 workflow["13"]=json!({"class_type":"CLIPVisionEncode","inputs":{"clip_vision":["12",0],"image":["6",0],"crop":"center"}});
@@ -2148,6 +2172,19 @@ mod tests {
         assert!(found.iter().any(|model| model.name.contains("t2v") && !model.supports_image && model.supports_prompt));
         assert!(found.iter().filter(|model| model.name.contains("i2v") && !model.name.contains("ti2v")).all(|model| model.supports_image && !model.supports_prompt));
         assert!(found.iter().filter(|model| model.name.contains("ti2v")).all(|model| model.supports_image && model.supports_prompt));
+    }
+
+    #[test]
+    fn wan_loras_chain_before_sampling_without_modifying_text_encoder() {
+        let mut graph = json!({"11":{"inputs":{"model":["1",0]}},"4":{"inputs":{"clip":["2",0]}}});
+        attach_wan_loras(&mut graph, &[]);
+        assert_eq!(graph["11"]["inputs"]["model"], json!(["1",0]));
+        attach_wan_loras(&mut graph, &[("motion.safetensors".into(),0.75),("style.safetensors".into(),-0.5)]);
+        assert_eq!(graph["wan_lora_0"]["inputs"]["model"],json!(["1",0]));
+        assert_eq!(graph["wan_lora_1"]["inputs"]["model"],json!(["wan_lora_0",0]));
+        assert_eq!(graph["11"]["inputs"]["model"],json!(["wan_lora_1",0]));
+        assert_eq!(graph["wan_lora_1"]["inputs"]["strength_model"],json!(-0.5));
+        assert_eq!(graph["4"]["inputs"]["clip"],json!(["2",0]));
     }
 
     #[test]

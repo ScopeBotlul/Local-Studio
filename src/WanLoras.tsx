@@ -1,0 +1,18 @@
+import {useEffect,useState} from 'react';
+import {invoke} from '@tauri-apps/api/core';
+import {open} from '@tauri-apps/plugin-dialog';
+import {FolderOpen,X} from 'lucide-react';
+import type {ImageLora} from './image-api';
+import {displayPath} from './helpers';
+
+export function savedWanLoras(key:string):ImageLora[]{
+  try{const items:unknown=JSON.parse(localStorage.getItem(key)??'[]');if(Array.isArray(items)&&items.length<=8&&items.every(l=>l&&typeof l.path==='string'&&/\.safetensors$/i.test(l.path)&&Number.isFinite(l.strength)&&Math.abs(l.strength)<=2))return items;}catch{/* fresh selection */}
+  return [];
+}
+type Candidate={id:string;name:string;path:string;status:string;profile?:{role:string;family:string|null;baseFamily?:string|null}|null};
+export default function WanLoras({de,loras,onChange,disabled}:{de:boolean;loras:ImageLora[];onChange:(items:ImageLora[])=>void;disabled:boolean}){
+  const [candidates,setCandidates]=useState<Candidate[]>([]),[error,setError]=useState('');
+  useEffect(()=>{let live=true;void invoke<{entries:Candidate[]}>('model_library_list').then(data=>{if(live)setCandidates(data.entries.filter(e=>e.profile?.role==='extension'&&e.profile.family==='LoRA'&&['checked','recognized'].includes(e.status)));}).catch(()=>{if(live)setError(de?'Modellbibliothek konnte nicht gelesen werden. Du kannst eine Datei wählen.':'Could not read the model library. You can choose a file.');});return()=>{live=false;};},[de]);
+  const add=(path:string)=>{if(loras.length<8&&!loras.some(l=>l.path.toLowerCase()===path.toLowerCase()))onChange([...loras,{path,strength:1}]);};
+  return <details className="image-control-details wan-loras" open={loras.length>0||undefined}><summary>LoRAs · {loras.length}/8</summary><p className="hub-hint">{de?'Nur LoRAs für das gewählte Wan-Modell verwenden. SDXL-Bild-LoRAs sind nicht kompatibel.':'Use LoRAs matching the selected Wan model. SDXL image LoRAs are incompatible.'}</p><div className="image-model-path"><select aria-label={de?'Wan-LoRA hinzufügen':'Add Wan LoRA'} value="" disabled={disabled||loras.length>=8} onChange={e=>{if(e.target.value)add(e.target.value);}}><option value="">{de?'Aus Modellbibliothek wählen …':'Choose from model library …'}</option>{candidates.filter(e=>!loras.some(l=>l.path.toLowerCase()===e.path.toLowerCase())).map(e=><option key={e.id} value={e.path}>{e.name}{e.profile?.baseFamily?` · ${e.profile.baseFamily}`:''}</option>)}</select><button type="button" className="button secondary" disabled={disabled||loras.length>=8} onClick={()=>void(async()=>{try{setError('');const path=await open({multiple:false,filters:[{name:'LoRA · Safetensors',extensions:['safetensors']}]});if(typeof path==='string')add(path);}catch{setError(de?'LoRA-Datei konnte nicht gewählt werden.':'Could not select the LoRA file.');}})()}><FolderOpen size={15}/>{de?'Datei wählen':'Choose file'}</button></div><div className="image-lora-list">{loras.map((l,index)=><div className="image-lora-row" key={l.path}><span title={displayPath(l.path)}>{displayPath(l.path).split(/[\\/]/).pop()}</span><label>{de?'Stärke':'Strength'}<input aria-label={`${de?'LoRA-Stärke':'LoRA strength'} ${index+1}`} disabled={disabled} type="number" min={-2} max={2} step={0.05} value={l.strength} onChange={e=>onChange(loras.map((item,i)=>i===index?{...item,strength:Number(e.target.value)}:item))}/></label><button type="button" className="icon-button" disabled={disabled} aria-label={de?'LoRA entfernen':'Remove LoRA'} onClick={()=>onChange(loras.filter((_,i)=>i!==index))}><X size={15}/></button></div>)}</div>{error&&<p role="alert">{error}</p>}</details>;
+}
